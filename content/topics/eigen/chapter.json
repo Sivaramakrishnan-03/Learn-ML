@@ -1,0 +1,486 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 18,
+  "hook": "Spin a globe and every city on it moves, except the points on the axis: they stay on the same line, however fast you spin. Matrices behave the same way. When a matrix transforms space, most directions get twisted, but a few special directions are only stretched or shrunk. These are **eigenvectors**, and the amount of stretch is the **eigenvalue**. They sound abstract, yet they sit underneath PCA, Google's original PageRank, and every \"what share of the variation does this factor explain?\" chart you will see in a consulting deck.",
+  "sections": [
+    {
+      "heading": "The problem: finding the directions that matter",
+      "blocks": [
+        {
+          "p": "A car maker's quality team records 40 measurements on every gearbox coming off the line. Many of them move together: when one dimension runs large, several related ones do too. The engineers suspect there are really only three or four underlying \"ways\" a gearbox can vary. Which combinations of measurements are they, and how much of the total variation does each one explain?"
+        },
+        {
+          "p": "That question, \"what are the main directions in this data, and how important is each?\", is exactly what eigenvectors and eigenvalues answer. To get there we first need one idea from the previous chapter: **a matrix is a machine that transforms vectors.** Feed in an arrow, get out a different arrow."
+        },
+        {
+          "term": "Linear transformation",
+          "def": "What a matrix does to vectors when you multiply them by it: stretch, squash, rotate, reflect or shear space, always keeping straight lines straight and the origin fixed."
+        },
+        {
+          "p": "Most arrows come out of the machine pointing in a new direction. Eigenvectors are the rare arrows that come out pointing along the same line as they went in. They reveal the \"natural axes\" of the transformation, and for data, the natural axes of the cloud of points."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: stretching a rubber sheet",
+      "blocks": [
+        {
+          "p": "Draw some arrows from the centre of a rubber sheet, pin the centre, and stretch the sheet: pull it diagonally, say, from bottom-left to top-right."
+        },
+        {
+          "steps": [
+            "**Most arrows swing round.** An arrow that pointed due east now points somewhat north-east, because the pull dragged it towards the diagonal.",
+            "**The arrow along the pull just gets longer.** It was on the diagonal and it stays on the diagonal. That is an eigenvector, and \"how much longer\" is its eigenvalue (bigger than 1).",
+            "**The arrow at right angles to the pull may just get shorter or stay put.** It also keeps its line. Another eigenvector, with an eigenvalue of 1 or less.",
+            "**Every other arrow is a mix** of these two special directions, so you can predict exactly what happens to it once you know the eigenvectors and eigenvalues."
+          ],
+          "title": "What the sheet teaches us"
+        },
+        {
+          "term": "Eigenvector",
+          "def": "A non-zero direction that a matrix only stretches, shrinks or flips, without turning it off its line. \"Eigen\" is German for \"own\" or \"characteristic\": these are the matrix's own directions."
+        },
+        {
+          "term": "Eigenvalue",
+          "def": "The stretch factor along an eigenvector. 3 means three times longer, 0.5 means halved, 0 means squashed flat, and a negative value means flipped to point the opposite way."
+        },
+        {
+          "think": {
+            "q": "A matrix rotates every vector by 90 degrees. Does it have any (real) eigenvectors?",
+            "a": "No. Every direction gets turned, so no arrow stays on its own line. Pure rotations in 2D have no real eigenvectors; their eigenvalues are complex numbers. Fortunately the matrices we meet in data science, covariance matrices, are symmetric and always have real eigenvalues and perpendicular eigenvectors."
+          }
+        },
+        {
+          "callout": "Eigenvectors are about directions, not specific arrows. If v is an eigenvector, so is 2v or −v. Libraries usually report them scaled to length 1, and the sign they choose is arbitrary.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "p": "For a small matrix you can find eigenvalues and eigenvectors by hand in four steps. For anything bigger, `numpy.linalg.eig` (or `eigh` for symmetric matrices) does it instantly."
+        },
+        {
+          "steps": [
+            "**Write the eigen-equation:** A v = λ v. We want v (a direction) and λ (a number).",
+            "**Rearrange:** (A − λI) v = 0. A non-zero v can only be squashed to zero if A − λI has no inverse.",
+            "**Solve for λ:** \"no inverse\" means the determinant of A − λI is zero. For a 2 × 2 matrix this is a quadratic equation, giving two eigenvalues.",
+            "**Find each v:** plug each λ back in and solve (A − λI) v = 0 for the direction."
+          ],
+          "title": "Finding eigenvalues and eigenvectors"
+        },
+        {
+          "term": "Determinant",
+          "def": "A single number computed from a square matrix that says how much it scales areas (or volumes). For [[a, b], [c, d]] it is ad − bc. A determinant of zero means the matrix squashes space flat, so it has no inverse."
+        },
+        {
+          "p": "In data science you almost never apply this to a random matrix. You apply it to the **covariance matrix** of your features, because its eigenvectors are the main directions of spread in the data. That recipe is called Principal Component Analysis (PCA)."
+        },
+        {
+          "term": "Covariance matrix",
+          "def": "A square table that, for every pair of features, records how much they vary together. Diagonal entries are each feature's variance; off-diagonal entries are covariances. For standardised features it is the correlation matrix."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Standardise** each feature",
+              "**Covariance matrix** of the features",
+              "**Eigen-decompose**: eigenvectors and eigenvalues",
+              "**Sort** by eigenvalue, largest first",
+              "**Keep the top few** directions (principal components)"
+            ],
+            "caption": "PCA is eigenvectors applied to data. The eigenvalues decide how many directions are worth keeping."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "A\\mathbf{v} = \\lambda \\mathbf{v}",
+          "plain": "Multiplying the eigenvector v by the matrix A gives the same vector back, just multiplied by an ordinary number λ. The matrix acts on this direction like simple multiplication.",
+          "symbols": [
+            [
+              "A",
+              "a square matrix (the transformation)"
+            ],
+            [
+              "\\mathbf{v}",
+              "an eigenvector (non-zero)"
+            ],
+            [
+              "\\lambda",
+              "its eigenvalue, the stretch factor (Greek letter lambda)"
+            ]
+          ]
+        },
+        {
+          "p": "Why is this valuable? Matrix multiplication is complicated: every output entry mixes every input entry. Along an eigenvector, all that complexity collapses into multiplying by one number. If you describe your data using eigenvector directions as the axes, the matrix becomes as simple as a list of stretch factors."
+        },
+        {
+          "tex": "\\det(A - \\lambda I) = 0",
+          "plain": "The characteristic equation. Subtract λ from every diagonal entry of A, take the determinant, set it to zero, and solve for λ. The solutions are the eigenvalues.",
+          "symbols": [
+            [
+              "I",
+              "identity matrix"
+            ],
+            [
+              "\\det",
+              "determinant"
+            ]
+          ]
+        },
+        {
+          "p": "Two handy checks for any square matrix: the eigenvalues add up to the **trace** (the sum of the diagonal entries) and multiply to the determinant. If your hand calculation fails these checks, something went wrong."
+        },
+        {
+          "tex": "\\text{share of variance}_k = \\frac{\\lambda_k}{\\lambda_1 + \\lambda_2 + \\dots + \\lambda_n}",
+          "plain": "For a covariance matrix, each eigenvalue is the variance of the data along its eigenvector. Divide by the total to get the share of all variation that direction explains. This is the \"explained variance ratio\" in scikit-learn's PCA.",
+          "symbols": [
+            [
+              "\\lambda_k",
+              "the k-th eigenvalue"
+            ],
+            [
+              "n",
+              "number of features"
+            ]
+          ]
+        },
+        {
+          "p": "Why does the covariance matrix have this property? Its eigenvector with the largest eigenvalue is the single direction along which the data, projected onto that line, has the greatest variance. The next eigenvector is the best direction perpendicular to the first, and so on. Symmetric matrices like covariance matrices guarantee these directions are at right angles to each other."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Spotting eigenvectors by testing arrows",
+            "setup": "Take A = [[2, 1], [1, 2]]. Test three arrows: [1, 0], [1, 1] and [1, −1].",
+            "steps": [
+              "A [1, 0] = [2 × 1 + 1 × 0, 1 × 1 + 2 × 0] = [2, 1]. The arrow pointed east; now it points north-east. Turned, so not an eigenvector.",
+              "A [1, 1] = [2 + 1, 1 + 2] = [3, 3] = 3 × [1, 1]. Same direction, three times longer. Eigenvector with eigenvalue 3.",
+              "A [1, −1] = [2 − 1, 1 − 2] = [1, −1] = 1 × [1, −1]. Unchanged. Eigenvector with eigenvalue 1."
+            ],
+            "result": "A stretches the diagonal direction by 3 and leaves the anti-diagonal alone. Every other arrow, such as [1, 0], is a mix of the two and gets pulled towards the diagonal."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "first coordinate",
+            "yLabel": "second coordinate",
+            "line": {
+              "m": 1,
+              "b": 0
+            },
+            "caption": "Arrow tips before (blue) and after (orange) multiplying by A. [1, 1] moves out to [3, 3] along the line y = x; [1, −1] stays put; [1, 0] lands at [2, 1], off its original line. The drawn line is the eigenvector direction with eigenvalue 3.",
+            "points": [
+              [
+                1,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                1,
+                -1,
+                0
+              ],
+              [
+                2,
+                1,
+                1
+              ],
+              [
+                3,
+                3,
+                1
+              ],
+              [
+                1,
+                -1,
+                1
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "Eigenvalues by the characteristic equation",
+            "setup": "Find the eigenvalues of the same A = [[2, 1], [1, 2]] without guessing.",
+            "steps": [
+              "A − λI = [[2 − λ, 1], [1, 2 − λ]].",
+              "Determinant = (2 − λ)(2 − λ) − 1 × 1 = λ² − 4λ + 3.",
+              "Solve λ² − 4λ + 3 = 0: (λ − 1)(λ − 3) = 0, so λ = 1 or λ = 3.",
+              "For λ = 3: (A − 3I)v = [[−1, 1], [1, −1]]v = 0 means v₁ = v₂, the direction [1, 1].",
+              "Checks: trace = 2 + 2 = 4 = 1 + 3. Determinant = 4 − 1 = 3 = 1 × 3."
+            ],
+            "result": "The algebra confirms what testing found: eigenvalues 3 and 1, along [1, 1] and [1, −1]."
+          }
+        },
+        {
+          "example": {
+            "title": "How much does one factor explain? (business PCA)",
+            "setup": "A retailer standardises two store features, weekly footfall and weekly sales. Their correlation is 0.8, so the covariance matrix is [[1, 0.8], [0.8, 1]].",
+            "steps": [
+              "Characteristic equation: (1 − λ)² − 0.64 = 0, so 1 − λ = ±0.8, giving λ = 1.8 or λ = 0.2.",
+              "Eigenvector for 1.8 is [1, 1] (scaled: [0.71, 0.71]), an equal blend of footfall and sales: a \"store activity\" factor.",
+              "Eigenvector for 0.2 is [1, −1]: \"sales higher than footfall would suggest\", a conversion factor.",
+              "Share of variance: 1.8 / (1.8 + 0.2) = 0.9, so 90% for store activity and 10% for conversion."
+            ],
+            "result": "One combined \"activity\" score keeps 90% of the information in two features. The small 10% direction is not junk, though: it is exactly where the stores that convert unusually well or badly show up."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "footfall (standardised)",
+            "yLabel": "sales (standardised)",
+            "line": {
+              "m": 1,
+              "b": 0
+            },
+            "caption": "Twenty-two stores with correlation about 0.8. The cloud is a tilted ellipse; the line y = x is the top eigenvector (eigenvalue 1.8), running along the long axis. Spread across the line (the second eigenvector) is much smaller.",
+            "points": [
+              [
+                -1.2,
+                -2.4
+              ],
+              [
+                -0.3,
+                -0.6
+              ],
+              [
+                0.4,
+                0.2
+              ],
+              [
+                1.9,
+                1.4
+              ],
+              [
+                -0.3,
+                1.5
+              ],
+              [
+                -0.2,
+                -0.4
+              ],
+              [
+                0.4,
+                0
+              ],
+              [
+                1,
+                0.6
+              ],
+              [
+                -0.5,
+                -0.5
+              ],
+              [
+                -1,
+                -0.9
+              ],
+              [
+                -0.6,
+                0.3
+              ],
+              [
+                -0.5,
+                -0.6
+              ],
+              [
+                -0.1,
+                0.2
+              ],
+              [
+                -1.9,
+                -1.7
+              ],
+              [
+                -0.2,
+                0.4
+              ],
+              [
+                0.8,
+                0.5
+              ],
+              [
+                -1.1,
+                -0.6
+              ],
+              [
+                -0.4,
+                0
+              ],
+              [
+                2.3,
+                2.4
+              ],
+              [
+                1.4,
+                0.2
+              ],
+              [
+                -0.6,
+                -0.1
+              ],
+              [
+                0.7,
+                0
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "Long-run market share as an eigenvector",
+            "setup": "Each month 90% of Brand A's customers stay and 10% switch to B; 80% of Brand B's stay and 20% switch to A. Transition matrix M = [[0.9, 0.2], [0.1, 0.8]] (columns are \"from A\", \"from B\"). Start at 50% / 50%.",
+            "steps": [
+              "Month 1: A = 0.9 × 0.5 + 0.2 × 0.5 = 0.55; B = 0.45.",
+              "Month 2: A = 0.9 × 0.55 + 0.2 × 0.45 = 0.585. Month 3: A = 0.6095.",
+              "Look for a share s that M leaves unchanged: M s = 1 × s. Try s = [2/3, 1/3]: A = 0.9 × 2/3 + 0.2 × 1/3 = 0.6 + 0.0667 = 0.6667. Unchanged.",
+              "So [2/3, 1/3] is an eigenvector with eigenvalue 1. The other eigenvalue is 0.7: each month the gap to the long-run share shrinks to 70% of what it was."
+            ],
+            "result": "Whatever the starting split, Brand A heads towards about 66.7% of the market. The eigenvalue 0.7 also tells you how fast: roughly 30% of the remaining gap closes each month."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading eigenvalues: how many directions to keep",
+      "blocks": [
+        {
+          "p": "After PCA you get one eigenvalue per feature. Sorting them and plotting their shares (a \"scree plot\") shows how quickly information runs out. Analysts typically keep enough components to explain 80–95% of the variance, or stop where the bars flatten."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "PC1",
+              "PC2",
+              "PC3",
+              "PC4",
+              "PC5"
+            ],
+            "values": [
+              55,
+              25,
+              10,
+              6,
+              4
+            ],
+            "highlight": 1,
+            "yLabel": "% of variance",
+            "caption": "A typical scree plot (illustrative). The first two components explain 80% of the variation, the third adds 10%, and the rest add little. Keeping two or three components is reasonable."
+          }
+        },
+        {
+          "bullets": [
+            "**A large eigenvalue** means lots of spread along that direction: a dominant pattern in the data.",
+            "**An eigenvalue near zero** means almost no spread: the features are nearly redundant in that direction (multicollinearity).",
+            "**Eigenvalues 6, 3 and 1** give shares of 60%, 30% and 10%; the first two together explain 90%.",
+            "**Loadings** (the entries of each eigenvector) tell you which original features make up each component, so you can name it, for example \"size\" or \"price sensitivity\"."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "PageRank: importance as an eigenvector",
+            "story": "Google's original PageRank idea, published by its founders in the late 1990s, ranks a web page as important if important pages link to it. Written as a matrix of \"a random surfer moves from page i to page j\" probabilities, the ranking is the eigenvector with eigenvalue 1, the same long-run share idea as the two-brand example above, but with billions of pages. It is computed by repeatedly multiplying a starting vector by the matrix until it stops changing (the power method), because solving the characteristic equation at that scale is impossible."
+          }
+        },
+        {
+          "bullets": [
+            "**PCA for dashboards:** compress dozens of correlated KPIs into a few indices, such as an overall \"store health\" score.",
+            "**Finance:** the top eigenvector of a stock-return correlation matrix is usually a \"whole market\" factor; risk teams track how much variance it explains.",
+            "**Face recognition (eigenfaces):** a classic approach represented faces as combinations of the top eigenvectors of many face images.",
+            "**Spectral clustering:** eigenvectors of a similarity graph reveal clusters with odd shapes that k-means misses.",
+            "**Engineering:** vibration modes of a car body or bridge are eigenvectors; eigenvalues give the natural frequencies to avoid."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Forgetting to standardise:** a feature measured in rupees has a huge variance and grabs the top eigenvector on its own. Standardise before PCA unless the units are comparable.",
+            "**Over-reading signs:** an eigenvector and its negative are the same direction. If a loading flips sign between runs, nothing has changed.",
+            "**Naming components too boldly:** components are blends of many features; a neat label like \"luxury\" may hide important mixed contributions.",
+            "**Assuming the big directions matter for prediction:** PCA keeps directions of large variance, not directions that predict your target. A small component can carry the signal.",
+            "**Non-symmetric matrices** can have complex eigenvalues and non-perpendicular eigenvectors; the tidy picture applies to covariance matrices."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Eigen-decomposition",
+              "items": [
+                "Square matrices only",
+                "Covariance matrix → PCA",
+                "Eigenvectors perpendicular when symmetric",
+                "Classic textbook route"
+              ]
+            },
+            "right": {
+              "title": "Singular Value Decomposition (SVD)",
+              "items": [
+                "Works on any rectangular matrix",
+                "Applied directly to the data matrix X",
+                "More numerically stable",
+                "What scikit-learn's PCA actually uses"
+              ]
+            },
+            "caption": "SVD is the practical cousin of eigen-decomposition. For PCA they give the same components; libraries prefer SVD for stability."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need eigenvectors to use PCA in scikit-learn?",
+      "a": "Not to run it: `PCA(n_components=3).fit(X)` does everything. You need the idea to interpret it: `explained_variance_` are the eigenvalues and `components_` are the eigenvectors (loadings)."
+    },
+    {
+      "q": "Why \"eigen\"?",
+      "a": "It is German for \"own\" or \"characteristic\". Eigenvectors are a matrix's own characteristic directions."
+    },
+    {
+      "q": "Can an eigenvalue be negative or zero?",
+      "a": "Yes for general matrices: negative flips the direction, zero squashes it flat. Covariance matrices only have eigenvalues of zero or more, because variance cannot be negative."
+    },
+    {
+      "q": "How many eigenvectors does a matrix have?",
+      "a": "An n × n symmetric matrix has n perpendicular eigenvector directions, one per eigenvalue. Each direction can be scaled by any non-zero number and still counts as the same eigenvector."
+    },
+    {
+      "q": "Is the top eigenvector always the most important feature?",
+      "a": "It is not a feature at all but a new direction that blends features. It is the direction of greatest spread, which is not necessarily the most useful for predicting a target."
+    },
+    {
+      "q": "How do computers find eigenvectors of huge matrices?",
+      "a": "With iterative methods. The simplest, the power method, repeatedly multiplies a vector by the matrix; it lines up with the eigenvector of largest eigenvalue. Production libraries use more refined versions of the same idea."
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain LDA as a projection that separates classes",
+    "Contrast LDA with PCA",
+    "Know LDA's assumptions"
+  ],
+  "why": "LDA is a fast, stable classifier and a supervised dimensionality-reduction tool, used in face recognition (Fisherfaces), credit scoring and marketing.",
+  "explain": [
+    "**Linear Discriminant Analysis** finds the direction (camera angle) where the class means are **far apart** relative to the spread **within** each class.",
+    "Unlike **PCA**, which ignores labels and keeps the directions of maximum total variance, LDA uses the labels to keep the directions that best **separate** the classes.",
+    "As a classifier it models each class as a normal distribution with a **shared covariance**, which gives linear boundaries. QDA allows separate covariances (curved boundaries).",
+    "With k classes, LDA can reduce the data to at most **k − 1** dimensions, ideal for 2-D plots of 3-class problems."
+  ],
+  "example": {
+    "title": "Two wine types, two chemical features",
+    "steps": [
+      "PCA's first direction follows the overall spread, but both classes overlap along it",
+      "LDA's direction cuts across, where the class means differ most relative to their spread",
+      "Projected onto LDA's axis: two well-separated bumps",
+      "Classification accuracy: about 95% with one dimension"
+    ],
+    "result": "With labels available, LDA often gives a far more useful 1-D or 2-D view than PCA."
+  },
+  "mistakes": [
+    "Using it with strongly non-normal or very unequal class covariances (try QDA or logistic regression).",
+    "Expecting more than k − 1 components."
+  ],
+  "takeaways": [
+    "Maximise between-class vs within-class spread",
+    "Supervised, unlike PCA",
+    "At most k − 1 components"
+  ],
+  "use": [
+    "Small datasets, roughly normal features",
+    "Supervised dimensionality reduction for visualisation"
+  ],
+  "avoid": [
+    "Strongly non-linear class structure",
+    "Heavy outliers"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_wine\nfrom sklearn.discriminant_analysis import LinearDiscriminantAnalysis\nfrom sklearn.model_selection import cross_val_score\nX, y = load_wine(return_X_y=True)\nlda = LinearDiscriminantAnalysis(n_components=2)\nprint(cross_val_score(lda, X, y, cv=5).mean().round(3), lda.fit_transform(X, y).shape)"
+  },
+  "check": [
+    {
+      "q": "Main difference between LDA and PCA?",
+      "options": [
+        "LDA uses class labels",
+        "PCA uses class labels",
+        "They are identical",
+        "LDA is non-linear"
+      ],
+      "answer": 0,
+      "why": "LDA is supervised."
+    },
+    {
+      "q": "With 4 classes, LDA gives at most…",
+      "options": [
+        "4 components",
+        "3 components",
+        "2 components",
+        "Any number"
+      ],
+      "answer": 1,
+      "why": "k − 1 = 3."
+    }
+  ],
+  "chapterMinutes": 16
+}

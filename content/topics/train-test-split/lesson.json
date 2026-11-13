@@ -1,0 +1,64 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 7,
+  "goals": [
+    "Explain why we hold out test data",
+    "Split data correctly, including stratified and time-based splits",
+    "Use a validation set for tuning"
+  ],
+  "why": "A model scored on the data it learned from always looks better than it really is. The test set is your only honest preview of real-world performance.",
+  "explain": [
+    "If students are graded on the exact questions they practised, a high score proves memory, not understanding. Models are the same.",
+    "Split once at the start: typically 70–80% **train**, 20–30% **test**. Lock the test set away and use it **once**, at the very end.",
+    "To tune settings (hyperparameters), carve a **validation** set out of the training data, or better, use cross-validation. Tuning on the test set quietly turns it into training data.",
+    "**Stratify** classification splits so that class proportions match (important when only 2% of rows are fraud). For time series, split **by time**: train on the past, test on the future. Never shuffle time."
+  ],
+  "example": {
+    "title": "Fraud dataset split",
+    "steps": [
+      "10,000 transactions, 200 frauds (2%)",
+      "Random 80/20 split might put only 25 frauds in the test set by chance",
+      "Stratified split: test = 2,000 rows with exactly 40 frauds (2%)",
+      "Train = 8,000 rows with 160 frauds"
+    ],
+    "result": "Both sets now represent reality, so the test score is trustworthy."
+  },
+  "mistakes": [
+    "Preprocessing (scaling, imputing) before splitting.",
+    "Peeking at the test score repeatedly while tuning.",
+    "Random splits on time-series data."
+  ],
+  "takeaways": [
+    "Train on one part, judge on another",
+    "Use the test set once",
+    "Stratify for imbalanced classes; split by time for time series"
+  ],
+  "practice": {
+    "code": "from sklearn.model_selection import train_test_split\nimport numpy as np\ny = np.array([0] * 9800 + [1] * 200); X = np.arange(len(y)).reshape(-1, 1)\nX_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nprint(y_te.mean(), y_tr.mean())     # both 0.02"
+  },
+  "check": [
+    {
+      "q": "You tuned 50 models and picked the best test score. The problem?",
+      "options": [
+        "None",
+        "The test set has been used for selection, so the score is optimistic",
+        "Too few models",
+        "You should have used accuracy"
+      ],
+      "answer": 1,
+      "why": "Choosing on the test set leaks it into model selection. Use validation or cross-validation."
+    },
+    {
+      "q": "Correct split for monthly sales forecasting?",
+      "options": [
+        "Random 80/20",
+        "Train on earlier months, test on later months",
+        "Stratified by product",
+        "No split"
+      ],
+      "answer": 1,
+      "why": "The future must never inform the past."
+    }
+  ],
+  "chapterMinutes": 19
+}

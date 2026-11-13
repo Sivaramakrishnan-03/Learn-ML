@@ -1,0 +1,444 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "An electricity distributor notices that when demand runs unusually high on a hot Monday, it tends to stay high on Tuesday and then drift back to normal over the week. Yesterday carries information about today, and so do yesterday's surprises. **ARIMA** is the classical statistical model built to capture exactly this kind of memory. For decades it has been the standard tool of economists, central banks, energy planners and finance teams, and it remains the reference model every forecaster should understand.",
+  "sections": [
+    {
+      "heading": "The problem: series with memory",
+      "blocks": [
+        {
+          "p": "Exponential smoothing describes a series by its level, trend and season. It does not directly ask a sharper question: **how exactly does today depend on the last few days?** In many series that dependence is strong and specific. A heatwave pushes demand up for several days. A one-off delivery delay knocks on into the next week's stock, then disappears."
+        },
+        {
+          "p": "If we can measure that dependence, we can forecast with it. And because ARIMA is a full statistical model, it also tells us how uncertain each forecast is, which matters when the forecast drives a ₹100 crore power purchase."
+        },
+        {
+          "term": "White noise",
+          "def": "A series of purely random shocks with average zero, constant spread and no correlation between one value and the next. It is completely unpredictable. A good model's leftover errors should look like white noise."
+        },
+        {
+          "term": "Autoregression",
+          "def": "Predicting a series from its own past values, as if running a regression where the inputs are yesterday's and the day before's values. \"Auto\" means \"self\"."
+        },
+        {
+          "p": "The name ARIMA bundles three ideas: **AR** (autoregressive: use past values), **I** (integrated: work with differences to remove trend), and **MA** (moving average: use past forecast errors). A model is written ARIMA(p, d, q), where the three numbers say how much of each ingredient to use."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "50+20*Math.pow(0.6,x)",
+            "xMin": 0,
+            "xMax": 10,
+            "marks": [
+              {
+                "x": 0,
+                "label": "today: 70"
+              }
+            ],
+            "xLabel": "days ahead",
+            "yLabel": "forecast",
+            "caption": "An AR forecast after a shock. Today's value is 70, far above the long-run average of 50. The forecast does not jump back to 50 at once; it decays there gradually (62, 57.2, 54.3 …). How fast it decays is learned from the data."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: a room, a door and a thermostat",
+      "blocks": [
+        {
+          "p": "Think of the temperature in an air-conditioned meeting room, measured every minute. Three ideas explain how it behaves."
+        },
+        {
+          "steps": [
+            "**Memory (AR).** If the room is 2 degrees too warm now, it will probably still be a bit too warm in a minute, because the air-conditioner pulls it back only gradually. The best guess for the next minute is \"most of the current gap remains\".",
+            "**Reacting to surprises (MA).** Someone opens the door for a moment. Warm air rushes in, a one-off shock. Its effect lingers for a minute or two and then is gone. The model remembers recent **surprises**, not just recent values.",
+            "**Looking at changes, not levels (I).** Now imagine the building is slowly heating up all afternoon. The raw temperature keeps climbing, so its average is not stable. But the **minute-to-minute change** is stable. So we model the changes, then add them back up."
+          ],
+          "title": "Three ingredients"
+        },
+        {
+          "p": "ARIMA combines these three. It first differences the series until it is stable (I), then explains each value using a few past values (AR) and a few past surprises (MA)."
+        },
+        {
+          "think": {
+            "q": "A share price is famous for behaving like a \"random walk\": tomorrow's price is today's price plus an unpredictable change. Which ARIMA ingredients would describe it?",
+            "a": "One difference (d = 1) and nothing else: ARIMA(0, 1, 0). The changes are white noise, so there is nothing for AR or MA terms to exploit. Its best forecast is simply today's price, the naive forecast."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works: the Box-Jenkins steps",
+      "blocks": [
+        {
+          "p": "In the 1970s, the statisticians George Box and Gwilym Jenkins set out a disciplined recipe for building these models. It is still how analysts work today, often with software automating parts of it."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Make stationary**: difference d times",
+              "**Identify** p and q from ACF/PACF or AIC",
+              "**Fit** the coefficients",
+              "**Check** residuals look like white noise",
+              "**Forecast** with intervals"
+            ],
+            "caption": "The Box-Jenkins loop. If the residual check fails, go back and try different orders."
+          }
+        },
+        {
+          "steps": [
+            "**Plot the series and make it stationary.** If it trends, difference once (d = 1). Rarely, a second difference is needed. Seasonal series may need a seasonal difference too.",
+            "**Identify candidate orders.** Study the ACF and PACF of the differenced series (explained below), or let an automatic search compare models by AIC.",
+            "**Fit the model.** Software estimates the coefficients by maximum likelihood: the values that make the observed data most probable.",
+            "**Check the residuals.** Plot them and their ACF and run a Ljung-Box test. Leftover pattern means the model missed something.",
+            "**Forecast.** The model produces point forecasts plus prediction intervals that widen with the horizon."
+          ],
+          "title": "The procedure"
+        },
+        {
+          "term": "Residuals",
+          "def": "The model's one-step-ahead errors on the history: actual minus fitted value. If the model has captured all the predictable structure, residuals are white noise."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Start with the simplest member, the **AR(1)** model: today depends on yesterday only."
+        },
+        {
+          "tex": "y_t = c + \\phi\\, y_{t-1} + \\varepsilon_t",
+          "plain": "Today = a constant + a fraction φ of yesterday + a new random shock.",
+          "symbols": [
+            [
+              "y_t",
+              "value today (after any differencing)"
+            ],
+            [
+              "c",
+              "a constant"
+            ],
+            [
+              "\\phi",
+              "phi: how much of yesterday carries over"
+            ],
+            [
+              "\\varepsilon_t",
+              "epsilon: the new white-noise shock today"
+            ]
+          ]
+        },
+        {
+          "p": "Why does the forecast settle down? If the series sits at its long-run mean μ, then μ = c + φμ, so the mean is c divided by (1 − φ). For this to make sense φ must lie between −1 and +1; otherwise each shock grows instead of fading and the series explodes."
+        },
+        {
+          "tex": "\\mu = \\frac{c}{1-\\phi}, \\qquad |\\phi| < 1",
+          "plain": "The long-run average of an AR(1) series. A φ close to 1 means long memory: shocks fade slowly."
+        },
+        {
+          "p": "The general AR(p) model uses p past values, and the MA(q) model uses q past shocks:"
+        },
+        {
+          "tex": "y_t = c + \\phi_1 y_{t-1} + \\dots + \\phi_p y_{t-p} + \\varepsilon_t + \\theta_1 \\varepsilon_{t-1} + \\dots + \\theta_q \\varepsilon_{t-q}",
+          "plain": "An ARMA(p, q) model: today = constant + weighted past values + today's shock + weighted past shocks. ARIMA applies this to the series after differencing it d times.",
+          "symbols": [
+            [
+              "\\phi_i",
+              "AR coefficients: weights on past values"
+            ],
+            [
+              "\\theta_j",
+              "theta: MA coefficients, weights on past shocks"
+            ],
+            [
+              "p, q",
+              "how many past values and past shocks are used"
+            ]
+          ]
+        },
+        {
+          "p": "Why include past shocks at all? Some effects last a fixed, short time. A stock-out last week shifts some demand into this week and then stops. An AR term would make that echo fade forever; an MA(1) term says \"last period's surprise matters for exactly one period\"."
+        },
+        {
+          "term": "Partial autocorrelation (PACF)",
+          "def": "The correlation between today and the value k steps back **after removing** the influence of the values in between. It isolates the direct link. For an AR(2) series, the PACF is clearly non-zero at lags 1 and 2 and near zero after."
+        },
+        {
+          "term": "AIC",
+          "def": "Akaike Information Criterion: a score that rewards a model for fitting the data well and penalises it for using more parameters. Lower is better. It helps choose between, say, ARIMA(1,1,1) and ARIMA(2,1,2) without overfitting."
+        },
+        {
+          "tex": "\\text{AIC} = 2k - 2\\ln \\hat L",
+          "plain": "k is the number of estimated parameters; L is the likelihood (how probable the data is under the fitted model). Better fit lowers AIC; each extra parameter adds 2."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "AR(1) forecast of daily demand",
+            "setup": "A regional power grid's daily peak demand (in hundreds of MW) follows y_t = 20 + 0.6 × y_{t−1} + shock. Today's peak was 70.",
+            "steps": [
+              "Long-run mean = 20 / (1 − 0.6) = 20 / 0.4 = 50.",
+              "Tomorrow: 20 + 0.6 × 70 = 20 + 42 = 62. Future shocks are unknown, so we use their average, zero.",
+              "Day 2: 20 + 0.6 × 62 = 57.2.",
+              "Day 3: 20 + 0.6 × 57.2 = 54.32. Day 4: 20 + 0.6 × 54.32 ≈ 52.59.",
+              "Each day the gap to 50 shrinks by 40%: gaps of 20, 12, 7.2, 4.32, 2.59."
+            ],
+            "result": "The forecast eases from 70 back towards 50 over about a week. The planner should buy extra capacity for the next two or three days, not for the whole month."
+          }
+        },
+        {
+          "example": {
+            "title": "ARIMA(1,1,0): forecasting changes, then adding them up",
+            "setup": "Monthly sales of a growing product, in units. The last value is 200 and the last monthly change was +10. The fitted model on the differences is Δy_t = 0.5 × Δy_{t−1} + shock.",
+            "steps": [
+              "Forecast change for month 1 = 0.5 × 10 = 5. Level = 200 + 5 = 205.",
+              "Month 2 change = 0.5 × 5 = 2.5. Level = 205 + 2.5 = 207.5.",
+              "Month 3 change = 0.5 × 2.5 = 1.25. Level = 207.5 + 1.25 = 208.75.",
+              "The changes keep halving, so the level approaches 200 + 5 + 2.5 + 1.25 + … = 210."
+            ],
+            "result": "The \"I\" step is just bookkeeping: model the changes, then add them back up (\"integrate\") to get levels. Momentum in growth fades and sales level off around 210."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Month ahead",
+              "Forecast change",
+              "Forecast level"
+            ],
+            "rows": [
+              [
+                "0 (actual)",
+                "+10",
+                "200"
+              ],
+              [
+                "1",
+                "+5",
+                "205"
+              ],
+              [
+                "2",
+                "+2.5",
+                "207.5"
+              ],
+              [
+                "3",
+                "+1.25",
+                "208.75"
+              ],
+              [
+                "long run",
+                "→ 0",
+                "→ 210"
+              ]
+            ],
+            "caption": "The ARIMA(1,1,0) forecast in a table. The middle column is the AR(1) model on changes; the right column adds the changes back up. Without a constant, an ARIMA model with d = 1 eventually forecasts a flat line."
+          }
+        },
+        {
+          "example": {
+            "title": "MA(1): a surprise that lasts exactly one period",
+            "setup": "Weekly orders at a component supplier follow y_t = 100 + ε_t + 0.4 × ε_{t−1}. Last week's shock was zero, so this week's forecast was 100. Actual orders this week: 110.",
+            "steps": [
+              "This week's shock ε = 110 − 100 = +10 (a customer pulled an order forward).",
+              "Next week: 100 + 0.4 × 10 = 104. Part of the surprise carries over.",
+              "The week after: the only shock it could use is next week's, which is unknown (average zero). Forecast = 100."
+            ],
+            "result": "An MA(q) model remembers surprises for exactly q periods, then forecasts the mean. That suits one-off effects like pulled-forward orders, unlike AR effects which fade gradually."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing p, d and q, and checking the fit",
+      "blocks": [
+        {
+          "p": "**Choosing d.** Difference until the series looks stationary: the plot wanders around a constant level and the ACF drops quickly. Usually d = 0 or 1. Over-differencing adds noise, so stop as soon as the series is stable."
+        },
+        {
+          "p": "**Choosing p and q from the ACF and PACF.** Each simple model leaves a recognisable fingerprint. Below are the ACF and PACF of an AR(1) series with φ = 0.7."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "ACF 1",
+              "ACF 2",
+              "ACF 3",
+              "ACF 4",
+              "ACF 5",
+              "PACF 1",
+              "PACF 2",
+              "PACF 3",
+              "PACF 4",
+              "PACF 5"
+            ],
+            "values": [
+              0.7,
+              0.49,
+              0.343,
+              0.24,
+              0.168,
+              0.7,
+              0,
+              0,
+              0,
+              0
+            ],
+            "highlight": 5,
+            "yLabel": "correlation",
+            "caption": "Theoretical fingerprint of AR(1) with φ = 0.7. The ACF decays gradually (0.7, 0.49, 0.34 …, each 0.7 times the last). The PACF has a single spike at lag 1 and then nothing: only yesterday has a direct effect. One PACF spike means p = 1."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Pattern",
+              "ACF",
+              "PACF",
+              "Suggests"
+            ],
+            "rows": [
+              [
+                "AR(p)",
+                "Decays gradually",
+                "Cuts off after lag p",
+                "p from PACF"
+              ],
+              [
+                "MA(q)",
+                "Cuts off after lag q",
+                "Decays gradually",
+                "q from ACF"
+              ],
+              [
+                "ARMA(p,q)",
+                "Decays",
+                "Decays",
+                "Try small p, q; use AIC"
+              ],
+              [
+                "Non-stationary",
+                "Decays very slowly",
+                "Large spike at lag 1",
+                "Difference first"
+              ]
+            ],
+            "caption": "The classic identification table. Real data is noisier than theory, so treat it as a guide and confirm with AIC and residual checks."
+          }
+        },
+        {
+          "p": "**Letting the computer search.** Auto-ARIMA tools (`pmdarima.auto_arima`, `statsforecast.AutoARIMA`) test many combinations of p, d and q and keep the one with the lowest AIC. This is the usual practice today, but you should still look at the plots."
+        },
+        {
+          "p": "**Checking the residuals.** The **Ljung-Box test** asks whether the residuals' autocorrelations, taken together over several lags, are larger than chance would produce. A large p-value (say above 0.05) is good news: no evidence of leftover pattern."
+        },
+        {
+          "p": "**Seasonality.** **SARIMA** adds seasonal AR, differencing and MA terms at the season lag, written ARIMA(p,d,q)(P,D,Q)m. A popular model for monthly data is ARIMA(0,1,1)(0,1,1)12, the \"airline model\", named after the airline passenger data Box and Jenkins analysed. **SARIMAX** further adds external inputs such as price, holidays or temperature."
+        },
+        {
+          "callout": "ARIMA prediction intervals widen with the horizon because uncertainty accumulates: each future step adds a new unknown shock. A 1-month-ahead forecast might be ±5%, a 12-month-ahead one ±20%. Report the interval, not just the line.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "ARIMA in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Monthly cement demand with SARIMAX (illustrative)",
+            "story": "A cement producer plans kiln schedules and limestone purchases three months ahead. Monthly dispatches trend upwards with infrastructure spending, dip sharply in the monsoon months when construction slows, and rise before the financial year ends in March. The analytics team takes logs (the swings grow with volume), applies one regular and one seasonal difference, and fits a SARIMAX model with a monsoon-rainfall input and a flag for months with long festival holidays. Residual checks pass the Ljung-Box test. Backtests show it beats seasonal naive and Holt-Winters for one-to-three-month horizons, and the prediction intervals help the plant decide how much safety stock of clinker to hold."
+          }
+        },
+        {
+          "bullets": [
+            "**Economics and central banking:** ARIMA-family models are standard benchmarks for inflation, GDP and interest-rate forecasts.",
+            "**Energy:** day-ahead and week-ahead load forecasting, often SARIMAX with temperature as an input.",
+            "**Finance:** modelling returns and spreads; GARCH models extend the idea to forecast volatility.",
+            "**Operations:** forecasting a handful of important aggregate series, such as total monthly orders, where careful modelling is worth the effort."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Skipping stationarity.** Fitting AR terms to a trending series gives misleading coefficients and forecasts. Difference first.",
+            "**Overfitting with large p and q.** ARIMA(5,1,5) can fit history beautifully and forecast badly. Prefer small orders and compare by AIC and backtests.",
+            "**Never checking residuals.** If the residual ACF shows spikes, the model is leaving money on the table.",
+            "**Expecting it to know about promotions.** Plain ARIMA only sees the series' own past. Use SARIMAX with inputs, or a machine-learning model.",
+            "**Scaling to thousands of series.** Fitting and checking ARIMA per series is slower and more fragile than ETS; automated tools help but need monitoring."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "ARIMA is a good choice when…",
+              "items": [
+                "A single important series with clear autocorrelation",
+                "At least 50 or so observations (more for seasonal models)",
+                "You need principled prediction intervals",
+                "External drivers are few and known (SARIMAX)",
+                "Economists or regulators expect a classical model"
+              ]
+            },
+            "right": {
+              "title": "Consider instead…",
+              "items": [
+                "Thousands of SKUs → **ETS** or global ML models",
+                "Many drivers and nonlinear effects → **gradient boosting** with lag features",
+                "Several seasonalities → **TBATS**, **Prophet**, **MSTL**",
+                "Volatility is the target → **GARCH**",
+                "Very short history → **naive** or **simple smoothing**"
+              ]
+            },
+            "caption": "ARIMA is the classical reference model. Use it where its strengths matter, and always benchmark it."
+          }
+        },
+        {
+          "callout": "ARIMA and exponential smoothing overlap more than people think: simple exponential smoothing gives the same forecasts as ARIMA(0,1,1). Neither is always better; backtest both.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What do the three numbers in ARIMA(1,1,1) mean?",
+      "a": "p = 1 past value (AR), d = 1 difference (I), q = 1 past shock (MA). So the model works on month-to-month changes and uses last month's change and last month's surprise."
+    },
+    {
+      "q": "Why does ARIMA need stationarity?",
+      "a": "The coefficients describe a stable relationship between today and the past. If the average level keeps drifting, that relationship is not stable and the estimates are unreliable. Differencing creates a stable series to model."
+    },
+    {
+      "q": "Why do my long-range ARIMA forecasts become a flat or straight line?",
+      "a": "Far ahead, the AR and MA effects of known values have faded, so the forecast settles at the mean (d = 0), a flat line (d = 1, no constant) or a straight trend line (d = 1 with a constant)."
+    },
+    {
+      "q": "Should I use ACF/PACF plots or auto-ARIMA?",
+      "a": "Both. Auto-ARIMA is fast and objective; the plots help you understand the series and spot problems such as outliers or seasonality the search missed."
+    },
+    {
+      "q": "Is the \"moving average\" in ARIMA the same as a rolling average?",
+      "a": "No, a common confusion. The MA part uses past forecast errors (shocks), not an average of past values. The name is historical."
+    },
+    {
+      "q": "Which Python tools should I use?",
+      "a": "`statsmodels.tsa.arima.model.ARIMA` and `SARIMAX` for fitting and diagnostics, `plot_acf` and `plot_pacf` for identification, and `pmdarima` or `statsforecast` for automatic order selection."
+    }
+  ]
+}

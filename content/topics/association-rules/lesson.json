@@ -1,0 +1,74 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Compute support, confidence and lift",
+    "Explain the Apriori idea",
+    "Turn rules into business actions"
+  ],
+  "why": "Market-basket analysis drives cross-selling, store layout and \"frequently bought together\" recommendations in retail and e-commerce.",
+  "explain": [
+    "A rule looks like **{bread} → {butter}**: customers who buy bread also buy butter.",
+    "**Support** = how often the itemset appears in all baskets. **Confidence** = P(butter | bread). **Lift** = confidence ÷ P(butter): how much more likely butter is when bread is bought than in general.",
+    "**Lift > 1** means a real positive association; lift ≈ 1 means independence; lift < 1 means the items substitute for each other.",
+    "**Apriori** speeds up the search: if an itemset is rare, every bigger itemset containing it is rare too, so it can be pruned. FP-Growth is a faster alternative."
+  ],
+  "formula": {
+    "tex": "\\text{lift}(A\\to B) = \\frac{P(B \\mid A)}{P(B)}",
+    "plain": "How much buying A raises the chance of buying B, compared with B's normal rate."
+  },
+  "example": {
+    "title": "1,000 supermarket baskets",
+    "steps": [
+      "Bread in 200 baskets; butter in 150; both in 90",
+      "Support(bread & butter) = 90 / 1000 = 9%",
+      "Confidence(bread → butter) = 90 / 200 = 45%",
+      "Lift = 0.45 / 0.15 = 3.0"
+    ],
+    "result": "Bread buyers are 3× as likely to buy butter. Place them near each other, or bundle a promotion."
+  },
+  "mistakes": [
+    "Ranking rules by confidence alone (popular items get high confidence by default; check lift).",
+    "Mining with a very low support threshold (thousands of meaningless rules)."
+  ],
+  "takeaways": [
+    "Support = frequency, confidence = conditional probability, lift = association strength",
+    "Lift > 1 → complementary items",
+    "Apriori prunes rare itemsets"
+  ],
+  "use": [
+    "Transaction data, cross-sell, store layout"
+  ],
+  "avoid": [
+    "Personalised recommendations at scale (use collaborative filtering)"
+  ],
+  "practice": {
+    "code": "# pip install mlxtend  (run locally)\nimport pandas as pd\nfrom mlxtend.frequent_patterns import apriori, association_rules\nbaskets = pd.DataFrame([[1,1,0],[1,1,1],[1,0,0],[0,1,1],[1,1,0]], columns=[\"bread\",\"butter\",\"jam\"]).astype(bool)\nfi = apriori(baskets, min_support=0.4, use_colnames=True)\nprint(association_rules(fi, metric=\"lift\", min_threshold=1)[[\"antecedents\",\"consequents\",\"support\",\"confidence\",\"lift\"]])",
+    "note": "Needs mlxtend: run locally."
+  },
+  "check": [
+    {
+      "q": "Lift = 0.8 means the items are…",
+      "options": [
+        "Strongly complementary",
+        "Slightly less likely to be bought together than by chance",
+        "Always bought together",
+        "Independent"
+      ],
+      "answer": 1,
+      "why": "Lift < 1 indicates a negative association."
+    },
+    {
+      "q": "A in 100 baskets, B in 50, both in 20, out of 500. Confidence(A → B)?",
+      "options": [
+        "20%",
+        "40%",
+        "10%",
+        "4%"
+      ],
+      "answer": 0,
+      "why": "20 / 100 = 0.2."
+    }
+  ],
+  "chapterMinutes": 15
+}

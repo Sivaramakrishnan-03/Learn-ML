@@ -1,0 +1,86 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 12,
+  "goals": [
+    "Explain what the best-fit line is and how it is chosen",
+    "Interpret slope and intercept in business terms",
+    "Evaluate a regression with R² and RMSE and spot its limits"
+  ],
+  "why": "Linear regression is the first model to try for any numeric prediction: prices, demand, costs, fuel consumption. It is fast, explainable, and the baseline every fancier model must beat.",
+  "explain": [
+    "Plot area against price for recent flat sales and you see an upward cloud. Linear regression draws the **one straight line** that passes as close as possible to all the points: **price = slope × area + intercept**.",
+    "\"As close as possible\" has a precise meaning: for each flat, the vertical gap between the real price and the line is the **residual** (the error). The line chosen is the one with the **smallest sum of squared residuals**. That is why it is called **least squares**.",
+    "The **slope** is the business insight: \"each extra 100 sq ft adds about ₹4 lakh\". The **intercept** is the predicted price at zero area. It often has no real meaning; it simply positions the line.",
+    "With many features (area, floor, age) it becomes **multiple regression**: one coefficient per feature, each read as \"holding the others constant\".",
+    "Judge it with **R²** (share of variation explained) and **RMSE** (typical error in rupees), always on **test data** it has not seen."
+  ],
+  "formula": {
+    "tex": "\\hat y = m x + b, \\qquad \\min_{m,b} \\sum_i (y_i - \\hat y_i)^2",
+    "plain": "Prediction = slope × input + intercept; choose slope and intercept to make the total squared error as small as possible."
+  },
+  "example": {
+    "title": "Price a flat from three past sales",
+    "steps": [
+      "Sales (area in 100 sq ft → price ₹L): (5 → 30), (8 → 42), (11 → 54)",
+      "Each extra 300 sq ft adds ₹12L → slope = 12 / 3 = ₹4L per 100 sq ft",
+      "Intercept: 30 = 4 × 5 + b → b = 10",
+      "Model: price = 4 × area + 10 → a 1,000 sq ft flat (area 10) → ₹50L"
+    ],
+    "result": "Real data never sits perfectly on a line, so least squares finds the slope and intercept that balance all the errors. The interpretation stays the same."
+  },
+  "mistakes": [
+    "Extrapolating far beyond the data range.",
+    "Letting one outlier drag the line (squared errors magnify it).",
+    "Reading coefficients causally (\"adding a bedroom causes +₹5L\") when features are correlated.",
+    "Fitting a straight line to a clearly curved relationship."
+  ],
+  "takeaways": [
+    "The best line minimises the squared residuals",
+    "Slope = change in y per unit of x",
+    "Check residual plots, and evaluate on test data with RMSE and R²"
+  ],
+  "use": [
+    "A numeric target with roughly linear relationships",
+    "You need to explain the drivers",
+    "As the baseline before trying trees or boosting"
+  ],
+  "avoid": [
+    "Strongly non-linear patterns (try polynomial terms or trees)",
+    "Heavy outliers (try robust regression)",
+    "Binary targets (use logistic regression)"
+  ],
+  "interview": [
+    "What are the assumptions of linear regression (LINE)?",
+    "What does R² measure, and why can it mislead?",
+    "How do you handle multicollinearity?",
+    "OLS closed form vs gradient descent: when would you use each?"
+  ],
+  "practice": {
+    "code": "from sklearn.linear_model import LinearRegression\nimport numpy as np\nX = np.array([[5], [8], [11]]); y = np.array([30, 42, 54])\nm = LinearRegression().fit(X, y)\nprint(m.coef_, m.intercept_, m.predict([[10]]))     # [4.] 10.0 [50.]"
+  },
+  "check": [
+    {
+      "q": "Slope = 2.5 (₹ lakh per 100 sq ft). What does it mean?",
+      "options": [
+        "Price at zero area",
+        "Each extra 100 sq ft adds about ₹2.5 lakh",
+        "R² is 2.5",
+        "There are 2.5 errors"
+      ],
+      "answer": 1,
+      "why": "The slope is the change in y per unit change in x."
+    },
+    {
+      "q": "Least squares minimises…",
+      "options": [
+        "The number of points off the line",
+        "The sum of squared vertical errors",
+        "The slope",
+        "The largest error only"
+      ],
+      "answer": 1,
+      "why": "The sum of squared residuals."
+    }
+  ],
+  "chapterMinutes": 19
+}

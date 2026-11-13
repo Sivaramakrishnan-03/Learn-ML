@@ -1,0 +1,442 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 19,
+  "hook": "A pricing analyst has one million product prices and needs to add 18% GST to every one of them. Written the obvious way, Python visits each price one at a time, like a clerk carrying boxes up the stairs by hand. **NumPy** brings a forklift: one line, `prices * 1.18`, and the whole million moves at once. Almost every data tool you will use later, pandas and scikit-learn included, is built on top of this forklift.",
+  "sections": [
+    {
+      "heading": "The problem: Python is flexible, but slow with millions of numbers",
+      "blocks": [
+        {
+          "p": "Python is popular because it is easy to read and write. Its basic container for a collection of things is the **list**: `[40, 120, 75]`. A list can hold anything, numbers, text, even other lists, all mixed together. That flexibility has a price."
+        },
+        {
+          "term": "List",
+          "def": "Python's built-in container for an ordered collection of items, written with square brackets. Each item can be of any type, so Python must check every item individually when it works on them."
+        },
+        {
+          "p": "When you ask Python to multiply every item in a list by 1.18, it has to go item by item: \"Is this a number? What kind? Fine, multiply it. Next item. Is this a number?...\" For three prices nobody notices. For a million rows of sales data, or ten million sensor readings from a factory line, those checks add up to real waiting time."
+        },
+        {
+          "term": "NumPy",
+          "def": "Short for Numerical Python. A free Python library that stores numbers in compact, fixed-type blocks called arrays and performs maths on whole arrays at once, using fast code written in C."
+        },
+        {
+          "term": "Array",
+          "def": "NumPy's container: a grid of numbers that all share the same type (all whole numbers, or all decimals). It can be one row (1-D), a table (2-D) or a stack of tables (3-D and beyond)."
+        },
+        {
+          "p": "NumPy solves the speed problem with one promise: **every item in an array has the same type**. Because of that promise, NumPy can skip the per-item checks and hand the whole job to pre-compiled, highly optimised code. On a typical laptop, adding GST to a million prices is roughly ten times faster with NumPy than with a list comprehension, and for heavier maths the gap often grows to 50 or 100 times."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Python list",
+              "items": [
+                "Can mix numbers, text and objects",
+                "Each item stored separately in memory",
+                "Maths needs an explicit loop",
+                "Slow for millions of numbers",
+                "Good for small, mixed collections"
+              ]
+            },
+            "right": {
+              "title": "NumPy array",
+              "items": [
+                "One type for every item (e.g. all decimals)",
+                "Items packed side by side in one block",
+                "Maths applies to the whole array at once",
+                "Fast for millions of numbers",
+                "Foundation of pandas and scikit-learn"
+              ]
+            },
+            "caption": "The single trade-off that makes NumPy fast: give up mixing types, gain speed and compact storage."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the egg tray and the forklift",
+      "blocks": [
+        {
+          "p": "Picture two ways of storing eggs. In the first, every egg sits in its own little box, scattered around a warehouse, each box with a label saying \"this is an egg, size large\". In the second, the eggs sit in a **tray**: identical slots in neat rows. You know every slot holds one egg of the same size, so you never read labels."
+        },
+        {
+          "p": "A Python list is the scattered boxes. A NumPy array is the egg tray. Because the tray is uniform, you can do things to the whole tray in one go: pick it up with a forklift, wash all eggs at once, stamp all of them with a date."
+        },
+        {
+          "steps": [
+            "**Uniform slots.** Every number takes exactly the same amount of space, so finding the 500th number is simple arithmetic: start of the tray plus 499 slots.",
+            "**No labels to read.** The type is written once, on the tray, not on every egg.",
+            "**One instruction for everyone.** \"Multiply by 1.18\" is given once and applied to every slot by fast machine code.",
+            "**Rows and columns.** A tray can have rows and columns, which is exactly what a sales table looks like: stores down the side, weeks across the top."
+          ],
+          "title": "What the tray gives you"
+        },
+        {
+          "think": {
+            "q": "Why would putting a single word, say \"missing\", into a NumPy array of prices be a problem?",
+            "a": "The tray promise is that every slot has the same type. A word is not a number, so NumPy would have to switch the whole array to a general \"object\" type, losing the speed and compactness. NumPy instead uses a special decimal value called NaN (\"not a number\") to mark missing numbers."
+          }
+        },
+        {
+          "callout": "Think of NumPy as the engine room. You will often drive pandas or scikit-learn instead, but when something is slow or a shape error appears, the explanation is almost always down here in the arrays.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How you work with arrays, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Create** an array from a list or a file",
+              "**Inspect** its shape and type",
+              "**Compute** with whole-array maths",
+              "**Summarise** along rows or columns",
+              "**Filter** with true/false masks"
+            ],
+            "caption": "The everyday NumPy routine. Nearly every analysis is some mix of these five moves."
+          }
+        },
+        {
+          "p": "**Step 1: Create.** `import numpy as np` loads the library under its conventional short name. `prices = np.array([40, 120, 75])` turns a list into an array. For a table, pass a list of rows: `np.array([[120, 135], [80, 95]])`."
+        },
+        {
+          "p": "**Step 2: Inspect.** Always check `.shape` (how many rows and columns) and `.dtype` (the type of the numbers). Most beginner errors are shape surprises."
+        },
+        {
+          "term": "Shape",
+          "def": "The size of an array along each direction, written as a tuple. (3,) means a single row of 3 numbers; (3, 4) means 3 rows and 4 columns."
+        },
+        {
+          "term": "dtype",
+          "def": "Data type: the one type shared by every item in an array, such as int64 (whole numbers stored in 8 bytes) or float64 (decimals stored in 8 bytes)."
+        },
+        {
+          "p": "**Step 3: Compute.** Write maths as if the array were one number: `prices * 1.18`, `revenue - cost`, `np.log(sales)`. NumPy applies it to every item. This is called vectorisation."
+        },
+        {
+          "term": "Vectorisation",
+          "def": "Writing an operation once for a whole array instead of looping through items yourself. The loop still happens, but inside NumPy's fast compiled code."
+        },
+        {
+          "p": "**Step 4: Summarise.** `.sum()`, `.mean()`, `.max()` collapse an array to a single number. Add `axis=0` to summarise down each column, or `axis=1` to summarise across each row."
+        },
+        {
+          "p": "**Step 5: Filter.** A comparison such as `prices > 80` gives an array of True/False values, one per item. Putting that inside square brackets keeps only the True items: `prices[prices > 80]`."
+        },
+        {
+          "term": "Boolean mask",
+          "def": "An array of True/False values of the same shape as your data, used to pick out the items where the answer is True. \"Boolean\" simply means true-or-false."
+        }
+      ]
+    },
+    {
+      "heading": "Under the hood: memory, strides and broadcasting",
+      "blocks": [
+        {
+          "p": "You do not need to know how an engine works to drive, but it helps when the car makes a strange noise. Three ideas explain almost all NumPy behaviour."
+        },
+        {
+          "p": "**1. One contiguous block of memory.** An array of a million float64 numbers is a single block of bytes, each number taking exactly 8 bytes, sitting side by side. The size is easy to predict."
+        },
+        {
+          "tex": "\\text{bytes} = n \\times \\text{itemsize} = 1{,}000{,}000 \\times 8 = 8{,}000{,}000",
+          "plain": "Memory used equals the number of items times the bytes per item. One million decimals take about 8 MB. A Python list of the same million decimals needs roughly four times as much, because every number is a separate object with its own label plus a pointer to find it.",
+          "symbols": [
+            [
+              "n",
+              "number of items in the array"
+            ],
+            [
+              "\\text{itemsize}",
+              "bytes per item: 8 for float64 and int64"
+            ]
+          ]
+        },
+        {
+          "p": "**2. Shape plus strides.** A 2-D table is still one flat line of bytes in memory. NumPy pretends it is a grid by remembering two **strides**: how many bytes to jump to move one row down, and how many to move one column right."
+        },
+        {
+          "tex": "\\text{address}(i, j) = \\text{start} + i \\times s_{\\text{row}} + j \\times s_{\\text{col}}",
+          "plain": "To find the item in row i and column j, start at the beginning and jump i rows and j columns. For a 3 × 4 table of int64 numbers, a row is 4 × 8 = 32 bytes long, so the strides are 32 and 8.",
+          "symbols": [
+            [
+              "i, j",
+              "row and column position, counted from 0"
+            ],
+            [
+              "s_{\\text{row}}",
+              "bytes to skip to go down one row"
+            ],
+            [
+              "s_{\\text{col}}",
+              "bytes to skip to go right one column"
+            ]
+          ]
+        },
+        {
+          "p": "This is why transposing a table (`S.T`, swapping rows and columns) or taking a slice (`S[:, 1:3]`) is instant: NumPy only changes the strides and the start, without copying a single number. Such a result is called a **view**. It also explains a classic surprise: changing a view changes the original array too."
+        },
+        {
+          "term": "View",
+          "def": "A new array object that looks at the same memory as an existing array. Edits through the view change the original. Use `.copy()` when you need an independent array."
+        },
+        {
+          "p": "**3. Broadcasting.** Suppose you have a table of units sold (3 stores × 3 products) and one row of 3 prices. `units * prices` works even though the shapes differ: NumPy stretches the price row down all three store rows, without making copies in memory."
+        },
+        {
+          "term": "Broadcasting",
+          "def": "NumPy's rule for combining arrays of different shapes. Compare shapes from the right; two sizes are compatible if they are equal or one of them is 1. Size-1 directions are stretched to match."
+        },
+        {
+          "tex": "(3, 3) \\;\\text{with}\\; (3,) \\;\\to\\; (3, 3) \\qquad (3, 1) \\;\\text{with}\\; (1, 4) \\;\\to\\; (3, 4)",
+          "plain": "A row of 3 prices combines with a 3 × 3 table by being reused for every row. A column of 3 numbers combined with a row of 4 numbers produces a full 3 × 4 grid of every pairing."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Add GST and find expensive items",
+            "setup": "Three product prices in rupees: 40, 120 and 75. Add 18% GST, then keep only items above ₹80.",
+            "steps": [
+              "`prices = np.array([40, 120, 75])` creates an array of shape (3,).",
+              "`with_gst = prices * 1.18` gives 40 × 1.18 = 47.2, 120 × 1.18 = 141.6, 75 × 1.18 = 88.5.",
+              "`mask = with_gst > 80` gives [False, True, True].",
+              "`with_gst[mask]` keeps the True positions: [141.6, 88.5]."
+            ],
+            "result": "Two lines, no loop, and the identical code works for a million prices."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Store",
+              "Week 1",
+              "Week 2",
+              "Week 3",
+              "Week 4",
+              "Row sum (axis=1)"
+            ],
+            "rows": [
+              [
+                "Chennai",
+                "120",
+                "135",
+                "150",
+                "140",
+                "545"
+              ],
+              [
+                "Pune",
+                "80",
+                "95",
+                "90",
+                "100",
+                "365"
+              ],
+              [
+                "Kochi",
+                "60",
+                "55",
+                "70",
+                "65",
+                "250"
+              ],
+              [
+                "Column sum (axis=0)",
+                "260",
+                "285",
+                "310",
+                "305",
+                "1160"
+              ]
+            ],
+            "caption": "A 3 × 4 array of units sold. `axis=1` collapses across the columns, giving one total per store. `axis=0` collapses down the rows, giving one total per week. The grand total is 1,160 either way."
+          }
+        },
+        {
+          "example": {
+            "title": "Weekly sales: summarising along an axis",
+            "setup": "A tea distributor records units sold in three stores over four weeks (the table above). `S = np.array([[120, 135, 150, 140], [80, 95, 90, 100], [60, 55, 70, 65]])`.",
+            "steps": [
+              "`S.shape` is (3, 4): 3 rows (stores), 4 columns (weeks).",
+              "`S.sum(axis=1)` adds across each row: Chennai 120 + 135 + 150 + 140 = 545; Pune 365; Kochi 250.",
+              "`S.sum(axis=0)` adds down each column: Week 1 = 120 + 80 + 60 = 260; then 285, 310, 305.",
+              "`S.mean(axis=1)` gives average weekly units per store: 545 / 4 = 136.25, 365 / 4 = 91.25, 250 / 4 = 62.5.",
+              "`S.argmax(axis=1)` gives the position of each store's best week: [2, 3, 2], meaning Week 3, Week 4 and Week 3 (positions count from 0)."
+            ],
+            "result": "One array, one line per question. The trick is remembering that the axis you name is the one that disappears."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Chennai",
+              "Pune",
+              "Kochi"
+            ],
+            "values": [
+              545,
+              365,
+              250
+            ],
+            "highlight": 0,
+            "yLabel": "units in 4 weeks",
+            "caption": "The result of `S.sum(axis=1)`. Chennai sells more than twice as many units as Kochi over the same four weeks."
+          }
+        },
+        {
+          "example": {
+            "title": "Broadcasting: revenue for every store and product",
+            "setup": "Units sold (rows = 3 stores, columns = tea, coffee, biscuits): [[10, 4, 20], [6, 8, 15], [12, 2, 30]]. Prices per unit: ₹50, ₹120, ₹30.",
+            "steps": [
+              "`units` has shape (3, 3); `prices = np.array([50, 120, 30])` has shape (3,). Compare from the right: 3 and 3 match, so broadcasting applies.",
+              "Store 1: 10 × 50 = 500, 4 × 120 = 480, 20 × 30 = 600.",
+              "Store 2: 6 × 50 = 300, 8 × 120 = 960, 15 × 30 = 450.",
+              "Store 3: 12 × 50 = 600, 2 × 120 = 240, 30 × 30 = 900.",
+              "`(units * prices).sum(axis=1)` gives store revenues ₹1,580, ₹1,710 and ₹1,740; the grand total is ₹5,030."
+            ],
+            "result": "The price row was reused for every store automatically. In a loop you would have written two nested loops and nine multiplications."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Shapes and axes: where most errors come from",
+      "blocks": [
+        {
+          "p": "The most common NumPy error message is some version of \"operands could not be broadcast together with shapes...\". It almost always means you and NumPy disagree about the shape of something."
+        },
+        {
+          "bullets": [
+            "**(3,) is not (3, 1).** `np.array([1, 2, 3])` has shape (3,): a flat line with one axis. `np.array([[1], [2], [3]])` has shape (3, 1): a column with two axes. scikit-learn expects features as a 2-D table, which is why you often see `x.reshape(-1, 1)`, meaning \"make this a single column, work out the number of rows yourself\".",
+            "**The named axis disappears.** For a table of shape (rows, columns), `axis=0` summarises down the rows and leaves one value per column; `axis=1` summarises across the columns and leaves one value per row.",
+            "**Read shapes from the right when broadcasting.** (1000, 5) with (5,) works: one value per column. (1000, 5) with (1000,) fails, because 5 and 1000 do not match; reshape to (1000, 1) to apply one value per row."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Shape A",
+              "Shape B",
+              "Result",
+              "Why"
+            ],
+            "rows": [
+              [
+                "(3, 3)",
+                "(3,)",
+                "(3, 3)",
+                "Row reused for every row"
+              ],
+              [
+                "(3, 1)",
+                "(1, 4)",
+                "(3, 4)",
+                "Both size-1 axes stretch"
+              ],
+              [
+                "(1000, 5)",
+                "(5,)",
+                "(1000, 5)",
+                "One value per column"
+              ],
+              [
+                "(1000, 5)",
+                "(1000,)",
+                "Error",
+                "5 and 1000 do not match"
+              ],
+              [
+                "(1000, 5)",
+                "(1000, 1)",
+                "(1000, 5)",
+                "One value per row"
+              ]
+            ],
+            "caption": "Broadcasting at a glance. Line up the shapes on the right; each pair must be equal or contain a 1."
+          }
+        },
+        {
+          "think": {
+            "q": "You have a (1000, 5) array X and want to subtract each column's average from that column. Which axis do you average over, and will the subtraction broadcast?",
+            "a": "`X.mean(axis=0)` averages down the rows and returns shape (5,), one mean per column. Then `X - X.mean(axis=0)` broadcasts (1000, 5) with (5,), subtracting the right mean from every row. This \"centering\" is the first half of standardisation."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "NumPy in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Vibration monitoring on a stamping press (illustrative)",
+            "story": "An automotive supplier fits an accelerometer to a sheet-metal press that samples vibration 10,000 times per second. One eight-hour shift produces 288 million readings. The engineering team loads each minute of data into a NumPy array of shape (600,000,), reshapes it to (600, 1000) so each row is one tenth of a second, and computes `np.sqrt((X ** 2).mean(axis=1))`, the root-mean-square vibration for every row, in a fraction of a second. A boolean mask flags rows above a threshold, and those time stamps are sent to maintenance. Previously, slow loops meant only samples were checked; now every second of every shift is."
+          }
+        },
+        {
+          "bullets": [
+            "**pandas:** every numeric pandas column is a NumPy array underneath, which is why `df[\"price\"] * 1.18` is fast.",
+            "**scikit-learn:** models take a 2-D feature array X of shape (samples, features) and a 1-D target y.",
+            "**Finance:** daily returns of 500 stocks over 10 years form a (2520, 500) array; portfolio returns are one matrix multiplication, `returns @ weights`."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Writing loops anyway.** If you see `for i in range(len(arr))`, there is usually a vectorised version that is shorter and faster.",
+            "**Missing values spread.** Any calculation involving NaN gives NaN: the mean of [1, 2, NaN] is NaN. Use `np.nanmean`, `np.nansum` and friends, or handle missing values first.",
+            "**Views changing your original.** `sub = S[:, :2]; sub[0, 0] = 0` also changes S. Call `.copy()` when in doubt.",
+            "**Integer surprises.** An array created from whole numbers has an integer dtype. Assigning 2.7 into it stores 2. Create it with `dtype=float` if decimals will appear.",
+            "**Decimal rounding.** `0.1 + 0.2` gives 0.30000000000000004, in NumPy and in plain Python. Compare decimals with `np.isclose`, never with `==`.",
+            "**No column names.** A NumPy table only knows positions. Mixing up column 3 and column 4 is easy. For labelled business tables, use pandas."
+          ]
+        },
+        {
+          "callout": "Rule of thumb: use NumPy for pure numeric grids (images, sensor streams, simulations, model inputs) and pandas for business tables with names, dates and text. Under the bonnet, pandas is using NumPy anyway.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need NumPy if I am going to use pandas anyway?",
+      "a": "You will use it less directly, but you need the ideas: shapes, vectorisation, masks and NaN all come from NumPy. scikit-learn also returns NumPy arrays, so you will meet them constantly."
+    },
+    {
+      "q": "Why is it called \"np\"?",
+      "a": "Only a convention. `import numpy as np` saves typing, and because everybody uses it, examples you find online will match your code."
+    },
+    {
+      "q": "What is the difference between a 1-D array and a list?",
+      "a": "They look alike when printed, but the array has one fixed type, a compact memory layout and supports whole-array maths. `[1, 2] * 2` repeats a list to [1, 2, 1, 2]; `np.array([1, 2]) * 2` doubles it to [2, 4]."
+    },
+    {
+      "q": "What does reshape(-1, 1) mean?",
+      "a": "Turn the data into one column and let NumPy work out how many rows that needs (the -1). It converts shape (n,) into (n, 1), which scikit-learn expects for a single feature."
+    },
+    {
+      "q": "Is NumPy only for scientists?",
+      "a": "No. Any work with lots of numbers benefits: pricing, forecasting, risk simulation, quality control. Most business users meet it through pandas."
+    },
+    {
+      "q": "How big an array can I handle?",
+      "a": "As large as your computer's memory allows. Estimate it as items × 8 bytes for float64: 100 million decimals need about 800 MB. Beyond that, use float32, process in chunks, or switch to Dask or Spark."
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 12,
+  "goals": [
+    "Set up null and alternative hypotheses",
+    "Interpret a p-value correctly",
+    "Explain Type I and Type II errors and statistical power"
+  ],
+  "why": "Hypothesis tests decide whether a new process, drug, price or website design really works, or whether the difference is just luck.",
+  "explain": [
+    "Think of a **courtroom**. The **null hypothesis** (H₀) is \"innocent\": no effect, no difference. The **alternative** (H₁) is what you would like to show. You only reject H₀ if the evidence is strong.",
+    "The **p-value** is the probability of seeing data at least this extreme **if H₀ were true**. A small p (below the chosen α, often 0.05) means the data would be surprising under \"no effect\", so we reject H₀.",
+    "A p-value is **not** the probability that H₀ is true, and it says nothing about how large or important the effect is.",
+    "Two ways to be wrong: a **Type I error** (false positive: convicting the innocent, probability α) and a **Type II error** (false negative: letting the guilty go). **Power** = 1 − P(Type II) is the chance of detecting a real effect; it grows with sample size."
+  ],
+  "example": {
+    "title": "Is the coin fair?",
+    "steps": [
+      "H₀: p(heads) = 0.5. Observed: 62 heads in 100 flips",
+      "Under H₀: mean 50, SD = √(100 × 0.5 × 0.5) = 5",
+      "z = (62 − 50) / 5 = 2.4 → two-sided p ≈ 0.016 (exact binomial test: p ≈ 0.021)",
+      "p < 0.05 → reject H₀ at the 5% level"
+    ],
+    "result": "The evidence suggests the coin is biased. A single test is still only one piece of evidence, so replicate before betting the company."
+  },
+  "mistakes": [
+    "\"p = 0.03 means a 97% chance the effect is real\" (wrong).",
+    "Treating p = 0.051 and p = 0.049 as completely different worlds.",
+    "Running many tests and reporting only the significant one (p-hacking).",
+    "Confusing statistical significance with business importance."
+  ],
+  "takeaways": [
+    "H₀ = no effect; reject only on strong evidence",
+    "p-value = how surprising the data is if H₀ were true",
+    "Always report the effect size and a CI alongside p"
+  ],
+  "practice": {
+    "code": "from scipy.stats import binomtest\nr = binomtest(62, 100, 0.5)\nprint(round(r.pvalue, 4), r.proportion_ci())"
+  },
+  "check": [
+    {
+      "q": "A Type I error is…",
+      "options": [
+        "Missing a real effect",
+        "Declaring an effect that is not real",
+        "Using the wrong test",
+        "A small sample"
+      ],
+      "answer": 1,
+      "why": "A false positive: rejecting a true H₀."
+    },
+    {
+      "q": "p = 0.20 means…",
+      "options": [
+        "H₀ is true",
+        "Not enough evidence to reject H₀",
+        "The effect is 20%",
+        "The alternative is 80% likely"
+      ],
+      "answer": 1,
+      "why": "Failing to reject is not proof of no effect."
+    }
+  ],
+  "chapterMinutes": 17
+}

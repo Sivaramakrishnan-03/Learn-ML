@@ -1,0 +1,449 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 18,
+  "hook": "A plant in Pune makes 50,000 bolts a day. Each should be 10.00 mm across, but no machine is perfect: some come out at 9.98, some at 10.03. The quality head needs to know, before the customer complains, how many bolts will fall outside the tolerance. She does not measure all 50,000. She uses one shape, the **normal distribution**, and two numbers, and gets an answer accurate enough to run the business on.",
+  "sections": [
+    {
+      "heading": "The problem: predicting how often the unusual happens",
+      "blocks": [
+        {
+          "p": "Descriptive statistics tell you the centre and spread of data you have already collected. Businesses usually need more: **how often will something happen in the future?** How many bolts will be rejected next month? What share of customers are taller than a car seat was designed for? How long a warranty can we offer before too many batteries fail?"
+        },
+        {
+          "p": "To answer such questions you need a **model** of the variation: a mathematical description of how likely each value is. Among all such models, one shape turns up so often in nature and industry that it got the name “normal”."
+        },
+        {
+          "term": "Probability distribution",
+          "def": "A rule that says how likely each possible value (or range of values) is. For measurements such as length or time, it is drawn as a smooth curve, and the **area under the curve** over a range is the probability of landing in that range."
+        },
+        {
+          "term": "Normal distribution",
+          "def": "The symmetric bell-shaped distribution. It is fully described by two numbers: its mean μ (where the centre is) and its standard deviation σ (how wide it is). Also called the Gaussian distribution, after the mathematician Carl Friedrich Gauss."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)",
+            "xMin": -4,
+            "xMax": 4,
+            "shade": [
+              -1,
+              1
+            ],
+            "marks": [
+              {
+                "x": -1,
+                "label": "μ − σ"
+              },
+              {
+                "x": 0,
+                "label": "μ"
+              },
+              {
+                "x": 1,
+                "label": "μ + σ"
+              }
+            ],
+            "xLabel": "distance from the mean (in standard deviations)",
+            "yLabel": "density",
+            "caption": "The standard normal curve. The shaded area between one SD below and one SD above the mean is about 0.68: roughly two-thirds of all values land there. The curve never quite touches zero, but beyond ±3 SD it is very close."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the bean machine",
+      "blocks": [
+        {
+          "p": "Picture a tall board with rows of pins, the kind you may have seen at a science museum (it is called a Galton board, after Francis Galton). Balls are dropped in at the top centre. At every pin, a ball bounces left or right with equal chance. At the bottom, they land in slots."
+        },
+        {
+          "steps": [
+            "**One ball, many small pushes.** Each ball meets, say, 12 pins. Its final slot depends on how many times it went left versus right.",
+            "**Extreme slots need extreme luck.** To land in the far-right slot, a ball must bounce right at all 12 pins. That is rare, like flipping 12 heads in a row.",
+            "**The middle is easy to reach.** There are many different paths with 6 lefts and 6 rights, so the middle slots fill up fastest.",
+            "**The pile takes a shape.** After a few thousand balls, the slots form a smooth hill: tall in the middle, falling away evenly on both sides. A bell."
+          ],
+          "title": "Watching a bell appear"
+        },
+        {
+          "p": "This is the deep reason the normal shape is everywhere. **Whenever a quantity is the sum of many small, independent nudges, it tends to be normal.** A person’s height is the result of many genes and many nutritional influences. A bolt’s diameter is the result of tiny vibrations, temperature changes and tool wear all adding up. Measurement error is the sum of many small slips."
+        },
+        {
+          "think": {
+            "q": "Would you expect the number of rupees each customer spends in a supermarket to follow a normal distribution?",
+            "a": "Probably not. Spending cannot go below zero, most baskets are small, and a few are huge, so the distribution is right-skewed. The normal curve is symmetric and allows negative values. The average of many customers’ spends, however, will be close to normal, which is the Central Limit Theorem covered in a later chapter."
+          }
+        },
+        {
+          "callout": "The normal is a model, not a law of nature. Many things are approximately normal in the middle but have more extreme values in the tails than the bell predicts. Use it, but check it.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "How to answer a question with the normal curve",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Translate** the business question into a range of values",
+              "**Standardise**: convert to z-scores",
+              "**Look up** the area (scipy `norm.cdf`)",
+              "**Translate back** into a share or a count"
+            ],
+            "caption": "Every normal-distribution question follows the same four moves. The z-score is the bridge that lets one table (or one function) serve every bell curve."
+          }
+        },
+        {
+          "p": "**Step 1: Translate.** “What share of bolts are too thick?” becomes “What is the probability a diameter exceeds 10.04 mm?”"
+        },
+        {
+          "p": "**Step 2: Standardise.** Every normal curve, whatever its mean and SD, is the same shape stretched and shifted. So we measure distance from the mean in units of standard deviations. That distance is called a z-score."
+        },
+        {
+          "term": "z-score",
+          "def": "How many standard deviations a value lies above (positive) or below (negative) the mean. A z-score of 2 means “two SDs above average”. It turns any normal into the **standard normal**, which has mean 0 and SD 1."
+        },
+        {
+          "p": "**Step 3: Look up the area.** The area to the left of a z-score is given by the cumulative distribution function. In the past people used printed tables; today you call `scipy.stats.norm.cdf(z)` or `NORM.S.DIST(z, TRUE)` in Excel."
+        },
+        {
+          "term": "Cumulative distribution function (CDF)",
+          "def": "For any value, the probability of getting that value or less. It equals the area under the curve to the left of that point. The area to the right is 1 minus the CDF."
+        },
+        {
+          "p": "**Step 4: Translate back.** A probability of 0.0228 means about 2.3% of items, or about 1,140 out of 50,000 bolts."
+        },
+        {
+          "term": "Percentile",
+          "def": "The value below which a given percentage of observations fall. The 90th percentile of heights is the height that 90% of people are shorter than. With a normal model, percentiles come from the inverse of the CDF (scipy `norm.ppf`)."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "The bell curve has a formula. You will rarely compute it by hand, but each piece has a meaning worth understanding."
+        },
+        {
+          "tex": "f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} \\exp\\!\\left( -\\frac{(x-\\mu)^2}{2\\sigma^2} \\right)",
+          "plain": "The height of the curve at x. It depends only on how far x is from the mean, measured in SDs, and it falls off very quickly as that distance grows.",
+          "symbols": [
+            [
+              "\\mu",
+              "the mean: centre of the bell"
+            ],
+            [
+              "\\sigma",
+              "the standard deviation: width of the bell"
+            ],
+            [
+              "(x-\\mu)^2",
+              "squared distance from the centre, so left and right are treated alike (symmetry)"
+            ],
+            [
+              "\\exp(\\cdot)",
+              "e raised to that power; a negative exponent makes the curve shrink towards zero"
+            ],
+            [
+              "\\tfrac{1}{\\sigma\\sqrt{2\\pi}}",
+              "a scaling factor that makes the total area exactly 1"
+            ]
+          ]
+        },
+        {
+          "p": "Why squared distance inside an exponential? The square makes the curve symmetric, and the exponential of a negative square makes the tails thin out extremely fast: being 2 SDs away is much less likely than 1 SD, and 4 SDs is almost unheard of. The first factor simply makes sure the total area is 1, because the probabilities of all outcomes must add up to 100%."
+        },
+        {
+          "callout": "The height f(x) is a **density**, not a probability. The probability of a bolt being exactly 10.000000 mm is zero. Probabilities come from **areas** over ranges, such as “between 9.98 and 10.02 mm”.",
+          "tone": "key"
+        },
+        {
+          "tex": "z = \\frac{x - \\mu}{\\sigma}",
+          "plain": "Subtract the mean (shift the centre to zero), then divide by the SD (rescale so one unit = one SD). Going back is x = μ + z·σ.",
+          "symbols": [
+            [
+              "z",
+              "standardised value"
+            ],
+            [
+              "x",
+              "original value in its own units"
+            ]
+          ]
+        },
+        {
+          "p": "Once standardised, a few areas are worth memorising. They form the famous **68–95–99.7 rule**: about 68.3% of values lie within ±1 SD of the mean, 95.4% within ±2 SD and 99.7% within ±3 SD. Two more you will meet constantly: 95% of values lie within ±1.96 SD, and 90% within ±1.645 SD."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)",
+            "xMin": -4,
+            "xMax": 4,
+            "shade": [
+              -1.96,
+              1.96
+            ],
+            "marks": [
+              {
+                "x": -1.96,
+                "label": "−1.96"
+              },
+              {
+                "x": 1.96,
+                "label": "+1.96"
+              }
+            ],
+            "xLabel": "z",
+            "yLabel": "density",
+            "caption": "Exactly 95% of the area lies between z = −1.96 and z = +1.96, leaving 2.5% in each tail. This pair of numbers will reappear in confidence intervals and hypothesis tests."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "How many people are taller than a car door?",
+            "setup": "Adult male heights in a population are roughly normal with mean 170 cm and SD 7 cm. A car designer wants to know what share of men are taller than 184 cm.",
+            "steps": [
+              "Translate: we need P(height > 184).",
+              "Standardise: z = (184 − 170) / 7 = 14 / 7 = 2.0.",
+              "Look up: `norm.cdf(2.0)` = 0.9772, so 97.72% are shorter than 184 cm.",
+              "Area to the right = 1 − 0.9772 = 0.0228.",
+              "Bonus: the share between 163 and 177 cm is the area between z = −1 and z = +1, which is 0.6827."
+            ],
+            "result": "About 2.3% of men are taller than 184 cm, roughly 1 in 44. Designing headroom for this group is a deliberate business choice, not an afterthought."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-Math.pow((x-170)/7,2)/2)/(7*Math.sqrt(2*Math.PI))",
+            "xMin": 145,
+            "xMax": 195,
+            "shade": [
+              184,
+              195
+            ],
+            "marks": [
+              {
+                "x": 170,
+                "label": "mean 170"
+              },
+              {
+                "x": 184,
+                "label": "184 cm (z = 2)"
+              }
+            ],
+            "xLabel": "height (cm)",
+            "yLabel": "density",
+            "caption": "Heights with mean 170 cm and SD 7 cm. The thin shaded tail to the right of 184 cm holds only about 2.3% of the area."
+          }
+        },
+        {
+          "example": {
+            "title": "Bolt rejects and the logic of Six Sigma",
+            "setup": "Bolt diameters are normal with mean 10.00 mm and SD 0.02 mm. The customer accepts 9.96 to 10.04 mm. What share is rejected, and what if the process SD were cut to 0.0133 mm?",
+            "steps": [
+              "The limits are 0.04 mm from the mean. z = 0.04 / 0.02 = 2, so the limits are at ±2 SD.",
+              "Share inside ±2 SD = 0.9545, so the share rejected = 1 − 0.9545 = 0.0455 (both tails together).",
+              "On 50,000 bolts a day that is about 2,275 rejects.",
+              "New SD 0.0133 mm: z = 0.04 / 0.0133 ≈ 3.0, so the limits sit at about ±3 SD.",
+              "Share outside ±3 SD ≈ 0.0027 (0.26% with the exact SD), about 130 bolts a day."
+            ],
+            "result": "The mean did not change at all. Cutting variation by a third reduced rejects from about 4.6% to about 0.3%, a seventeen-fold improvement. This is the central idea of Six Sigma: quality comes from reducing spread."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-Math.pow((x-10)/0.02,2)/2)/(0.02*Math.sqrt(2*Math.PI))",
+            "fn2": "Math.exp(-Math.pow((x-10)/0.01333,2)/2)/(0.01333*Math.sqrt(2*Math.PI))",
+            "xMin": 9.92,
+            "xMax": 10.08,
+            "marks": [
+              {
+                "x": 9.96,
+                "label": "lower limit"
+              },
+              {
+                "x": 10.04,
+                "label": "upper limit"
+              }
+            ],
+            "xLabel": "diameter (mm)",
+            "yLabel": "density",
+            "legend": [
+              "SD 0.02 mm: 4.6% rejected",
+              "SD 0.0133 mm: 0.3% rejected"
+            ],
+            "caption": "Same mean, two levels of variation. The narrower, taller curve has almost no area beyond the tolerance limits. Tightening the process is far more powerful than nudging the mean."
+          }
+        },
+        {
+          "example": {
+            "title": "Setting a battery warranty (working backwards)",
+            "setup": "An EV battery pack’s life is roughly normal with mean 6 years and SD 1 year. Finance will accept warranty claims on at most 2% of packs. How long can the warranty be?",
+            "steps": [
+              "We need the value with only 2% of lives below it: the 2nd percentile.",
+              "Inverse lookup: `norm.ppf(0.02)` = −2.054, so the 2nd percentile is 2.054 SDs below the mean.",
+              "Translate back: 6 + (−2.054) × 1 = 3.95 years.",
+              "Check: a 4-year warranty gives z = (4 − 6) / 1 = −2, and `norm.cdf(−2)` = 0.0228, i.e. 2.3% of packs, slightly over budget."
+            ],
+            "result": "A warranty of just under 4 years keeps claims within 2%. A round 4-year warranty costs about 2.3% in claims, which finance can now price consciously."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Is my data normal? Checking the assumption",
+      "blocks": [
+        {
+          "p": "Every calculation above assumed the data really is normal. Before trusting a tail probability, check. Three quick checks catch most problems."
+        },
+        {
+          "bullets": [
+            "**Histogram:** does it look like a single, roughly symmetric hump? Two humps (for example, heights of men and women mixed together) or a long tail are warning signs.",
+            "**Mean vs median:** for normal data they are nearly equal. A big gap means skew.",
+            "**Q-Q plot:** plots your sorted data against what a perfect normal would give. Points on a straight line mean normal; a curve bending away at the ends means heavier or lighter tails than normal. In Python: `scipy.stats.probplot(x, plot=plt)`."
+          ]
+        },
+        {
+          "term": "Q-Q plot",
+          "def": "Quantile-quantile plot. Each sorted data value is plotted against the value a normal distribution would predict at the same rank. A straight diagonal line means the data matches the normal shape."
+        },
+        {
+          "p": "Formal tests such as Shapiro–Wilk exist, but use them with care. With huge datasets they reject normality for trivial deviations; with tiny ones they cannot detect anything. The picture usually tells you more."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Usually close to normal",
+              "Usually NOT normal"
+            ],
+            "rows": [
+              [
+                "Heights and weights of adults (one sex)",
+                "Incomes and wealth (right-skewed)"
+              ],
+              [
+                "Manufacturing dimensions",
+                "Insurance claim sizes (heavy right tail)"
+              ],
+              [
+                "Measurement errors",
+                "Daily stock returns (fat tails)"
+              ],
+              [
+                "Exam scores on well-designed tests",
+                "Waiting times (cannot be negative, skewed)"
+              ],
+              [
+                "Averages of many observations",
+                "Counts of rare events (use Poisson)"
+              ]
+            ],
+            "caption": "A rough guide. The left column involves many small independent effects adding up; the right column involves multiplication, hard floors at zero, or rare big shocks."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The normal distribution in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Six Sigma and control charts in manufacturing",
+            "story": "Six Sigma, popularised by Motorola in the 1980s and later by General Electric, is built on normal-distribution thinking: measure a process’s mean and SD, compare them with the customer’s limits, and reduce variation until the limits sit many SDs from the mean. On the shop floor this shows up as a control chart, an idea from Walter Shewhart in the 1920s: plot each hour’s measurement with lines at the mean ± 3 SD. If the process is stable, only about 3 points in 1,000 should cross a line by chance, so a point outside the lines is a strong signal to stop and investigate the machine."
+          }
+        },
+        {
+          "bullets": [
+            "**Standardised testing:** scores are often scaled to a normal shape so that a z-score translates directly into a percentile rank.",
+            "**Finance:** classic Value-at-Risk models assume normal returns (with known weaknesses in the tails, see below).",
+            "**Retail inventory:** safety stock is often set as z × SD of demand during the resupply lead time, choosing z = 1.645 for a 95% service level.",
+            "**Machine learning:** standardising features (z-scores) before training, and many models assume normally distributed errors."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Assuming normality by default.** Incomes, claims, web traffic and returns are not normal. Normal-based tail probabilities can be wildly optimistic for them.",
+            "**Fat tails.** In markets, moves of 5 or more SDs happen far more often than the normal model says. Relying on normal tails contributed to risk being underestimated before the 2008 financial crisis.",
+            "**Mixing groups.** A combined dataset of two normal groups (two machines, two shifts) can be flat or two-humped. Analyse groups separately.",
+            "**Negative values.** A normal model of delivery time with mean 3 days and SD 2 days predicts that about 7% of parcels arrive before they were sent. A sign the model is wrong.",
+            "**Rounding a z-score table lookup.** Always compute with software; small z errors become large errors far in the tail."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Normal model is reasonable",
+              "items": [
+                "Many small independent causes add up",
+                "Single symmetric hump",
+                "Mean ≈ median",
+                "Straight line on a Q-Q plot",
+                "You care about the middle, not extreme tails"
+              ]
+            },
+            "right": {
+              "title": "Use something else",
+              "items": [
+                "Right-skewed, positive values → **log-normal** or **gamma**",
+                "Counts of events → **Poisson** or **binomial**",
+                "Small-sample means → **t-distribution**",
+                "Extreme tail risk → **heavy-tailed** or extreme-value models",
+                "Time until an event → **exponential** or **Weibull**"
+              ]
+            },
+            "caption": "The normal is the default starting point, not the universal answer. The next chapter introduces the other common shapes."
+          }
+        },
+        {
+          "callout": "A useful trick for right-skewed positive data: take the logarithm. Incomes and prices are often roughly normal on a log scale, which is what a log-normal distribution means.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why is it called “normal”?",
+      "a": "Historical accident. In the 19th century it appeared so often that people treated it as the normal state of affairs for errors and measurements. It does not mean other distributions are abnormal."
+    },
+    {
+      "q": "What is the difference between a normal and a standard normal distribution?",
+      "a": "A standard normal has mean 0 and SD 1. Any normal can be converted to it with the z-score, which is why one function (`norm.cdf`) or one printed table works for every bell curve."
+    },
+    {
+      "q": "Can the curve’s height be more than 1?",
+      "a": "Yes. The height is a density, not a probability. A very narrow normal (like the bolt with SD 0.0133 mm) has a tall peak, about 30, but its total area is still exactly 1."
+    },
+    {
+      "q": "Do I need my data to be normal to use machine learning?",
+      "a": "Usually not for the inputs. Tree models do not care at all. Linear regression assumes the errors (residuals) are roughly normal for its p-values and intervals, not the raw features. Standardising features to z-scores helps many algorithms, but that does not make them normal."
+    },
+    {
+      "q": "How do I compute normal probabilities in Excel and Python?",
+      "a": "Excel: `NORM.DIST(x, mean, sd, TRUE)` for the area to the left, `NORM.INV(p, mean, sd)` for percentiles. Python: `scipy.stats.norm.cdf(x, loc=mean, scale=sd)` and `norm.ppf(p, loc=mean, scale=sd)`."
+    },
+    {
+      "q": "Is 68–95–99.7 exact?",
+      "a": "It is rounded. The exact shares are about 68.27%, 95.45% and 99.73%. If you need exactly 95%, use ±1.96 SD."
+    }
+  ]
+}

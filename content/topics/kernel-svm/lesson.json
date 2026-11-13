@@ -1,0 +1,75 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Explain the kernel trick intuitively",
+    "Use an RBF kernel and tune gamma and C",
+    "Recognise when kernels help"
+  ],
+  "why": "Kernels let a linear method draw curved boundaries without explicitly creating thousands of features. The same idea appears in Gaussian processes and kernel PCA.",
+  "explain": [
+    "Some data cannot be separated by a straight line, such as one class in a ring around another. Map the points into a **higher dimension** (add z = x² + y²) and a flat plane separates them.",
+    "The **kernel trick** computes similarities as if the data were in that higher space, **without ever building it**. That is cheap even for infinite-dimensional mappings.",
+    "The **RBF (Gaussian) kernel** is the default. Its **gamma** sets how far each point's influence reaches: large gamma gives very local, wiggly boundaries (overfitting); small gamma gives smooth boundaries.",
+    "Tune **C and gamma together** with a grid search on a log scale (0.001, 0.01, 0.1 …)."
+  ],
+  "formula": {
+    "tex": "K(x, x') = \\exp\\left(-\\gamma \\lVert x - x' \\rVert^2\\right)",
+    "plain": "RBF similarity: 1 for identical points, falling towards 0 with distance; gamma controls how fast it falls."
+  },
+  "example": {
+    "title": "Concentric circles",
+    "steps": [
+      "Linear SVM accuracy: about 50% (a coin flip)",
+      "Add feature r² = x² + y²: inner ring has small r², outer ring large",
+      "A single threshold on r² separates them perfectly",
+      "RBF SVM finds this boundary automatically: about 99% accuracy"
+    ],
+    "result": "The kernel did the feature engineering implicitly."
+  },
+  "mistakes": [
+    "Large gamma + large C → memorising the data.",
+    "Forgetting to scale features.",
+    "Using kernel SVMs on very large data (quadratic memory)."
+  ],
+  "takeaways": [
+    "Kernels = implicit high-dimensional features",
+    "RBF is the default; tune C and gamma together",
+    "Powerful on small to medium non-linear problems"
+  ],
+  "use": [
+    "Non-linear boundaries on small to medium datasets"
+  ],
+  "avoid": [
+    "Large datasets (>100k rows)",
+    "When interpretability matters"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import make_circles\nfrom sklearn.svm import SVC\nfrom sklearn.model_selection import GridSearchCV\nX, y = make_circles(400, noise=0.1, factor=0.4, random_state=0)\nprint(SVC(kernel=\"linear\").fit(X, y).score(X, y))\ng = GridSearchCV(SVC(kernel=\"rbf\"), {\"C\": [0.1, 1, 10], \"gamma\": [0.1, 1, 10]}, cv=5).fit(X, y)\nprint(g.best_params_, round(g.best_score_, 3))"
+  },
+  "check": [
+    {
+      "q": "The kernel trick lets an SVM…",
+      "options": [
+        "Skip training",
+        "Fit non-linear boundaries without explicitly creating the high-dimensional features",
+        "Become a tree",
+        "Avoid scaling"
+      ],
+      "answer": 1,
+      "why": "It computes inner products in the implicit space."
+    },
+    {
+      "q": "A very large gamma in RBF leads to…",
+      "options": [
+        "Very smooth boundaries",
+        "Very local, wiggly boundaries (overfitting)",
+        "A linear model",
+        "No support vectors"
+      ],
+      "answer": 1,
+      "why": "Each point influences only a tiny neighbourhood."
+    }
+  ],
+  "chapterMinutes": 17
+}

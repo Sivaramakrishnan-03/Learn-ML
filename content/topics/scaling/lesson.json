@@ -1,0 +1,66 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 7,
+  "goals": [
+    "Explain why feature scaling matters",
+    "Apply standardisation and min-max normalisation",
+    "Know which models need scaling"
+  ],
+  "why": "Distance-based and gradient-based models give wrong or slow results when one feature is measured in lakhs and another in single digits.",
+  "explain": [
+    "Imagine comparing customers by income (₹2,00,000–₹50,00,000) and age (20–70). In a distance calculation, income differences are thousands of times larger, so age is effectively ignored.",
+    "**Standardisation** (z-score) rescales each feature to mean 0 and standard deviation 1. It is the default choice.",
+    "**Min-max normalisation** rescales to the range 0–1. It is useful when you need bounded inputs, but it is sensitive to outliers.",
+    "**Need scaling**: k-NN, k-means, SVM, PCA, regularised regression, neural networks, anything trained with gradient descent. **Do not need it**: decision trees, random forests and gradient boosting, because they split one feature at a time."
+  ],
+  "formula": {
+    "tex": "z = \\frac{x - \\mu}{\\sigma}",
+    "plain": "Subtract the mean, divide by the standard deviation: \"how many SDs from average\"."
+  },
+  "example": {
+    "title": "Standardise an age",
+    "steps": [
+      "Ages in training data: mean 40, SD 10",
+      "Customer aged 55 → z = (55 − 40) / 10 = 1.5",
+      "Customer aged 30 → z = (30 − 40) / 10 = −1.0"
+    ],
+    "result": "Every feature now speaks the same \"SD units\", so no feature dominates by accident."
+  },
+  "mistakes": [
+    "Fitting the scaler on all data, including the test set (leakage). Fit on training data only.",
+    "Scaling for tree models: harmless, but wasted effort."
+  ],
+  "takeaways": [
+    "Distance and gradient methods need scaling",
+    "Standardise by default",
+    "Fit the scaler on training data only, inside a pipeline"
+  ],
+  "practice": {
+    "code": "from sklearn.preprocessing import StandardScaler\nimport numpy as np\nX_train = np.array([[30, 400000], [40, 900000], [50, 1500000]])\nsc = StandardScaler().fit(X_train)\nprint(sc.transform([[55, 600000]]).round(2))   # same \"SD units\" for both columns"
+  },
+  "check": [
+    {
+      "q": "Which model does NOT need feature scaling?",
+      "options": [
+        "k-NN",
+        "SVM",
+        "Random forest",
+        "k-means"
+      ],
+      "answer": 2,
+      "why": "Tree splits compare a single feature with a threshold."
+    },
+    {
+      "q": "Mean 50, SD 5. The z-score of 60 is…",
+      "options": [
+        "1",
+        "2",
+        "10",
+        "0.5"
+      ],
+      "answer": 1,
+      "why": "(60 − 50) / 5 = 2."
+    }
+  ],
+  "chapterMinutes": 14
+}

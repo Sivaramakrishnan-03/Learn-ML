@@ -1,0 +1,71 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Choose between statistical, distance and tree-based detectors",
+    "Explain Isolation Forest",
+    "Evaluate detectors when labels are rare"
+  ],
+  "why": "Fraud, machine failures, cyber intrusions and data-quality errors are rare events. Anomaly detection finds them without needing many labelled examples.",
+  "explain": [
+    "**Statistical**: flag values more than 3 SD from the mean (z-score) or beyond 1.5 × IQR. Simple, and good for single metrics.",
+    "**Isolation Forest**: build random trees that split the data at random. Anomalies are few and different, so they get **isolated in very few splits**. A short average path length means a high anomaly score.",
+    "**Local Outlier Factor (LOF)**: compares a point's local density with its neighbours' density, which catches points that are odd *for their neighbourhood*.",
+    "Evaluation is hard: use the few known incidents to measure **precision at top-k** (\"of our 100 highest scores, how many were real?\") and involve domain experts in reviewing alerts."
+  ],
+  "example": {
+    "title": "Card transactions",
+    "steps": [
+      "A customer usually spends ₹500–₹3,000, in Chennai, in the daytime",
+      "New transaction: ₹48,000 at 3 a.m. abroad",
+      "Isolation Forest isolates it in 3 splits vs a typical 11 → anomaly score 0.82",
+      "Rule: score > 0.7 → send an OTP challenge"
+    ],
+    "result": "An unsupervised score triggers a lightweight check instead of a blanket block."
+  },
+  "mistakes": [
+    "Setting \"contamination\" without any idea of the real anomaly rate.",
+    "Ignoring seasonality (a Diwali spike is not an anomaly).",
+    "No feedback loop from investigated alerts."
+  ],
+  "takeaways": [
+    "z-score / IQR for single metrics",
+    "Isolation Forest: anomalies isolate quickly",
+    "Evaluate with precision at top-k and expert review"
+  ],
+  "use": [
+    "Rare events with few labels",
+    "Monitoring and data-quality checks"
+  ],
+  "avoid": [
+    "When plenty of labelled fraud exists (train a supervised classifier)"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom sklearn.ensemble import IsolationForest\nrng = np.random.default_rng(0)\nX = np.r_[rng.normal(2000, 600, (995, 1)), [[48000], [30000], [25000], [40], [52000]]]\niso = IsolationForest(contamination=0.005, random_state=0).fit(X)\nprint(X[iso.predict(X) == -1].ravel())"
+  },
+  "check": [
+    {
+      "q": "Why are anomalies isolated quickly in an Isolation Forest?",
+      "options": [
+        "They are labelled",
+        "They are few and different, so random splits separate them early",
+        "They have missing values",
+        "They are scaled"
+      ],
+      "answer": 1,
+      "why": "Normal points sit in dense regions needing many splits."
+    },
+    {
+      "q": "A good evaluation when only 20 frauds are known?",
+      "options": [
+        "Accuracy",
+        "Precision among the top-k scored transactions",
+        "R²",
+        "Silhouette"
+      ],
+      "answer": 1,
+      "why": "It reflects how useful the alert queue is."
+    }
+  ],
+  "chapterMinutes": 16
+}

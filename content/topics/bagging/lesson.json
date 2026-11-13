@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain bootstrap aggregating",
+    "See why averaging reduces variance",
+    "Use out-of-bag error"
+  ],
+  "why": "Bagging turns unstable models (deep trees) into stable, accurate ones. It is the first half of the random forest recipe.",
+  "explain": [
+    "Francis Galton's ox-weighing contest: individual guesses were all over the place, but the **average** of about 800 guesses was within 1% of the true weight. Averaging cancels independent errors.",
+    "**Bagging** applies this to models: draw many **bootstrap samples** (same size, with replacement), train one model on each, and **average** their predictions (or take a majority vote).",
+    "It helps most with **high-variance** models like deep decision trees. It does little for stable models like linear regression.",
+    "Each bootstrap sample leaves out about 37% of the rows. Those **out-of-bag (OOB)** rows act as a free validation set."
+  ],
+  "example": {
+    "title": "Ten deep trees vs one",
+    "steps": [
+      "One deep tree: test accuracy 78% (it varies a lot with the sample)",
+      "Bag of 100 deep trees: test accuracy 86%",
+      "OOB estimate: 85.5%, close to the test score with no separate validation set needed"
+    ],
+    "result": "Same base model, much better generalisation, purely from averaging."
+  },
+  "mistakes": [
+    "Bagging low-variance models and expecting big gains.",
+    "Thinking more trees cause overfitting (they do not; returns just diminish)."
+  ],
+  "takeaways": [
+    "Bootstrap + aggregate = bagging",
+    "Reduces variance, not bias",
+    "OOB error = free validation"
+  ],
+  "use": [
+    "Unstable, high-variance base models"
+  ],
+  "avoid": [
+    "When the base model is already stable or underfits"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.ensemble import BaggingClassifier\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.model_selection import cross_val_score\nX, y = load_breast_cancer(return_X_y=True)\nprint(cross_val_score(DecisionTreeClassifier(random_state=0), X, y, cv=5).mean().round(3))\nbag = BaggingClassifier(DecisionTreeClassifier(), n_estimators=100, oob_score=True, random_state=0)\nprint(cross_val_score(bag, X, y, cv=5).mean().round(3), round(bag.fit(X, y).oob_score_, 3))"
+  },
+  "check": [
+    {
+      "q": "Bagging mainly reduces…",
+      "options": [
+        "Bias",
+        "Variance",
+        "Training time",
+        "Number of features"
+      ],
+      "answer": 1,
+      "why": "Averaging many unstable models cancels their fluctuations."
+    },
+    {
+      "q": "Roughly what share of rows is out-of-bag for each bootstrap sample?",
+      "options": [
+        "5%",
+        "37%",
+        "50%",
+        "63%"
+      ],
+      "answer": 1,
+      "why": "(1 − 1/n)^n → e⁻¹ ≈ 0.37."
+    }
+  ],
+  "chapterMinutes": 17
+}

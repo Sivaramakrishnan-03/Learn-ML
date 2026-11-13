@@ -1,0 +1,65 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Decompose a series into trend, seasonality and noise",
+    "Explain stationarity",
+    "Read autocorrelation (ACF) plots"
+  ],
+  "why": "Every forecasting project (demand, energy load, footfall, cash flow) starts by understanding the series' structure. Skipping this step is how forecasts miss Diwali.",
+  "explain": [
+    "A time series usually combines a **trend** (long-term direction), **seasonality** (repeating patterns: weekly, yearly), and **noise** (random fluctuation). Decomposition separates them.",
+    "Chennai temperatures: a yearly rhythm (seasonality), a slow warming (trend), and day-to-day noise.",
+    "A series is **stationary** if its mean and variance do not drift over time. Many classical models (ARIMA) require it, which is achieved by **differencing** (modelling the change from one period to the next).",
+    "**Autocorrelation** measures how related a value is to its own past values (lags). Spikes at lag 7 in daily data mean weekly seasonality."
+  ],
+  "example": {
+    "title": "Monthly ice-cream sales",
+    "steps": [
+      "Decomposition: trend rising about 2% per year",
+      "Seasonality: +40% in April–May, −30% in December–January",
+      "Residual noise: ±5%",
+      "ACF: strong spike at lag 12 → yearly seasonality"
+    ],
+    "result": "Now you know a model needs a trend term and a 12-month seasonal component, and that ±5% is the noise floor."
+  },
+  "mistakes": [
+    "Random train/test splits.",
+    "Ignoring calendar effects (holidays, number of weekdays in the month).",
+    "Modelling non-stationary series with methods that assume stationarity."
+  ],
+  "takeaways": [
+    "Series = trend + seasonality + noise",
+    "Stationary = stable mean and variance; difference to achieve it",
+    "ACF spikes reveal seasonality"
+  ],
+  "practice": {
+    "code": "import numpy as np, pandas as pd\nfrom statsmodels.tsa.seasonal import seasonal_decompose\nidx = pd.date_range(\"2020-01\", periods=60, freq=\"MS\")\ny = pd.Series(100 * 1.02 ** (np.arange(60) / 12) * (1 + 0.35 * np.sin(2 * np.pi * (np.arange(60) - 1) / 12)), index=idx)\nd = seasonal_decompose(y, model=\"multiplicative\", period=12)\nprint(d.seasonal[:12].round(2).values)",
+    "note": "Uses statsmodels: run locally if the in-browser runner lacks it."
+  },
+  "check": [
+    {
+      "q": "A spike at lag 7 in the ACF of daily sales indicates…",
+      "options": [
+        "A trend",
+        "Weekly seasonality",
+        "Noise",
+        "Stationarity"
+      ],
+      "answer": 1,
+      "why": "Values correlate with the same weekday last week."
+    },
+    {
+      "q": "Differencing a series helps to…",
+      "options": [
+        "Add seasonality",
+        "Remove trend and make it stationary",
+        "Increase noise",
+        "Scale it"
+      ],
+      "answer": 1,
+      "why": "Modelling changes removes a drifting mean."
+    }
+  ],
+  "chapterMinutes": 19
+}

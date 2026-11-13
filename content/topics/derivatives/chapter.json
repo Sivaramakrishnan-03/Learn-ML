@@ -1,0 +1,404 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "Glance at a car's speedometer and it says 60 km/h. Nobody drove for exactly one hour; the dial is telling you how fast your position is changing at this very instant. That instant rate of change is a **derivative**. In machine learning, the \"position\" is the model's error and the \"road\" is a setting such as a weight. The derivative tells the model which way to turn the dial to make the error smaller. Every model that \"learns\" is following derivatives.",
+  "sections": [
+    {
+      "heading": "The problem: which way should I adjust?",
+      "blocks": [
+        {
+          "p": "A chai stall owner wants to set the price of a cup. Charge too little and margins vanish; charge too much and customers walk away. Profit depends on price, and somewhere in the middle there is a best price. If she is at ₹25 today, should she move up or down, and is she close to the peak or far from it?"
+        },
+        {
+          "p": "Training an ML model is the same question with different words. A model has settings (weights). Its error depends on those settings. We want to know: **if I nudge this weight a tiny bit, does the error go up or down, and how quickly?** The answer is the derivative."
+        },
+        {
+          "term": "Function",
+          "def": "A rule that turns an input into an output, such as profit(price) or error(weight). Written f(x): put in x, get out f(x)."
+        },
+        {
+          "term": "Derivative",
+          "def": "How fast a function's output changes as its input changes, at one particular point. Geometrically, the slope of the curve at that point. Written f′(x) or df/dx."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "(x-10)*(1000-20*x)",
+            "xMin": 12,
+            "xMax": 48,
+            "marks": [
+              {
+                "x": 25,
+                "label": "today ₹25"
+              },
+              {
+                "x": 30,
+                "label": "peak ₹30"
+              }
+            ],
+            "xLabel": "price per cup (₹)",
+            "yLabel": "daily profit (₹)",
+            "caption": "An illustrative profit curve for the chai stall. At ₹25 the curve still slopes upwards (positive derivative), so a higher price helps. At ₹30 it is flat (derivative zero): the peak."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the speedometer and the hill",
+      "blocks": [
+        {
+          "p": "Average speed is easy: 120 km in 2 hours is 60 km/h. But that average hides the moments you were stuck in traffic and the moments you raced along the highway. To know the speed **now**, measure distance over a shorter and shorter interval."
+        },
+        {
+          "steps": [
+            "**Over one hour:** distance ÷ time gives a rough average speed.",
+            "**Over one minute:** much closer to what the speedometer shows.",
+            "**Over one second:** almost exactly the speedometer reading.",
+            "**In the limit of a vanishingly small interval:** the instant speed. That limit is the derivative of position with respect to time."
+          ],
+          "title": "Zooming in on \"right now\""
+        },
+        {
+          "p": "The same idea in pictures: zoom in far enough on any smooth curve and it looks like a straight line. The slope of that line, how much it rises for each step to the right, is the derivative at that point. The line itself is called the **tangent**."
+        },
+        {
+          "term": "Slope",
+          "def": "Rise over run: how much the output goes up for each one-unit step in the input. Positive slope = uphill to the right, negative = downhill, zero = flat."
+        },
+        {
+          "term": "Tangent line",
+          "def": "The straight line that just touches a curve at one point and has the same slope as the curve there. It is the best straight-line approximation to the curve near that point."
+        },
+        {
+          "think": {
+            "q": "You are standing on a hillside in thick fog. You feel the ground slope down to your left. Without seeing anything, which way do you walk to reach the valley?",
+            "a": "Left: downhill. You only need the local slope, not a map of the whole hill. Machine learning uses exactly this: the derivative is the local slope of the error, and we step in the downhill direction."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**Pick the point** x where you want the slope.",
+            "**Nudge the input** by a small amount h, to x + h.",
+            "**Measure the change in output:** f(x + h) − f(x).",
+            "**Divide by the nudge:** change in output ÷ h. This is the slope of a short chord.",
+            "**Shrink h towards zero.** The chord slopes settle on one value: the derivative."
+          ],
+          "title": "Computing a slope from scratch"
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Pick x**",
+              "**Nudge** to x + h",
+              "**Rise** = f(x+h) − f(x)",
+              "**Slope** = rise ÷ h",
+              "**Shrink h** → derivative"
+            ],
+            "caption": "The definition of a derivative as a procedure. Computers still use this \"nudge and measure\" idea to double-check derivatives (finite differences)."
+          }
+        },
+        {
+          "p": "Doing this limit by hand every time would be tiresome, so mathematicians worked out shortcut rules once and for all. A handful of them cover nearly everything in ML."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Function f(x)",
+              "Derivative f′(x)",
+              "In words"
+            ],
+            "rows": [
+              [
+                "c (a constant)",
+                "0",
+                "a flat line has no slope"
+              ],
+              [
+                "a·x",
+                "a",
+                "a straight line has constant slope"
+              ],
+              [
+                "x²",
+                "2x",
+                "steeper the further from zero"
+              ],
+              [
+                "xⁿ",
+                "n·xⁿ⁻¹",
+                "the power rule"
+              ],
+              [
+                "eˣ",
+                "eˣ",
+                "grows at a rate equal to itself"
+              ],
+              [
+                "ln x",
+                "1/x",
+                "used in log-loss"
+              ],
+              [
+                "f + g",
+                "f′ + g′",
+                "slopes of a sum add up"
+              ]
+            ],
+            "caption": "The derivative rules you will meet again and again. The chain rule, for functions inside functions, gets its own chapter next."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}",
+          "plain": "The derivative at x is the change in output divided by the change in input, as the change in input shrinks towards zero.",
+          "symbols": [
+            [
+              "f'(x)",
+              "the derivative of f at x"
+            ],
+            [
+              "h",
+              "a small nudge to the input"
+            ],
+            [
+              "\\lim_{h \\to 0}",
+              "\"the value this approaches as h gets ever closer to zero\""
+            ]
+          ]
+        },
+        {
+          "p": "Why a limit instead of just picking a tiny h? Because any fixed h, however small, still measures an average over a short stretch. The limit is the exact instant value, and for smooth functions it can be found with algebra rather than measurement."
+        },
+        {
+          "p": "Let us see the power rule appear for f(x) = x². Expand (x + h)² = x² + 2xh + h². Subtract x² to get 2xh + h². Divide by h to get 2x + h. As h shrinks to zero, that is just 2x. So the slope of x² at any point is 2x."
+        },
+        {
+          "tex": "\\frac{d}{dx}\\,x^n = n\\,x^{n-1}",
+          "plain": "Power rule: bring the power down in front and reduce the power by one. x³ becomes 3x², x² becomes 2x, x becomes 1.",
+          "symbols": [
+            [
+              "\\frac{d}{dx}",
+              "\"the derivative with respect to x of\""
+            ],
+            [
+              "n",
+              "any fixed power"
+            ]
+          ]
+        },
+        {
+          "p": "The sign of the derivative is what learning algorithms care about most. Positive: increasing x increases f, so to make f smaller, decrease x. Negative: increasing x decreases f, so increase x. Zero: flat, a candidate for a minimum or a maximum."
+        },
+        {
+          "callout": "A zero derivative only says \"flat here\". It could be the bottom of a valley (minimum), the top of a hill (maximum), or a flat ledge (saddle). For a curve shaped like a bowl, such as (w − 3)², the flat point is always the minimum.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Watching the slope of x² appear at x = 3",
+            "setup": "f(x) = x². Compute chord slopes from x = 3 with smaller and smaller nudges h.",
+            "steps": [
+              "h = 1: (f(4) − f(3)) / 1 = (16 − 9) / 1 = 7.",
+              "h = 0.1: (f(3.1) − f(3)) / 0.1 = (9.61 − 9) / 0.1 = 6.1.",
+              "h = 0.01: (f(3.01) − f(3)) / 0.01 = (9.0601 − 9) / 0.01 = 6.01.",
+              "The pattern is 6 + h, heading for 6. The power rule gives f′(3) = 2 × 3 = 6."
+            ],
+            "result": "The slope of x² at x = 3 is 6. The tangent line there is y = 6x − 9: it touches the curve at (3, 9) and rises 6 for every step to the right."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "x*x",
+            "fn2": "6*x-9",
+            "xMin": 0,
+            "xMax": 5.5,
+            "marks": [
+              {
+                "x": 3,
+                "label": "x = 3"
+              }
+            ],
+            "xLabel": "x",
+            "yLabel": "f(x)",
+            "legend": [
+              "f(x) = x²",
+              "tangent y = 6x − 9"
+            ],
+            "caption": "The curve x² and its tangent at x = 3. Near the touching point the two are almost indistinguishable; that local straightness is what makes derivatives work."
+          }
+        },
+        {
+          "example": {
+            "title": "Pricing a cup of chai (business, illustrative)",
+            "setup": "A stall sells 1,000 − 20p cups a day at price ₹p, and each cup costs ₹10 to make. Profit π(p) = (p − 10)(1,000 − 20p).",
+            "steps": [
+              "Expand: π(p) = 1,000p − 20p² − 10,000 + 200p = −20p² + 1,200p − 10,000.",
+              "Derivative: π′(p) = −40p + 1,200.",
+              "At today's ₹25: π′(25) = −1,000 + 1,200 = +200. Each extra rupee of price adds roughly ₹200 of daily profit, so raise the price.",
+              "Set π′(p) = 0: 40p = 1,200, so p = ₹30. At ₹35, π′(35) = −200: too high.",
+              "Profit at ₹30 = 20 × (1,000 − 600) = 20 × 400 = ₹8,000 a day, versus ₹7,500 at ₹25."
+            ],
+            "result": "The derivative told her the direction (up), the strength of the effect (about ₹200 per rupee at ₹25) and the best price (₹30, where the slope is zero)."
+          }
+        },
+        {
+          "example": {
+            "title": "Finding the bottom of an error curve",
+            "setup": "A one-weight model has error E(w) = (w − 3)². Use the derivative to decide which way to move w.",
+            "steps": [
+              "Derivative: E′(w) = 2(w − 3).",
+              "At w = 5: E′ = 2 × 2 = +4. Positive slope, so decrease w.",
+              "At w = 1: E′ = 2 × (−2) = −4. Negative slope, so increase w.",
+              "At w = 3: E′ = 0. Flat bottom: the minimum error, E = 0."
+            ],
+            "result": "From either side, the sign of the derivative points towards w = 3. Gradient descent turns this into an automatic procedure."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Derivatives in machine learning",
+      "blocks": [
+        {
+          "p": "In ML we almost always differentiate a **loss function**: a single number that measures how wrong the model is on the training data. The input is a weight (or many weights); the output is the loss. The derivative of the loss with respect to a weight is the \"blame\" that weight carries for the error."
+        },
+        {
+          "term": "Loss function",
+          "def": "A formula that scores how badly a model's predictions match the true answers. Lower is better. Mean squared error is the classic example for predicting numbers."
+        },
+        {
+          "bullets": [
+            "**Mean squared error** uses squares, so its derivative is simple and proportional to the error itself: big mistakes produce big corrections.",
+            "**Log-loss** for classification uses logarithms; the rule d/dx ln x = 1/x is why it punishes confident wrong answers so hard.",
+            "**The sigmoid** function used in logistic regression has a famously neat derivative, σ(1 − σ), which keeps training formulas short.",
+            "**Automatic differentiation** in PyTorch or TensorFlow applies these rules for you to models with millions of weights."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "(x-3)*(x-3)",
+            "xMin": -1,
+            "xMax": 7,
+            "marks": [
+              {
+                "x": 1,
+                "label": "slope −4"
+              },
+              {
+                "x": 3,
+                "label": "slope 0"
+              },
+              {
+                "x": 5,
+                "label": "slope +4"
+              }
+            ],
+            "xLabel": "weight w",
+            "yLabel": "error E(w)",
+            "caption": "The bowl-shaped error E(w) = (w − 3)². Left of the bottom the slope is negative, right of it positive, and at the bottom exactly zero. The size of the slope shrinks as you approach the minimum."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Marginal thinking in pricing and operations",
+            "story": "Economists call the derivative of cost or revenue the \"marginal\" cost or revenue: the effect of one more unit. Profit is maximised where marginal revenue equals marginal cost, which is the same as saying the derivative of profit is zero. A plant manager deciding whether to run an extra shift, or an airline deciding whether to release one more discounted seat, is reasoning with derivatives whether or not anyone writes the symbol. Demand curves in practice are estimated from data, and the derivative is only as good as that estimate."
+          }
+        },
+        {
+          "bullets": [
+            "**Model training:** every weight update in linear regression, logistic regression and neural networks uses the derivative of the loss.",
+            "**Sensitivity analysis:** \"how much does the forecast move if interest rates rise by 0.1%?\" is a derivative.",
+            "**Finance:** an option's delta is the derivative of its price with respect to the underlying asset price.",
+            "**Engineering:** acceleration is the derivative of speed; jerk, the derivative of acceleration, matters for passenger comfort in cars and lifts."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls and limits",
+      "blocks": [
+        {
+          "bullets": [
+            "**Value is not slope.** A high error can sit on a nearly flat plateau, so the derivative is tiny and learning stalls even though the model is bad.",
+            "**Zero slope is not always a minimum.** Check whether it is a valley, a peak or a ledge.",
+            "**Not every function has a derivative everywhere.** The absolute value |x| has a sharp corner at 0. ML handles such corners (for example in Lasso or the ReLU activation) with conventions or \"subgradients\".",
+            "**Local, not global.** A derivative describes the curve near one point. Far away, the curve may bend completely differently."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "What a derivative tells you",
+              "items": [
+                "Direction: up or down",
+                "Local steepness",
+                "Where the curve is flat",
+                "Effect of a small change"
+              ]
+            },
+            "right": {
+              "title": "What it does not tell you",
+              "items": [
+                "Where the overall best point is",
+                "Whether a flat point is a minimum",
+                "What happens after a big change",
+                "Anything at a sharp corner"
+              ]
+            },
+            "caption": "Derivatives are local information. Gradient descent is the art of using local slopes to make good global progress."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to be good at calculus to do machine learning?",
+      "a": "You need the ideas (slope, direction, the chain rule) far more than manual skill. Libraries compute derivatives automatically; understanding them helps you choose learning rates and diagnose training problems."
+    },
+    {
+      "q": "What do f′(x), df/dx and dy/dx mean? Are they different?",
+      "a": "They are different notations for the same thing: the derivative. df/dx reads as \"the change in f per change in x\"."
+    },
+    {
+      "q": "Why is the derivative of a constant zero?",
+      "a": "A constant does not change when the input changes, so its rate of change is zero. On a graph it is a flat horizontal line."
+    },
+    {
+      "q": "How does a computer find derivatives?",
+      "a": "Three ways: symbolically (like SymPy, applying the rules), numerically (nudge and measure, finite differences), and by automatic differentiation (applying the rules step by step through the code), which is what deep-learning libraries use."
+    },
+    {
+      "q": "What is a second derivative?",
+      "a": "The derivative of the derivative: how fast the slope itself changes. It measures curvature. A positive second derivative means a bowl shape, which confirms a minimum."
+    },
+    {
+      "q": "Why does ML care about the sign more than the size?",
+      "a": "The sign gives the direction to move. The size matters too: it sets how big the step is in gradient descent, which is why steep regions produce big updates and flat regions produce small ones."
+    }
+  ]
+}

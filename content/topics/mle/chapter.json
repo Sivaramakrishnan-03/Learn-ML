@@ -1,0 +1,372 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "You run a website and 7 of the first 10 visitors buy something. What is your best guess for the true conversion rate? Almost everyone says 70%, without being able to say why. **Maximum likelihood estimation** is the \"why\". It is the principle that hides inside logistic regression, linear regression, Poisson models and most of statistics: choose the settings of your model that make the data you actually saw as probable as possible.",
+  "sections": [
+    {
+      "heading": "The problem: turning data into parameter values",
+      "blocks": [
+        {
+          "p": "Statistical models come with dials. A model of conversions has a dial for the conversion rate. A model of calls arriving at a help desk has a dial for the average number of calls per hour. A model of part diameters has dials for the average and the spread. Until the dials are set, the model is useless."
+        },
+        {
+          "term": "Parameter",
+          "def": "A number inside a model that controls its behaviour, such as a conversion rate, an average or a regression coefficient. Fitting a model means choosing its parameter values."
+        },
+        {
+          "term": "Estimate",
+          "def": "A value for a parameter calculated from data. Estimates are written with a hat: p̂ is the estimate of the true rate p."
+        },
+        {
+          "p": "For simple cases intuition works: the average of the data is a fine guess for the average. But what about a logistic regression with 30 coefficients, or a model of failure times? We need one general principle that tells us how to set any dial on any model. Maximum likelihood is that principle, and it is the most widely used one in statistics and machine learning."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.pow(x,7)*Math.pow(1-x,3)*1000",
+            "xMin": 0,
+            "xMax": 1,
+            "marks": [
+              {
+                "x": 0.7,
+                "label": "peak at p = 0.7"
+              }
+            ],
+            "xLabel": "conversion rate p",
+            "yLabel": "likelihood (× 1,000)",
+            "caption": "For 7 conversions in 10 visits, the likelihood of each candidate rate p. Rates near 0 or 1 make the data almost impossible; the curve peaks at exactly p = 0.7. That peak is the maximum likelihood estimate."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the detective and the dice",
+      "blocks": [
+        {
+          "p": "A detective finds a gambler's die that rolled six on 8 of 10 throws. Three dice are in evidence: a fair one (sixes 1/6 of the time), a slightly loaded one (sixes 1/3 of the time), and a heavily loaded one (sixes 3/4 of the time). Which die was used?"
+        },
+        {
+          "steps": [
+            "**For each suspect die, ask: if this die were used, how probable is what we saw?**",
+            "**Fair die:** 8 sixes in 10 rolls would be astonishingly rare.",
+            "**Slightly loaded:** still very unusual.",
+            "**Heavily loaded:** 8 out of 10 is quite typical.",
+            "**Pick the suspect that makes the evidence least surprising.** That is the heavily loaded die."
+          ],
+          "title": "Choosing the suspect that best explains the evidence"
+        },
+        {
+          "p": "Maximum likelihood does exactly this, except that instead of three suspects there is a whole dial of possible values, and we turn the dial until the evidence is as probable as it can be."
+        },
+        {
+          "term": "Likelihood",
+          "def": "The probability of the observed data, viewed as a function of the parameter values. It answers \"how well does this parameter value explain what we saw?\" It is not the probability that the parameter is correct."
+        },
+        {
+          "think": {
+            "q": "Why does the detective not simply ask \"which die is most probable?\"",
+            "a": "That question needs a prior: how likely was each die to be used before the evidence (perhaps loaded dice are rare). That is Bayes' theorem. Maximum likelihood deliberately uses only the evidence. With lots of data the two answers usually agree."
+          }
+        },
+        {
+          "callout": "Maximum likelihood: among all possible parameter values, pick the one under which the observed data would have been most probable.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How MLE works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Choose a model** (binomial, Poisson, normal…)",
+              "**Write the likelihood**: probability of all data as a function of the parameters",
+              "**Take the log**: products become sums",
+              "**Maximise**: calculus or a numerical optimiser",
+              "**Check** the fit and the uncertainty"
+            ],
+            "caption": "The MLE recipe. The same five steps fit a coin, a help-desk queue or a logistic regression with hundreds of coefficients."
+          }
+        },
+        {
+          "steps": [
+            "**Pick a probability model** that could have produced data like yours. Yes/no outcomes suggest a binomial model; counts per hour suggest Poisson; measurements suggest normal.",
+            "**Write the likelihood.** If observations are independent, the probability of all of them is the product of their individual probabilities.",
+            "**Take the logarithm.** The log turns a product into a sum and does not move the peak, because the log always increases when its input does.",
+            "**Find the peak.** For simple models, set the derivative to zero and solve. For complex models, let an optimiser (such as gradient descent) climb to the top.",
+            "**Assess.** Check that the model fits, and use the curvature of the log-likelihood at the peak to get standard errors."
+          ]
+        },
+        {
+          "term": "Log-likelihood",
+          "def": "The natural logarithm of the likelihood. It peaks at the same parameter value but is much easier to work with, because it is a sum rather than a product of many tiny numbers."
+        },
+        {
+          "p": "Why does the product of tiny numbers matter? With 10,000 observations, each with probability around 0.1, the likelihood is about 10 to the power −10,000, far too small for a computer to store. Its log is about −23,000, which is no problem at all."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "L(\\theta) = \\prod_{i=1}^{n} p(x_i \\mid \\theta)",
+          "plain": "The likelihood of parameter θ is the product of the probabilities of each observation under θ, assuming the observations are independent.",
+          "symbols": [
+            [
+              "\\theta",
+              "the parameter(s) we want to estimate"
+            ],
+            [
+              "x_i",
+              "the i-th observation"
+            ],
+            [
+              "p(x_i \\mid \\theta)",
+              "probability of that observation if θ were the true value"
+            ]
+          ]
+        },
+        {
+          "tex": "\\ell(\\theta) = \\log L(\\theta) = \\sum_{i=1}^{n} \\log p(x_i \\mid \\theta), \\qquad \\hat{\\theta} = \\arg\\max_{\\theta} \\ell(\\theta)",
+          "plain": "Take the log to turn the product into a sum, then choose the θ that makes this sum as large as possible. \"arg max\" means \"the value of θ at which the maximum happens\"."
+        },
+        {
+          "p": "For the conversion example with k conversions in n visits, the binomial likelihood is proportional to p to the power k times (1 − p) to the power n − k. Watch the calculus do its work."
+        },
+        {
+          "tex": "\\ell(p) = k \\log p + (n-k)\\log(1-p), \\qquad \\frac{d\\ell}{dp} = \\frac{k}{p} - \\frac{n-k}{1-p} = 0 \\;\\Rightarrow\\; \\hat{p} = \\frac{k}{n}",
+          "plain": "Set the slope of the log-likelihood to zero (the top of a hill is flat) and solve. The answer is the sample proportion: 7 ÷ 10 = 0.7. Intuition confirmed.",
+          "symbols": [
+            [
+              "k",
+              "number of successes"
+            ],
+            [
+              "n",
+              "number of trials"
+            ]
+          ]
+        },
+        {
+          "p": "The same steps give other familiar answers. For a Poisson model of counts, the MLE of the average rate is the sample mean. For a normal model, the MLE of the mean is the sample mean, and the MLE of the variance is the average squared deviation, dividing by n (not n − 1, so it is very slightly too small for small samples)."
+        },
+        {
+          "callout": "Hidden connection: if a regression's errors are normal, maximising the likelihood is exactly the same as minimising the sum of squared errors. If outcomes are yes/no, maximising the likelihood is the same as minimising **log-loss**. Ordinary least squares and logistic regression are both maximum likelihood in disguise.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Conversion rate by trial and error",
+            "setup": "7 conversions out of 10 visitors. Likelihood L(p) = p⁷ (1 − p)³.",
+            "steps": [
+              "p = 0.5: L = 0.5⁷ × 0.5³ = 0.000977; log-likelihood = −6.93.",
+              "p = 0.6: L = 0.001792; log-likelihood = −6.32.",
+              "p = 0.7: L = 0.002224; log-likelihood = −6.11.",
+              "p = 0.8: L = 0.001678; log-likelihood = −6.39.",
+              "p = 0.9: L = 0.000478; log-likelihood = −7.65."
+            ],
+            "result": "The likelihood is highest at p = 0.7, matching the calculus. The values are tiny because they are probabilities of one exact sequence; only their relative sizes matter."
+          }
+        },
+        {
+          "example": {
+            "title": "Calls to a help desk (business case, illustrative)",
+            "setup": "An IT service desk in Bengaluru counts calls in six one-hour slots: 2, 3, 1, 4, 0, 2. Model the counts as Poisson with average rate λ calls per hour.",
+            "steps": [
+              "Poisson log-likelihood: ℓ(λ) = (sum of counts) × log λ − n × λ − (a constant). Here the sum is 12 and n = 6.",
+              "Slope: 12 ÷ λ − 6 = 0, so λ̂ = 12 ÷ 6 = 2 calls per hour, the sample mean.",
+              "Check numerically: ℓ(1.5) = −10.49, ℓ(2) = −10.04, ℓ(2.5) = −10.36, ℓ(3) = −11.17."
+            ],
+            "result": "λ̂ = 2 calls per hour. The fitted Poisson model then answers staffing questions such as \"how often will we get 5 or more calls in an hour?\", which is the real business value of fitting a distribution."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "12*Math.log(x) - 6*x - Math.log(576)",
+            "xMin": 0.5,
+            "xMax": 4,
+            "marks": [
+              {
+                "x": 2,
+                "label": "λ̂ = 2"
+              }
+            ],
+            "xLabel": "rate λ (calls per hour)",
+            "yLabel": "log-likelihood",
+            "caption": "Log-likelihood of the help-desk data for different call rates. The hill peaks at λ = 2. The flatter the hill near its top, the more uncertain the estimate; more data makes the hill sharper."
+          }
+        },
+        {
+          "example": {
+            "title": "Normal model for part diameters",
+            "setup": "Five machined shafts measure 10.2, 9.8, 10.1, 9.9 and 10.0 mm. Fit a normal distribution by maximum likelihood.",
+            "steps": [
+              "MLE of the mean = sample mean = 50.0 ÷ 5 = 10.0 mm.",
+              "Squared deviations: 0.04, 0.04, 0.01, 0.01, 0. Sum = 0.10.",
+              "MLE of the variance = 0.10 ÷ 5 = 0.020 (standard deviation 0.141 mm).",
+              "The usual unbiased sample variance divides by n − 1: 0.10 ÷ 4 = 0.025."
+            ],
+            "result": "MLE gives mean 10.0 mm and variance 0.020. With five points the n versus n − 1 difference is noticeable; with 500 it disappears."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Model",
+              "Data type",
+              "MLE of the parameter",
+              "Familiar as"
+            ],
+            "rows": [
+              [
+                "Binomial",
+                "Yes/no outcomes",
+                "p̂ = successes ÷ trials",
+                "Sample proportion"
+              ],
+              [
+                "Poisson",
+                "Counts per interval",
+                "λ̂ = mean count",
+                "Sample mean"
+              ],
+              [
+                "Normal",
+                "Measurements",
+                "μ̂ = mean, σ̂² = Σ(x − x̄)² ÷ n",
+                "Mean and (biased) variance"
+              ],
+              [
+                "Linear regression, normal errors",
+                "Numeric target",
+                "Coefficients minimising squared error",
+                "Ordinary least squares"
+              ],
+              [
+                "Logistic regression",
+                "Yes/no target",
+                "Coefficients minimising log-loss",
+                "Fitted by an optimiser"
+              ]
+            ],
+            "caption": "Maximum likelihood rediscovers the estimates you already know, and extends the same logic to models where no one could guess the answer."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Properties, uncertainty and model comparison",
+      "blocks": [
+        {
+          "bullets": [
+            "**Consistent:** with more and more data, the MLE homes in on the true value (if the model is right).",
+            "**Efficient:** for large samples, no reasonable estimator has smaller variance.",
+            "**Approximately normal:** for large samples the MLE is roughly normally distributed, so you can build confidence intervals from its standard error.",
+            "**Invariant:** the MLE of any function of a parameter is that function of the MLE. If λ̂ = 2 calls per hour, the MLE of the average gap between calls is 1/2 hour."
+          ]
+        },
+        {
+          "term": "Information criteria (AIC, BIC)",
+          "def": "Scores that compare models using the maximised log-likelihood minus a penalty for the number of parameters. Lower AIC or BIC is better. They stop you from simply picking the most complicated model."
+        },
+        {
+          "p": "statsmodels reports the log-likelihood, AIC and BIC for every fitted model, and scikit-learn's `LogisticRegression` fits its coefficients by maximising a (regularised) likelihood."
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Warranty and reliability analysis (illustrative)",
+            "story": "An automotive component maker wants to predict warranty claims for a new pump. It records failure times for units that failed and, for units still running, only the fact that they have survived so far. Maximum likelihood handles this naturally: failed units contribute the probability of failing at their time, survivors contribute the probability of surviving at least that long. Fitting a Weibull distribution this way gives the expected failure rate by year, which the finance team uses to set the warranty provision in the accounts. A naive average of failure times, which ignores the survivors, would badly understate the pump's life."
+          }
+        },
+        {
+          "bullets": [
+            "**Every logistic regression** used for credit scoring or churn prediction is fitted by maximum likelihood.",
+            "**Poisson and negative binomial models** for footfall, insurance claim counts and call volumes.",
+            "**Gaussian mixture models** for soft clustering, fitted with the EM algorithm, a method for maximising likelihood with hidden labels.",
+            "**Neural network classifiers** trained with cross-entropy loss are maximising a likelihood."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Wrong model, wrong answer.** MLE finds the best parameters for the model you chose. If the data are not Poisson, the \"best Poisson\" can still be bad.",
+            "**Small samples overfit.** One conversion in one visit gives p̂ = 100%. Priors (Bayesian estimates) or regularisation pull such estimates back towards sensible values.",
+            "**Multiple peaks.** Complex likelihoods (mixtures, neural networks) can have several hills, and an optimiser may stop on a lower one. Try several starting points.",
+            "**Perfect separation.** In logistic regression, if one feature perfectly splits yes from no, the likelihood keeps rising as the coefficient grows towards infinity. Regularisation fixes this."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Maximum likelihood",
+              "items": [
+                "Uses only the data",
+                "Gives a single best value",
+                "Standard in most software",
+                "Can be extreme with little data",
+                "Uncertainty from standard errors"
+              ]
+            },
+            "right": {
+              "title": "Bayesian / MAP estimation",
+              "items": [
+                "Combines data with a prior",
+                "Gives a full posterior distribution (or its peak, MAP)",
+                "Needs a prior to be chosen",
+                "Stable with little data",
+                "L2 regularisation = MLE plus a normal prior"
+              ]
+            },
+            "caption": "MLE and Bayesian estimation agree when data are plentiful. With scarce data, priors or regularisation keep estimates sensible."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is the likelihood the probability that the parameter is correct?",
+      "a": "No. It is the probability of the data given the parameter. To get a probability for the parameter itself you need Bayes' theorem and a prior."
+    },
+    {
+      "q": "Why maximise the log-likelihood instead of the likelihood?",
+      "a": "The log turns products into sums, avoids numbers too tiny for a computer, and makes the calculus easier. Because the log always increases, the peak is in the same place."
+    },
+    {
+      "q": "How is MLE related to loss functions in machine learning?",
+      "a": "Minimising a loss is often maximising a likelihood. Squared error corresponds to normal errors, log-loss (cross-entropy) to yes/no outcomes, and Poisson deviance to counts."
+    },
+    {
+      "q": "Does MLE always have a neat formula?",
+      "a": "Only for simple models. For logistic regression, neural networks and most real models, a numerical optimiser climbs the log-likelihood instead."
+    },
+    {
+      "q": "Why does the MLE of the variance divide by n, not n − 1?",
+      "a": "Because the MLE simply maximises the likelihood, without correcting for the fact that the mean was estimated from the same data. It is slightly biased in small samples; dividing by n − 1 removes that bias."
+    },
+    {
+      "q": "How do I compute an MLE in Python?",
+      "a": "Many scipy distributions have `.fit(data)` (for example `scipy.stats.norm.fit`). For custom models, write the negative log-likelihood and minimise it with `scipy.optimize.minimize`. statsmodels fits GLMs by maximum likelihood."
+    }
+  ]
+}

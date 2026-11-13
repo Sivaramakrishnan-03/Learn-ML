@@ -1,0 +1,63 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Load a CSV into a DataFrame and inspect it",
+    "Filter rows, select columns and create new columns",
+    "Summarise data with groupby"
+  ],
+  "why": "pandas is the everyday tool for data preparation. Most of a data scientist's time goes into cleaning and shaping data here, before any model is trained.",
+  "explain": [
+    "A **DataFrame** is a table with named columns, like an Excel sheet that remembers every step you took. A single column is a **Series**.",
+    "Start every analysis with `df.head()`, `df.info()` (types and missing values) and `df.describe()` (summary statistics).",
+    "Select with `df[\"col\"]`, filter with a condition `df[df[\"city\"] == \"Chennai\"]`, and create columns with `df[\"price_per_sqft\"] = df.price / df.area`.",
+    "`groupby` is the pivot table of pandas: \"split by category, apply a summary, combine\". `df.groupby(\"city\")[\"price\"].mean()` gives the average price per city."
+  ],
+  "example": {
+    "title": "Average price per city",
+    "steps": [
+      "Rows: Chennai ₹60L, Chennai ₹80L, Pune ₹50L, Pune ₹70L, Pune ₹90L",
+      "groupby(\"city\")[\"price\"].mean()",
+      "Chennai → (60 + 80) / 2 = ₹70L",
+      "Pune → (50 + 70 + 90) / 3 = ₹70L"
+    ],
+    "result": "Same average, but Pune has a wider spread. Add .agg([\"mean\", \"std\", \"count\"]) to see it."
+  },
+  "mistakes": [
+    "Chained assignment (`df[df.a > 1][\"b\"] = 0`) silently fails. Use `df.loc[df.a > 1, \"b\"] = 0`.",
+    "Forgetting that most operations return a new DataFrame rather than changing the original."
+  ],
+  "takeaways": [
+    "head / info / describe first",
+    "loc for filtering and assigning",
+    "groupby = split → apply → combine"
+  ],
+  "practice": {
+    "code": "import pandas as pd\ndf = pd.DataFrame({\"city\": [\"Chennai\", \"Chennai\", \"Pune\", \"Pune\", \"Pune\"],\n                   \"price\": [60, 80, 50, 70, 90], \"area\": [900, 1200, 800, 1000, 1400]})\ndf[\"price_per_100sqft\"] = df.price / df.area * 100\nprint(df.groupby(\"city\")[\"price\"].agg([\"mean\", \"std\", \"count\"]))"
+  },
+  "check": [
+    {
+      "q": "Which shows column types and missing counts?",
+      "options": [
+        "df.head()",
+        "df.info()",
+        "df.plot()",
+        "df.T"
+      ],
+      "answer": 1,
+      "why": "`info()` lists dtypes and non-null counts."
+    },
+    {
+      "q": "Safest way to set column b to 0 where a > 1?",
+      "options": [
+        "df[df.a > 1][\"b\"] = 0",
+        "df.loc[df.a > 1, \"b\"] = 0",
+        "df.b = 0",
+        "df.where(a > 1)"
+      ],
+      "answer": 1,
+      "why": "`.loc` assigns on the original DataFrame."
+    }
+  ],
+  "chapterMinutes": 15
+}

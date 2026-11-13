@@ -1,0 +1,426 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 19,
+  "hook": "A retail chain with 60 stores asks a simple question: \"How many kinds of store do we have?\" The regional director wants two answers (big-city and small-town), the marketing team wants five, and the supply-chain team wants twelve. With k-means you would run the analysis three times and get three unrelated answers. **Hierarchical clustering** builds one family tree of all 60 stores, and every team can read off the level of detail it needs from the same picture.",
+  "sections": [
+    {
+      "heading": "The problem: groups inside groups",
+      "blocks": [
+        {
+          "p": "In the k-means chapter you chose the number of groups k up front and the algorithm found k centres. That works when you know roughly how many segments you want. Often you do not. Worse, real groupings are frequently **nested**: \"premium stores\" might split into \"premium malls\" and \"premium high streets\", which might split again by region."
+        },
+        {
+          "term": "Hierarchical clustering",
+          "def": "A clustering method that builds a whole tree of groups, from every item on its own at the bottom to one big group at the top. You decide afterwards how many groups to use by choosing a level of the tree."
+        },
+        {
+          "p": "Businesses think in hierarchies all the time: product categories (Grocery → Dairy → Milk), organisation charts, geographic regions. Hierarchical clustering lets the data suggest such a hierarchy instead of someone inventing it in a meeting room."
+        },
+        {
+          "term": "Dendrogram",
+          "def": "The tree diagram produced by hierarchical clustering. Items sit at the bottom; lines join them where they merge. The height of each join shows how different the two merged groups were."
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "All 60 stores",
+              "children": [
+                {
+                  "label": "Big-city (24)",
+                  "edge": "split 1",
+                  "children": [
+                    {
+                      "label": "Mall stores (14)"
+                    },
+                    {
+                      "label": "High-street (10)"
+                    }
+                  ]
+                },
+                {
+                  "label": "Small-town (36)",
+                  "edge": "split 1",
+                  "children": [
+                    {
+                      "label": "Highway (9)"
+                    },
+                    {
+                      "label": "Market town (27)"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "One tree, several answers (illustrative). Read it at the top level and you get 2 groups for the regional director; read one level lower and you get 4 groups for marketing. Nothing has to be re-run."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: forming teams at an offsite",
+      "blocks": [
+        {
+          "p": "Imagine 20 colleagues at a company offsite who must organise themselves into teams, and nobody knows how many teams there should be. Here is a natural way to do it, with no formulas at all."
+        },
+        {
+          "steps": [
+            "**Everyone starts alone.** Twenty \"teams\" of one person each.",
+            "**The two people who get along best pair up.** Now there are 19 teams.",
+            "**Look again for the two closest teams** (a pair might join a third person, or two singles might pair up) and merge them.",
+            "**Keep merging the two most similar teams**, one merge at a time, writing down how similar they were at the moment they joined.",
+            "**Stop when everyone is in one big team.** You now have the full history of who joined whom, and when."
+          ],
+          "title": "Merging, one step at a time"
+        },
+        {
+          "p": "If the facilitator later says \"we need four teams\", you simply rewind the history to the moment when exactly four teams existed. If she says \"make it two\", you rewind to that point instead. The history contains every possible answer."
+        },
+        {
+          "think": {
+            "q": "Early merges happen between very similar people. What does it tell you if, near the end, two teams only join after a very long wait (a very large difference)?",
+            "a": "It tells you those two teams are really different groups. Forcing them together is a big compromise. A long wait before a merge is the clearest sign of a natural boundary, and it is exactly where you should \"cut\" the tree."
+          }
+        },
+        {
+          "callout": "This bottom-up merging is called **agglomerative** clustering and it is what almost everyone means by hierarchical clustering. The opposite, top-down splitting, exists but is rarely used.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How the algorithm works, step by step",
+      "blocks": [
+        {
+          "term": "Agglomerative",
+          "def": "Bottom-up: start with every item as its own cluster and repeatedly merge. (The top-down alternative, which starts with one cluster and repeatedly splits, is called divisive.)"
+        },
+        {
+          "term": "Distance matrix",
+          "def": "A table giving the distance between every pair of items. With n items it has n × n cells, although only about half are needed because the distance from A to B equals the distance from B to A."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Scale** features and compute the distance matrix",
+              "Treat every item as its own cluster",
+              "**Merge** the two closest clusters; record the height",
+              "Update distances from the new cluster to the rest",
+              "Repeat until one cluster remains, then **cut** the tree"
+            ],
+            "caption": "Agglomerative clustering. With n items there are always exactly n − 1 merges, and the recorded heights become the dendrogram."
+          }
+        },
+        {
+          "p": "**Step 1: Prepare.** As with k-means, distances are only meaningful if features are on comparable scales, so standardise first. Then compute the distance between every pair of items, usually the ordinary straight-line (Euclidean) distance."
+        },
+        {
+          "p": "**Step 2: Merge.** Find the two clusters with the smallest distance between them and join them. Write down that distance: it is the **height** of the join in the dendrogram."
+        },
+        {
+          "p": "**Step 3: Update.** The new, bigger cluster needs a distance to every other cluster. How you define \"distance between two groups\" is the single most important choice in the method, and it is called the **linkage**. We look at it in the next section."
+        },
+        {
+          "p": "**Step 4: Repeat** until one cluster is left. **Step 5: Cut** the tree at a chosen height (or ask for a chosen number of clusters) to get your final groups."
+        },
+        {
+          "callout": "There is no randomness anywhere in this procedure. Unlike k-means, running it twice on the same data gives exactly the same tree.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly: what does \"distance between two groups\" mean?",
+      "blocks": [
+        {
+          "p": "Distance between two single points is easy. Distance between two **groups** of points is a choice, and different choices produce different trees. The rule you choose is the linkage."
+        },
+        {
+          "term": "Linkage",
+          "def": "The rule for measuring the distance between two clusters, built from the distances between their members. Common choices: single, complete, average and Ward."
+        },
+        {
+          "tex": "d_{\\text{single}}(A,B) = \\min_{a \\in A,\\, b \\in B} d(a,b)",
+          "plain": "Single linkage: the distance between the two closest members, one from each group. Two groups are \"close\" if any pair of their members is close.",
+          "symbols": [
+            [
+              "A, B",
+              "the two clusters"
+            ],
+            [
+              "d(a,b)",
+              "distance between point a and point b"
+            ]
+          ]
+        },
+        {
+          "tex": "d_{\\text{complete}}(A,B) = \\max_{a \\in A,\\, b \\in B} d(a,b)",
+          "plain": "Complete linkage: the distance between the two farthest members. Two groups are \"close\" only if every pair of their members is close, which favours compact groups."
+        },
+        {
+          "tex": "d_{\\text{average}}(A,B) = \\frac{1}{|A|\\,|B|} \\sum_{a \\in A} \\sum_{b \\in B} d(a,b)",
+          "plain": "Average linkage: work out the distance for every pair (one member from each group) and take the average. A compromise between the two extremes.",
+          "symbols": [
+            [
+              "|A|",
+              "number of points in cluster A"
+            ]
+          ]
+        },
+        {
+          "tex": "\\Delta(A,B) = \\frac{|A|\\,|B|}{|A|+|B|} \\, \\lVert \\mu_A - \\mu_B \\rVert^2",
+          "plain": "Ward linkage: merge the pair of clusters whose merger increases the total within-cluster sum of squares (the inertia from the k-means chapter) by the smallest amount. The increase depends on how far apart the two centres are and how big the clusters are.",
+          "symbols": [
+            [
+              "\\Delta",
+              "increase in total within-cluster sum of squares"
+            ],
+            [
+              "\\mu_A",
+              "centre (mean) of cluster A"
+            ]
+          ]
+        },
+        {
+          "p": "Why do these matter? Single linkage only needs one close pair, so it happily follows a long thin chain of points, which is good for snake-like shapes but dangerous with noise (one stray point can bridge two real groups). Complete linkage refuses to merge groups that have any far-apart members, so it produces tight, ball-shaped clusters. Ward behaves most like k-means because it minimises the same quantity, which is why it is the usual default (`linkage=\"ward\"` in scikit-learn's `AgglomerativeClustering`)."
+        },
+        {
+          "callout": "Ward linkage only makes sense with Euclidean distance. If you need a different distance (for example for text or yes/no features), use average or complete linkage instead.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Single linkage on five numbers",
+            "setup": "Average daily orders (in hundreds) for five small outlets: A = 1, B = 2, C = 4, D = 10, E = 11. Build the tree with single linkage.",
+            "steps": [
+              "Pairwise distances that matter: A–B = 1, D–E = 1, B–C = 2, A–C = 3, C–D = 6.",
+              "Merge 1: A and B are 1 apart (the smallest distance; D–E ties at 1, and the order of ties does not change the tree). Join {A, B} at height 1.",
+              "Merge 2: D and E, also 1 apart. Join {D, E} at height 1.",
+              "Merge 3: distance from {A, B} to C under single linkage = the closest pair = min(3, 2) = 2. Distance from C to {D, E} = min(6, 7) = 6. So C joins {A, B} at height 2.",
+              "Merge 4: distance from {A, B, C} to {D, E} = closest pair = C to D = 10 − 4 = 6. Final join at height 6."
+            ],
+            "result": "Merge heights 1, 1, 2, 6. The jump from 2 to 6 is large, so the natural answer is two groups: small outlets {A, B, C} and big outlets {D, E}."
+          }
+        },
+        {
+          "example": {
+            "title": "Same numbers, different linkage",
+            "setup": "Redo merges 3 and 4 with complete and average linkage. The first two merges are identical because single points have only one distance.",
+            "steps": [
+              "Complete linkage, merge 3: {A, B} to C = farthest pair = max(3, 2) = 3. C to {D, E} = max(6, 7) = 7. C joins {A, B} at height 3.",
+              "Complete linkage, merge 4: farthest pair between {1, 2, 4} and {10, 11} is 1 to 11 = 10. Final height 10.",
+              "Average linkage, merge 3: {A, B} to C = (3 + 2) / 2 = 2.5.",
+              "Average linkage, merge 4: the six cross distances are 9, 10, 8, 9, 6, 7. Their sum is 49, so the average is 49 / 6 ≈ 8.17.",
+              "Ward, merge 3: increase in sum of squares = (2 × 1 / 3) × (1.5 − 4)² = (2/3) × 6.25 ≈ 4.17. Joining C to {D, E} instead would cost (2/3) × (10.5 − 4)² ≈ 28.17, so C joins {A, B}."
+            ],
+            "result": "The grouping is the same, but the heights differ by linkage. Heights are only comparable within one tree, never across linkages."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Merge",
+              "Clusters joined",
+              "Single",
+              "Complete",
+              "Average"
+            ],
+            "rows": [
+              [
+                "1",
+                "A + B",
+                "1",
+                "1",
+                "1"
+              ],
+              [
+                "2",
+                "D + E",
+                "1",
+                "1",
+                "1"
+              ],
+              [
+                "3",
+                "{A,B} + C",
+                "2",
+                "3",
+                "2.5"
+              ],
+              [
+                "4",
+                "{A,B,C} + {D,E}",
+                "6",
+                "10",
+                "8.17"
+              ]
+            ],
+            "caption": "Merge heights for the five outlets under three linkages (checked with SciPy). The order of merges is the same here, but the last jump is biggest under complete linkage, which always uses the worst-case pair."
+          }
+        },
+        {
+          "example": {
+            "title": "Five stores in two dimensions (complete linkage)",
+            "setup": "Five stores described by (weekday sales, weekend sales) in ₹ lakh per week, already on the same scale: S1 (2, 3), S2 (3, 3), S3 (3, 5), S4 (8, 7), S5 (9, 8).",
+            "steps": [
+              "Distances: S1–S2 = 1; S2–S3 = 2; S1–S3 = √(1² + 2²) ≈ 2.24; S4–S5 = √(1² + 1²) ≈ 1.41; S3–S4 = √(5² + 2²) ≈ 5.39; S1–S5 = √(7² + 5²) ≈ 8.60.",
+              "Merge 1: S1 + S2 at height 1 (the smallest distance in the table).",
+              "Merge 2: S4 + S5 at height 1.41.",
+              "Merge 3: complete-linkage distance from {S1, S2} to S3 = max(2.24, 2) = 2.24. This is smaller than anything involving {S4, S5}, so S3 joins at 2.24.",
+              "Merge 4: farthest pair between {S1, S2, S3} and {S4, S5} is S1–S5 = 8.60."
+            ],
+            "result": "Heights 1, 1.41, 2.24, 8.60. Cutting anywhere between 2.24 and 8.60 gives two clear store types: \"low-volume\" {S1, S2, S3} and \"high-volume, weekend-heavy\" {S4, S5}."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading the dendrogram and choosing where to cut",
+      "blocks": [
+        {
+          "p": "A dendrogram is read from the bottom up. Items that join low down are very similar. Items that only meet near the top are very different. The vertical axis is the merge height, so the **length of the vertical lines** is what carries information, not the left-to-right order of the leaves (which is just for drawing)."
+        },
+        {
+          "term": "Cutting the tree",
+          "def": "Drawing a horizontal line across the dendrogram at some height. Every branch the line crosses becomes one cluster. A higher cut gives fewer, larger clusters."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "merge 1",
+              "merge 2",
+              "merge 3",
+              "merge 4"
+            ],
+            "values": [
+              1,
+              1.41,
+              2.24,
+              8.6
+            ],
+            "highlight": 3,
+            "yLabel": "merge height",
+            "caption": "Merge heights for the five stores. The first three merges are cheap; the last one costs almost four times as much as the one before. Cutting just below the big jump (say at height 5) gives two clusters."
+          }
+        },
+        {
+          "p": "Three practical ways to choose the cut:"
+        },
+        {
+          "bullets": [
+            "**Look for the biggest gap** between successive merge heights. This is the dendrogram version of the elbow method from k-means.",
+            "**Ask for a number of clusters.** In SciPy, `fcluster(Z, t=3, criterion=\"maxclust\")`; in scikit-learn, `AgglomerativeClustering(n_clusters=3)`.",
+            "**Set a distance threshold** that has business meaning, for example \"stores more than 5 lakh apart in weekly sales profile should not share a format\" (`distance_threshold=5, n_clusters=None`)."
+          ]
+        },
+        {
+          "think": {
+            "q": "Two leaves sit right next to each other at the bottom of a dendrogram but only join at the very top. Are they similar?",
+            "a": "No. Horizontal position in a dendrogram is arbitrary; any branch can be flipped left-to-right without changing the tree. Similarity is read only from the height at which two items first join."
+          }
+        },
+        {
+          "callout": "You can also judge a cut with the silhouette score from the k-means chapter: compute it for cuts giving 2, 3, 4 … clusters and compare.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Hierarchical clustering in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Building a product taxonomy from sales data (illustrative)",
+            "story": "An online grocer has 400 product lines with inconsistent categories entered by different buyers over the years. The analytics team describes each product by its weekly sales pattern, typical basket partners and price band, standardises the features and runs Ward hierarchical clustering. The dendrogram shows two clear top-level branches (daily essentials and occasional purchases), six mid-level branches that category managers recognise and name, and about 30 low-level groups. The team cuts the tree at the six-branch level to restructure the website menu, and at the 30-group level to plan which products should be stocked together in the warehouse. One tree served two decisions."
+          }
+        },
+        {
+          "bullets": [
+            "**Biology:** grouping genes with similar expression patterns; the dendrograms beside heatmaps in genetics papers come from this method.",
+            "**Finance:** grouping stocks by the correlation of their returns, so a portfolio does not unknowingly hold ten versions of the same bet.",
+            "**Manufacturing:** grouping machine sensor profiles to find families of similar faults.",
+            "**Text:** grouping documents or support tickets into topics and sub-topics."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**It does not scale to big data.** It needs the distance between every pair of items. With 50,000 customers that is about 1.25 billion distances, roughly 10 GB of memory at 8 bytes each, and the run time grows even faster. Use it on samples, on aggregated data (stores, products) or switch to k-means.",
+            "**Merges are never undone.** The algorithm is greedy: once two items are joined they stay together, even if a later view shows that was a mistake.",
+            "**Single linkage chains.** A thin line of noise points can join two real groups into one long snake.",
+            "**Scaling still matters.** Unscaled rupee columns dominate the distances, just as in k-means.",
+            "**Different linkages give different trees.** Try at least Ward and average linkage and check whether the main groups survive."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Hierarchical clustering",
+              "items": [
+                "No need to choose k in advance",
+                "Shows structure at every level",
+                "Deterministic: same answer every run",
+                "Memory grows with n², so up to roughly 10,000–20,000 items",
+                "Greedy merges cannot be revised"
+              ]
+            },
+            "right": {
+              "title": "K-means",
+              "items": [
+                "Must choose k up front",
+                "One flat set of groups",
+                "Depends on random start (use several runs)",
+                "Handles millions of rows",
+                "Keeps improving the grouping until it settles"
+              ]
+            },
+            "caption": "A common combination: run k-means to compress a huge dataset into a few hundred small clusters, then run hierarchical clustering on those centroids to see the big picture."
+          }
+        },
+        {
+          "callout": "If you need clusters of strange shapes with noise points left out, look at DBSCAN (next chapter). If you need probabilities of belonging, look at Gaussian Mixture Models.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to choose the number of clusters?",
+      "a": "Not to build the tree. You choose it afterwards, by cutting the dendrogram at a height or asking for a number of clusters, and you can try several cuts without re-running anything."
+    },
+    {
+      "q": "Which linkage should I use?",
+      "a": "Start with Ward when your features are numeric and you use Euclidean distance; it gives compact, k-means-like groups. Use average or complete linkage for other distances, and single linkage only when you expect long, chain-like clusters and have little noise."
+    },
+    {
+      "q": "Why does my dendrogram look different in another tool?",
+      "a": "Usually the linkage, the distance measure or the scaling differ. Also, SciPy reports Ward heights on a different scale from the raw increase in sum of squares, so absolute heights vary between tools while the shape of the tree stays the same."
+    },
+    {
+      "q": "Can I assign a new customer to an existing hierarchical clustering?",
+      "a": "Not directly; there is no `predict` method. Common practice is to compute the centroid of each final cluster and assign new items to the nearest centroid, or train a simple classifier on the cluster labels."
+    },
+    {
+      "q": "How many items is too many?",
+      "a": "Tens of thousands is usually the practical ceiling on a normal laptop because of the pairwise distance matrix. Beyond that, sample, aggregate, or use k-means first."
+    },
+    {
+      "q": "Is the order of leaves along the bottom meaningful?",
+      "a": "No. Each join can be flipped left-to-right. Only the heights of the joins carry meaning."
+    }
+  ]
+}

@@ -1,0 +1,522 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "Spread a tablecloth on a table and scatter red crumbs in the middle and blue crumbs around the edge. No straight cut through the cloth separates them. Now flick the cloth upwards from the centre: the red crumbs fly high and the blue ones barely lift. For an instant, a flat sheet of glass held at the right height would separate them perfectly. The **kernel trick** gives an SVM that flick: it lifts data into extra dimensions where a flat boundary works, and it does so without ever computing those dimensions.",
+  "sections": [
+    {
+      "heading": "The problem: when no straight line will do",
+      "blocks": [
+        {
+          "p": "The previous chapter's SVM draws the widest possible straight street between two classes. Plenty of real problems are not like that. A machine runs well inside a comfortable band of temperature and pressure and fails when either is too low **or** too high. Good customers sit in a middle band of spending, with both \"dormant\" and \"overextended\" customers outside it. The healthy region is an island, not a half of the chart."
+        },
+        {
+          "term": "Linearly separable",
+          "def": "Data where a single straight line (or flat hyperplane, with more features) can put all of one class on one side and all of the other class on the other."
+        },
+        {
+          "p": "A linear SVM on island-shaped data is hopeless: on the classic \"ring around a core\" dataset it does no better than tossing a coin. We need curved boundaries, but we would like to keep everything good about SVMs: the widest street, the single best solution, the reliance on a few support vectors."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "temperature deviation (scaled)",
+            "yLabel": "pressure deviation (scaled)",
+            "caption": "Machine readings: blue normal operation near the centre, red faults all around it. Any straight line leaves normal and faulty points mixed on both sides. The true boundary is a circle.",
+            "points": [
+              [
+                0.76,
+                0.24,
+                0
+              ],
+              [
+                0.37,
+                0.71,
+                0
+              ],
+              [
+                -0.24,
+                0.76,
+                0
+              ],
+              [
+                -0.71,
+                0.37,
+                0
+              ],
+              [
+                -0.76,
+                -0.24,
+                0
+              ],
+              [
+                -0.37,
+                -0.71,
+                0
+              ],
+              [
+                0.24,
+                -0.76,
+                0
+              ],
+              [
+                0.71,
+                -0.37,
+                0
+              ],
+              [
+                0.1,
+                0.1,
+                0
+              ],
+              [
+                2,
+                0,
+                1
+              ],
+              [
+                1.91,
+                1.1,
+                1
+              ],
+              [
+                1.2,
+                2.08,
+                1
+              ],
+              [
+                0,
+                2,
+                1
+              ],
+              [
+                -1.1,
+                1.91,
+                1
+              ],
+              [
+                -2.08,
+                1.2,
+                1
+              ],
+              [
+                -2,
+                0,
+                1
+              ],
+              [
+                -1.91,
+                -1.1,
+                1
+              ],
+              [
+                -1.2,
+                -2.08,
+                1
+              ],
+              [
+                0,
+                -2,
+                1
+              ],
+              [
+                1.1,
+                -1.91,
+                1
+              ],
+              [
+                2.08,
+                -1.2,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: lifting the data",
+      "blocks": [
+        {
+          "p": "Here is the key idea, with no formulas. If the data cannot be separated where it is, **add a new feature** that pulls the classes apart, and separate them in the bigger space."
+        },
+        {
+          "steps": [
+            "**Notice the pattern.** Normal readings are close to the centre; faults are far from it.",
+            "**Invent a feature that measures it.** \"Distance from the centre, squared\" is small for normal readings and large for faults.",
+            "**Add it as a third axis.** Picture each point lifted to a height equal to that new feature. The normal points stay low; the faults rise high.",
+            "**Separate with something flat.** A horizontal sheet at the right height now separates the classes perfectly.",
+            "**Look back down.** Where the flat sheet slices the lifted cloud, seen from above, is a circle. A flat boundary up there is a curved boundary down here."
+          ],
+          "title": "The tablecloth flick, step by step"
+        },
+        {
+          "term": "Feature map",
+          "def": "A rule that turns the original features into a new, usually bigger, set of features (for example adding squares and products) so that a straight boundary in the new space becomes a curved one in the original."
+        },
+        {
+          "p": "The catch: for realistic problems we do not know which new features to invent, and the useful set may be enormous. With 100 original features, all products of pairs give 5,050 new features; all products of triples give 171,700. Building those columns is slow and memory-hungry."
+        },
+        {
+          "think": {
+            "q": "Why does adding the squared distance from the centre help, when it is computed only from the two features we already had?",
+            "a": "Because a straight line can only combine features by weighting and adding them. It can never compute \"x squared plus y squared\" by itself. Giving it that quantity as a ready-made column lets a straight rule (\"new feature below 1.5 means normal\") express a circle."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How the trick works, step by step",
+      "blocks": [
+        {
+          "p": "Here is the surprise that makes kernels practical. When an SVM is solved, the data only ever enters through **dot products** between pairs of points: one number per pair saying how aligned or similar they are. The individual coordinates are never needed on their own."
+        },
+        {
+          "term": "Dot product",
+          "def": "Multiply two lists of numbers position by position and add the results. For (1, 2) and (3, 1): 1×3 + 2×1 = 5. Large when the two points point the same way; it acts as a similarity score."
+        },
+        {
+          "term": "Kernel",
+          "def": "A function that takes two original data points and returns, directly and cheaply, the dot product they would have in some bigger feature space, without ever building that space."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Scale** the original features",
+              "Pick a **kernel** (RBF is the default)",
+              "Compute **kernel similarity** between pairs of points",
+              "**Solve the SVM** using similarities only",
+              "Predict from **similarity to support vectors**"
+            ],
+            "caption": "A kernel SVM never builds the big feature space. Every step works with pairwise similarities computed from the original features."
+          }
+        },
+        {
+          "p": "**Step 1: Scale** the features, as always with SVMs."
+        },
+        {
+          "p": "**Step 2: Choose a kernel.** The RBF (Gaussian) kernel is the usual first choice; polynomial kernels are an alternative when you expect interactions of a fixed order."
+        },
+        {
+          "p": "**Step 3: Solve.** The same widest-street optimisation runs, but every dot product is replaced by the kernel. The result is a set of support vectors, each with a weight."
+        },
+        {
+          "p": "**Step 4: Predict.** For a new point, compute its kernel similarity to each support vector, weight these by the support vectors' labels and weights, add them up and look at the sign."
+        },
+        {
+          "callout": "The kernel trick is the substitution itself: wherever the algorithm needs a dot product in the big space, plug in a cheap kernel calculation on the original features instead.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "K(x, z) = \\varphi(x) \\cdot \\varphi(z)",
+          "plain": "A kernel K gives the same number as first mapping both points into the bigger space with φ and then taking their dot product, but it skips the mapping.",
+          "symbols": [
+            [
+              "K(x, z)",
+              "the kernel: a similarity between points x and z"
+            ],
+            [
+              "\\varphi(x)",
+              "the (possibly huge) feature map of x"
+            ]
+          ]
+        },
+        {
+          "tex": "K_{\\text{poly}}(x, z) = (x \\cdot z)^2",
+          "plain": "The degree-2 polynomial kernel: take the ordinary dot product and square it. This equals the dot product after mapping each point to all its squares and pairwise products."
+        },
+        {
+          "p": "The workhorse is the **RBF kernel**, short for radial basis function. It measures similarity by distance: identical points score 1, and the score falls smoothly towards 0 as points move apart."
+        },
+        {
+          "tex": "K_{\\text{RBF}}(x, z) = \\exp\\left(-\\gamma \\lVert x - z \\rVert^2\\right)",
+          "plain": "Square the distance between the two points, multiply by γ, flip the sign and take the exponential. Close points give values near 1, far points near 0.",
+          "symbols": [
+            [
+              "\\gamma",
+              "gamma: how quickly similarity fades with distance"
+            ],
+            [
+              "\\lVert x - z \\rVert^2",
+              "squared straight-line distance between x and z"
+            ],
+            [
+              "\\exp",
+              "the exponential function, e raised to a power"
+            ]
+          ]
+        },
+        {
+          "p": "Remarkably, the feature space behind the RBF kernel has **infinitely many** dimensions, yet each kernel value costs one distance and one exponential."
+        },
+        {
+          "tex": "f(x) = \\sum_{i \\in SV} \\alpha_i \\, y_i \\, K(x_i, x) + b",
+          "plain": "To score a new point x, add up its similarity to every support vector, each multiplied by that support vector's label (+1 or −1) and its learned weight α, then add b. Positive means class +1.",
+          "symbols": [
+            [
+              "SV",
+              "the set of support vectors"
+            ],
+            [
+              "\\alpha_i",
+              "the learned weight of support vector i"
+            ],
+            [
+              "y_i",
+              "its label, +1 or −1"
+            ]
+          ]
+        },
+        {
+          "p": "Read that last formula as a vote. Each support vector pulls the new point towards its own class, with strength depending on how similar they are. Nearby support vectors shout; distant ones whisper. **Gamma** decides how quickly the voices fade."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Lifting one-dimensional data",
+            "setup": "Seven parts measured by deviation from target size (mm): −3, −2, −1, 0, 1, 2, 3. Parts within ±1 mm pass; the rest fail. Can a single threshold on x separate pass from fail?",
+            "steps": [
+              "On the x line, failures sit on both sides of the passes. Any single cut leaves failures on the pass side. No threshold works.",
+              "Add a feature: x². The values become 9, 4, 1, 0, 1, 4, 9.",
+              "Passing parts have x² of 0 or 1; failing parts have 4 or 9.",
+              "A single threshold on the new feature, x² = 2.5, separates them perfectly. A wide street runs between 1 and 4.",
+              "Back in the original units, x² < 2.5 means −1.58 < x < 1.58: a two-sided rule from one flat cut."
+            ],
+            "result": "Adding one curved feature turned an impossible straight-line problem into an easy one. Kernels do this automatically, for many features at once."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "deviation x (mm)",
+            "yLabel": "new feature x²",
+            "line": {
+              "m": 0,
+              "b": 2.5
+            },
+            "caption": "The seven parts lifted onto the curve y = x². Passes (blue) stay low, failures (red) rise high, and the flat line at 2.5 separates them. Straight in the lifted space; two cut-offs in the original.",
+            "points": [
+              [
+                -3,
+                9,
+                1
+              ],
+              [
+                -2,
+                4,
+                1
+              ],
+              [
+                -1,
+                1,
+                0
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                4,
+                1
+              ],
+              [
+                3,
+                9,
+                1
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "Checking the trick with real numbers",
+            "setup": "Two points x = (1, 2) and z = (3, 1). The degree-2 feature map is φ(a, b) = (a², √2·a·b, b²). Compare the long way and the kernel way.",
+            "steps": [
+              "Long way: φ(x) = (1, 2√2, 4) ≈ (1, 2.83, 4). φ(z) = (9, 3√2, 1) ≈ (9, 4.24, 1).",
+              "Dot product: 1×9 + (2√2)(3√2) + 4×1 = 9 + 12 + 4 = 25.",
+              "Kernel way: x · z = 1×3 + 2×1 = 5. Square it: 5² = 25.",
+              "Same answer. The kernel needed two multiplications and a square; the long way needed us to build three new features for each point first.",
+              "With 100 original features the long way builds 5,050 features per point; the kernel still needs about 100 multiplications and a square."
+            ],
+            "result": "The kernel computes similarity in the big space while staying in the small one. That is the whole trick."
+          }
+        },
+        {
+          "example": {
+            "title": "How gamma changes an RBF vote",
+            "setup": "A new point has squared distance 1 to support vector A (class +1) and squared distance 4 to support vector B (class −1). Both have weight α = 1 and b = 0. Compare γ = 0.5 and γ = 2.",
+            "steps": [
+              "γ = 0.5: K(A) = e^(−0.5) ≈ 0.607; K(B) = e^(−2) ≈ 0.135. Score = 0.607 − 0.135 ≈ 0.471 → class +1.",
+              "γ = 2: K(A) = e^(−2) ≈ 0.135; K(B) = e^(−8) ≈ 0.0003. Score ≈ 0.135 → still +1, but now B has essentially no say at all.",
+              "For a point at squared distance 9: similarity is e^(−4.5) ≈ 0.011 with γ = 0.5, and e^(−18), about 0.00000002, with γ = 2."
+            ],
+            "result": "Large gamma makes each support vector's influence very local, so the boundary can wrap tightly around individual points. Small gamma lets influence spread, giving smoother boundaries."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-0.5*x*x)",
+            "fn2": "Math.exp(-2*x*x)",
+            "xMin": 0,
+            "xMax": 4,
+            "xLabel": "distance between points",
+            "yLabel": "RBF similarity",
+            "legend": [
+              "γ = 0.5",
+              "γ = 2"
+            ],
+            "caption": "RBF similarity against distance. With γ = 2 similarity collapses to almost zero by distance 1.5; with γ = 0.5 points still influence each other at distance 2.5. Gamma is the reach of each support vector."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Tuning C and gamma together",
+      "blocks": [
+        {
+          "p": "An RBF SVM has two settings that interact. **C**, as before, is the price of violations. **Gamma** is the reach of each point. Both control flexibility, so they must be tuned together, usually by a grid search on a log scale (0.001, 0.01, 0.1, 1, 10, 100) with cross-validation."
+        },
+        {
+          "term": "Grid search",
+          "def": "Trying every combination of a few candidate values for each setting, scoring each combination by cross-validation, and keeping the best. In scikit-learn: `GridSearchCV`."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "linear",
+              "γ=0.01",
+              "γ=0.1",
+              "γ=1",
+              "γ=10",
+              "γ=100",
+              "γ=1000"
+            ],
+            "values": [
+              54.8,
+              60.2,
+              84.7,
+              89.2,
+              88.2,
+              88.2,
+              75.5
+            ],
+            "highlight": 3,
+            "yLabel": "cross-validated accuracy %",
+            "caption": "A real run on scikit-learn's noisy two-rings data (400 points, C = 1, 5-fold CV). Linear: a coin flip. Tiny gamma: too smooth to bend round the ring. γ = 1: best. γ = 1000: training accuracy hits 100% with 398 of 400 points as support vectors, but held-out accuracy falls to 75.5%. Pure memorisation."
+          }
+        },
+        {
+          "bullets": [
+            "**Small gamma, small C:** very smooth boundary, close to linear. May underfit.",
+            "**Large gamma, large C:** a boundary that wraps tiny islands around individual points. Overfits.",
+            "**Sensible defaults:** scikit-learn's `gamma=\"scale\"` sets gamma from the data's spread, a good starting point; then search around it.",
+            "**Warning sign:** if nearly every training point is a support vector, gamma is probably too large."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Kernel SVMs in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Handwritten digit recognition",
+            "story": "In the late 1990s, kernel SVMs were among the most accurate methods on the MNIST benchmark of handwritten digits, competitive with the neural networks of the day, as shown in published comparisons of that period. Each 28 × 28 pixel image is a point with 784 features; polynomial and RBF kernels captured the curved, non-linear differences between a 4 and a 9 without anyone designing those features by hand. Deep convolutional networks later overtook them on images, but the episode established kernel methods as a serious, principled tool."
+          }
+        },
+        {
+          "bullets": [
+            "**Process monitoring (illustrative):** an RBF SVM learns the curved region of \"healthy\" combinations of temperature, pressure and flow on a paint line, flagging readings outside it.",
+            "**Bioinformatics:** specialised kernels compare protein or DNA sequences directly, without turning them into tables.",
+            "**Small-data classification:** with a few hundred to a few thousand labelled examples and curved boundaries, an RBF SVM is often among the best off-the-shelf choices.",
+            "**One-class SVM:** a kernel variant trained only on normal data, used for anomaly detection."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Scaling is mandatory.** RBF similarity is built on distance; an unscaled rupee column makes every other feature irrelevant.",
+            "**Poor scaling to big data.** The kernel needs a similarity for every pair of points: 100,000 rows means 10 billion pairs. Beyond tens of thousands of rows, use gradient boosting, a linear model with approximate kernel features (`Nystroem`, `RBFSampler`), or a neural network.",
+            "**Overfitting via gamma.** Large gamma with large C memorises the training set.",
+            "**Hard to explain.** The model is a weighted sum of similarities to support vectors, not a set of readable coefficients.",
+            "**Choosing the kernel** is itself a modelling decision; start with RBF and only switch with a reason."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Kernel SVM fits when…",
+              "items": [
+                "Boundaries are curved",
+                "Rows: hundreds to tens of thousands",
+                "Features are numeric and scaled",
+                "You can afford a C × gamma grid search",
+                "Accuracy matters more than explanation"
+              ]
+            },
+            "right": {
+              "title": "Prefer instead…",
+              "items": [
+                "Large tabular data → **gradient boosting**",
+                "Need readable rules → **decision tree**",
+                "Need calibrated probabilities → **logistic regression** with engineered features",
+                "Images, audio, text at scale → **neural networks**",
+                "Mostly linear data → **linear SVM**"
+              ]
+            },
+            "caption": "Kernels are a powerful idea; a kernel SVM is one specific tool with a sweet spot of small-to-medium, curved problems."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does the kernel trick actually create new features?",
+      "a": "No, and that is the point. It computes the similarities those features would produce, directly from the original features. The big space is never built."
+    },
+    {
+      "q": "Which kernel should I start with?",
+      "a": "RBF. It handles a wide range of curved boundaries. Use linear when you have many features (such as text) and polynomial when you expect interactions of a known order."
+    },
+    {
+      "q": "What do C and gamma do, in one line each?",
+      "a": "C is the price of training errors: higher means a tighter fit. Gamma is each point's reach: higher means more local, wigglier boundaries."
+    },
+    {
+      "q": "Why is my RBF SVM 100% accurate on training data but poor on test data?",
+      "a": "Gamma (and possibly C) is too large, so the model has wrapped a tiny island around each training point. Lower them and choose by cross-validation."
+    },
+    {
+      "q": "Is the kernel trick only for SVMs?",
+      "a": "No. Any method that uses data only through dot products can be \"kernelised\", including kernel PCA, kernel ridge regression and Gaussian processes."
+    },
+    {
+      "q": "How many rows is too many?",
+      "a": "As a rule of thumb, kernel `SVC` becomes slow somewhere in the tens of thousands of rows and impractical beyond a few hundred thousand. Use approximate kernels or other models there."
+    }
+  ]
+}

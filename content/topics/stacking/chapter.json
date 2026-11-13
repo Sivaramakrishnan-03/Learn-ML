@@ -1,0 +1,386 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A head of strategy has three analysts. One is brilliant on consumer trends but overreacts to fads; one is a careful number-cruncher who misses turning points; one is average at everything. Over time she learns whom to trust, and how much, for which kind of question. Her combined judgement beats any single analyst. **Stacking** trains a model to play her role: a \"manager\" model that learns how best to combine the predictions of other models.",
+  "sections": [
+    {
+      "heading": "The problem: several good models, one decision",
+      "blocks": [
+        {
+          "p": "By now you might have a random forest, a gradient-boosted model and a regularised linear regression, all trained to predict the same thing. They score similarly on validation data, but they make **different mistakes**: the forest is cautious near extremes, the boosted model sometimes overshoots, the linear model misses interactions. Picking one throws away what the others know."
+        },
+        {
+          "p": "A simple average often helps, as you saw with bagging. But a simple average treats all models as equally trustworthy. What if one model deserves 60% of the say and another deserves almost none? What if a model is reliable only for certain kinds of rows? Learning those weights from data is the idea of **stacking**, introduced by David Wolpert in 1992 as \"stacked generalisation\"."
+        },
+        {
+          "term": "Base model",
+          "def": "One of the first-level models whose predictions are being combined, such as a random forest or a gradient-boosted model. Also called a level-0 model."
+        },
+        {
+          "term": "Meta-model",
+          "def": "A second-level model that takes the base models' predictions as its inputs and produces the final prediction. Also called a level-1 model or blender."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Training data**",
+              "**Base models**: forest, boosting, linear",
+              "**Out-of-fold predictions** become new features",
+              "**Meta-model** learns how to combine them",
+              "**Final prediction**"
+            ],
+            "caption": "Stacking in one line: the base models' predictions become the inputs for one more model. The crucial detail is that those predictions must be made on data each base model did not train on."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the manager and her analysts",
+      "blocks": [
+        {
+          "p": "Let us follow the strategy head as she learns whom to trust, with no formulas."
+        },
+        {
+          "steps": [
+            "**Collect forecasts made in advance.** For last year's 24 monthly forecasts, she writes down what each analyst predicted before the results came in.",
+            "**Compare with what happened.** She notices the trend analyst is usually too high and the number-cruncher too low, by similar amounts.",
+            "**Learn a rule.** \"Take roughly half of each of those two; ignore the third.\" Their errors cancel.",
+            "**Apply the rule to new forecasts.** Next month she combines the analysts' fresh forecasts using her learned rule."
+          ],
+          "title": "How a manager learns to combine opinions"
+        },
+        {
+          "p": "The essential point is in step 1: she judged the analysts on forecasts they made **before** seeing the answer. If she had judged them on how well they \"explained\" last year after the fact, the analyst best at rationalising the past would look best, and her rule would be useless."
+        },
+        {
+          "think": {
+            "q": "Why would judging analysts on hindsight explanations mislead the manager?",
+            "a": "Hindsight explanations can fit the past perfectly without any forecasting skill. A model that memorises its training data does the same. If the meta-model sees such in-sample predictions, it will over-trust the memoriser and perform badly on new data."
+          }
+        },
+        {
+          "callout": "The meta-model must only ever see predictions the base models made on rows they were not trained on. Everything clever about stacking follows from this one rule.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How stacking works, step by step",
+      "blocks": [
+        {
+          "p": "The standard way to get honest predictions for every training row is **k-fold cross-validation**, used here to manufacture **out-of-fold predictions**."
+        },
+        {
+          "term": "Cross-validation (k-fold)",
+          "def": "Splitting the data into k equal parts (folds), then training k times, each time holding out one fold for testing and training on the rest."
+        },
+        {
+          "term": "Out-of-fold (OOF) prediction",
+          "def": "A prediction for a row made by a model that was trained without that row. Every row gets exactly one OOF prediction per base model."
+        },
+        {
+          "steps": [
+            "**Split the training data into k folds** (often 5).",
+            "**For each base model and each fold,** train on the other k − 1 folds and predict the held-out fold. After k rounds every row has one honest OOF prediction from each base model.",
+            "**Build a new table** whose columns are the base models' OOF predictions (optionally plus the original features).",
+            "**Train the meta-model** on this table to predict the true target. Simple meta-models, like linear or logistic regression, work best.",
+            "**Refit each base model on all the training data** so it is as strong as possible for future use.",
+            "**Predict new cases:** run them through the refitted base models, feed those predictions to the meta-model, and read off the final answer."
+          ],
+          "title": "Stacking with out-of-fold predictions"
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Row",
+              "Fold",
+              "Forest OOF",
+              "Boosting OOF",
+              "Linear OOF",
+              "Actual"
+            ],
+            "rows": [
+              [
+                "1",
+                "1",
+                "54",
+                "47",
+                "58",
+                "50"
+              ],
+              [
+                "2",
+                "1",
+                "60",
+                "66",
+                "58",
+                "62"
+              ],
+              [
+                "3",
+                "2",
+                "50",
+                "42",
+                "52",
+                "45"
+              ],
+              [
+                "4",
+                "2",
+                "74",
+                "85",
+                "70",
+                "80"
+              ],
+              [
+                "5",
+                "3",
+                "72",
+                "66",
+                "64",
+                "70"
+              ],
+              [
+                "6",
+                "3",
+                "52",
+                "58",
+                "60",
+                "55"
+              ]
+            ],
+            "caption": "The meta-model's training table. Each prediction for a row in fold 1 came from base models trained on folds 2 and 3 only. The meta-model learns to map the three prediction columns to the actual column."
+          }
+        },
+        {
+          "term": "Blending",
+          "def": "A simpler cousin of stacking: hold back a single validation set, train base models on the rest, and fit the meta-model on their predictions for the held-back set. Easier to code, but the meta-model learns from fewer rows."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "The most common meta-model is a weighted sum of the base predictions, sometimes with an intercept:"
+        },
+        {
+          "tex": "\\hat{y} = w_0 + \\sum_{k=1}^{K} w_k \\, \\hat{f}_k(x)",
+          "plain": "The final prediction is a constant plus each base model's prediction times its learned weight. A simple average is the special case where every weight is 1/K and the constant is zero.",
+          "symbols": [
+            [
+              "\\hat{f}_k(x)",
+              "prediction of base model k"
+            ],
+            [
+              "w_k",
+              "weight learned for model k"
+            ],
+            [
+              "K",
+              "number of base models"
+            ]
+          ]
+        },
+        {
+          "p": "The weights are learned by fitting the meta-model on the out-of-fold predictions, never on in-sample ones. Written carefully:"
+        },
+        {
+          "tex": "z_{ik} = \\hat{f}_k^{(-j(i))}(x_i)",
+          "plain": "The meta-model's input for row i from model k is the prediction made by a copy of model k trained without fold j(i), the fold that contains row i.",
+          "symbols": [
+            [
+              "z_{ik}",
+              "meta-feature for row i from model k"
+            ],
+            [
+              "j(i)",
+              "the fold that contains row i"
+            ],
+            [
+              "\\hat{f}_k^{(-j)}",
+              "model k trained on all folds except j"
+            ]
+          ]
+        },
+        {
+          "p": "Why keep the meta-model simple? Its inputs are a handful of highly correlated columns (all models are trying to predict the same thing). A flexible meta-model would overfit those correlations. Linear regression with non-negative weights, or ridge regression, gives stable, interpretable weights. For classification, logistic regression on predicted probabilities is standard."
+        },
+        {
+          "callout": "In scikit-learn, `StackingRegressor` and `StackingClassifier` do all of this for you: by default they build 5-fold OOF predictions, use `RidgeCV` (regression) or `LogisticRegression` (classification) as the meta-model, and refit the base models on all data. Set `passthrough=True` to give the meta-model the original features too.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Why a learned combination beats each model",
+            "setup": "Use the six rows in the table above (monthly sales in ₹ lakh). Forest errors (prediction − actual): +4, −2, +5, −6, +2, −3. Boosting errors: −3, +4, −3, +5, −4, +3. Linear errors: +8, −4, +7, −10, −6, +5.",
+            "steps": [
+              "Mean absolute error (MAE): forest = (4 + 2 + 5 + 6 + 2 + 3) / 6 ≈ 3.67. Boosting = (3 + 4 + 3 + 5 + 4 + 3) / 6 ≈ 3.67. Linear = 40 / 6 ≈ 6.67.",
+              "Simple average of all three: predictions 53, 61.33, 48, 76.33, 67.33, 56.67 → MAE ≈ 2.44.",
+              "A meta-model with non-negative weights fitted to these OOF predictions learns roughly 0.48 × forest + 0.52 × boosting + 0 × linear.",
+              "Rounding to 0.5 and 0.5: predictions 50.5, 63, 46, 79.5, 69, 55 → errors +0.5, +1, +1, −0.5, −1, 0 → MAE ≈ 0.67."
+            ],
+            "result": "The forest and boosting err in opposite directions, so an even split cancels most of their error, and the weaker linear model is switched off. (On six rows this is a demonstration; in practice judge the stack on a separate test set.)"
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Forest",
+              "Boosting",
+              "Linear",
+              "Simple average",
+              "Stacked (0.5 / 0.5 / 0)"
+            ],
+            "values": [
+              3.67,
+              3.67,
+              6.67,
+              2.44,
+              0.67
+            ],
+            "highlight": 4,
+            "yLabel": "MAE (₹ lakh)",
+            "caption": "The gain from combining comes from models making different mistakes. A learned weighting can also mute a weak model that a simple average would let drag the result down."
+          }
+        },
+        {
+          "example": {
+            "title": "Counting the work: how many models get trained?",
+            "setup": "Three base models, 5-fold stacking, 1,000 training rows.",
+            "steps": [
+              "Each fold holds 1,000 / 5 = 200 rows; each OOF fit trains on 800 rows and predicts 200.",
+              "OOF fits: 3 models × 5 folds = 15 fits, producing 1,000 OOF predictions per model.",
+              "Final refits on all 1,000 rows: 3 more fits. Plus 1 meta-model fit.",
+              "Total: 15 + 3 + 1 = 19 training runs instead of 3."
+            ],
+            "result": "Stacking costs roughly k + 1 times the training effort of the base models. That is fine for a competition or a high-value model, but worth questioning for a quick internal report."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: the leaky stack (illustrative)",
+            "setup": "A retailer stacks a 1-nearest-neighbour model (which predicts each row by copying the most similar training row) with a gradient-boosted model to forecast store returns. A junior analyst fits the meta-model on in-sample predictions instead of OOF ones.",
+            "steps": [
+              "In-sample, the nearest-neighbour model finds each row's own copy, so its MAE is 0: a \"perfect\" model.",
+              "The meta-model learns to put almost all its weight on the nearest-neighbour model.",
+              "Measured properly with OOF predictions, the nearest-neighbour model's MAE is, say, ₹6 lakh versus ₹3.5 lakh for boosting.",
+              "In production the stack performs close to the weak nearest-neighbour model, worse than boosting alone."
+            ],
+            "result": "Using in-sample predictions to train the meta-model is the classic stacking bug. OOF predictions would have revealed the true ranking and given boosting most of the weight."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Stacking, blending or just averaging?",
+      "blocks": [
+        {
+          "p": "Combining models is a spectrum from very simple to quite elaborate. Choose the lightest option that captures most of the benefit."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Simple averaging / voting",
+              "items": [
+                "No extra training",
+                "Hard to overfit",
+                "Works well when models are similarly good",
+                "scikit-learn: `VotingClassifier`, `VotingRegressor`"
+              ]
+            },
+            "right": {
+              "title": "Stacking with a meta-model",
+              "items": [
+                "Learns weights (or more) from OOF predictions",
+                "Can switch off weak models",
+                "Needs careful cross-validation",
+                "scikit-learn: `StackingClassifier`, `StackingRegressor`"
+              ]
+            },
+            "caption": "Start with averaging. Move to stacking when base models differ clearly in quality or style and you have enough data to learn weights reliably."
+          }
+        },
+        {
+          "bullets": [
+            "**Diversity matters more than count.** Three different model families (trees, linear, k-NN or neural network) usually help more than five slightly different forests.",
+            "**Blending** (a single hold-out set) is quicker to build and avoids some leakage traps but wastes data.",
+            "**Multi-level stacks** (meta-models of meta-models) exist in competitions; they rarely justify their complexity in business settings.",
+            "**Classification:** feed predicted probabilities, not hard labels, to the meta-model; they carry much more information."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Stacking in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "The Netflix Prize",
+            "story": "From 2006 to 2009 Netflix ran a public competition offering $1 million to anyone who could improve its movie-rating predictions by 10%. The winning team, BellKor's Pragmatic Chaos, was itself a merger of competing teams, and its final submission blended predictions from a very large number of different models: matrix factorisation variants, neighbourhood methods and others. The lesson that stuck with the industry was twofold: blending diverse models can squeeze out extra accuracy, and that accuracy can come with engineering complexity that a company may not want to run in production."
+          }
+        },
+        {
+          "bullets": [
+            "**Kaggle and other competitions:** top tabular solutions commonly stack boosted trees, neural networks and linear models.",
+            "**Credit scoring:** a simple stack of a scorecard (logistic regression) and a boosted model can keep interpretability while adding accuracy.",
+            "**Demand forecasting:** combining a statistical time-series model with a machine-learning model often beats either alone."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Leakage through in-sample predictions** (the worked example above). Always use out-of-fold predictions.",
+            "**Leakage through time.** For time-ordered data, ordinary k-fold lets a model \"see the future\". Use time-series splits so OOF predictions are always made forward in time.",
+            "**Complexity and maintenance.** A stack is several models plus a meta-model, each needing monitoring, retraining and explanation.",
+            "**Small or no gains.** If base models are similar, they make the same mistakes and stacking adds little. Check the gain on a true test set before shipping.",
+            "**Over-flexible meta-models.** A deep tree or boosted meta-model on a few correlated columns overfits easily. Keep it linear unless you have lots of data."
+          ]
+        },
+        {
+          "callout": "Ask whether a 1–2% gain is worth doubling the system's complexity. In competitions it always is; in a bank's production stack, often it is not.",
+          "tone": "warn"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between stacking and blending?",
+      "a": "Stacking builds out-of-fold predictions for every training row using cross-validation. Blending uses one held-out validation set. Stacking uses data more efficiently; blending is simpler and faster."
+    },
+    {
+      "q": "Which meta-model should I use?",
+      "a": "Start with linear regression with non-negative weights or ridge regression for numbers, and logistic regression for classes. These rarely overfit and their weights are easy to read."
+    },
+    {
+      "q": "How many base models should I stack?",
+      "a": "Usually 2 to 5 diverse ones. Adding near-duplicate models adds cost but little benefit."
+    },
+    {
+      "q": "Is stacking the same as bagging or boosting?",
+      "a": "No. Bagging and boosting combine many copies of one model type in fixed ways (average or sequential sum). Stacking combines different model types and learns the combination."
+    },
+    {
+      "q": "Can I give the meta-model the original features as well?",
+      "a": "Yes; in scikit-learn set `passthrough=True`. It lets the meta-model learn, for example, that boosting is more reliable for large stores. It also raises the risk of overfitting, so validate carefully."
+    },
+    {
+      "q": "Why refit base models on all data at the end?",
+      "a": "The OOF copies were each trained on only part of the data. For predicting new cases you want the strongest version of each model, trained on everything."
+    }
+  ]
+}

@@ -1,0 +1,405 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A neighbourhood supermarket owner notices that customers who pick up tea often reach for biscuits too, so she moves the biscuit shelf next to the tea. That is market-basket analysis done by eye. A chain with 500 stores, 20,000 products and millions of bills cannot do it by eye. **Association rules** scan every receipt, find combinations that occur together far more often than chance, and score each one with three simple numbers: support, confidence and lift.",
+  "sections": [
+    {
+      "heading": "The problem: what gets bought together?",
+      "blocks": [
+        {
+          "p": "Retailers want to know which products go together so they can place them near each other, bundle them, cross-sell them online and plan promotions. The data is simple: a list of bills, each one a set of products. There is no target column to predict, which makes this an unsupervised problem."
+        },
+        {
+          "term": "Transaction (basket)",
+          "def": "One purchase event: the set of items bought together on a single bill or order. Quantities and prices are usually ignored; only which items were present matters."
+        },
+        {
+          "term": "Itemset",
+          "def": "Any set of items, such as {bread} or {bread, butter, milk}. A frequent itemset is one that appears in at least a chosen share of baskets."
+        },
+        {
+          "term": "Association rule",
+          "def": "A statement of the form {A} → {B}: \"baskets containing A also tend to contain B\". A is the antecedent (if-part) and B the consequent (then-part)."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Bill",
+              "Items",
+              "Bill",
+              "Items"
+            ],
+            "rows": [
+              [
+                "T1",
+                "bread, butter, milk",
+                "T6",
+                "milk, bread"
+              ],
+              [
+                "T2",
+                "bread, butter",
+                "T7",
+                "tea, biscuits"
+              ],
+              [
+                "T3",
+                "bread, jam",
+                "T8",
+                "bread, butter, milk"
+              ],
+              [
+                "T4",
+                "milk, tea",
+                "T9",
+                "milk, tea, biscuits"
+              ],
+              [
+                "T5",
+                "bread, butter, jam",
+                "T10",
+                "bread, milk"
+              ]
+            ],
+            "caption": "Ten bills from a small grocery store, used in every worked example below. Bread appears in 7, milk in 6, butter in 4, tea in 3, jam and biscuits in 2 each."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the shopkeeper who corrects for popularity",
+      "blocks": [
+        {
+          "p": "Think about how an experienced shopkeeper reasons. She notices patterns, but she also knows which items are simply popular."
+        },
+        {
+          "steps": [
+            "**How common is the combination?** If tea and biscuits appear together on only two bills a year, it does not matter how strong the link is: it will not pay for a shelf move.",
+            "**How reliable is the \"if… then\"?** Of the customers who buy tea, what share also buy biscuits?",
+            "**Is it more than popularity?** Almost everyone buys bread. \"Customers who buy milk also buy bread\" sounds impressive, but if 70% of all customers buy bread anyway, the milk buyers may be no different from everyone else."
+          ],
+          "title": "Three questions a good shopkeeper asks"
+        },
+        {
+          "p": "These three questions map exactly onto **support** (how common), **confidence** (how reliable) and **lift** (how much more than chance). The third question is the one beginners forget, and the one that separates real insight from noise."
+        },
+        {
+          "think": {
+            "q": "A rule says \"customers who buy anything also buy a carry bag, with 95% confidence\". Is that a useful cross-selling insight?",
+            "a": "No. Carry bags are in almost every basket, so a high confidence is guaranteed whatever the antecedent is. The lift would be close to 1, revealing that buying the first item does not change the chance of buying a bag at all."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How the Apriori algorithm works, step by step",
+      "blocks": [
+        {
+          "p": "The difficulty is the number of possible combinations. With just 100 products there are about 4,950 pairs and 161,700 triples. With 20,000 products, counting every combination is hopeless. The **Apriori** algorithm uses one simple fact to skip most of them."
+        },
+        {
+          "term": "Apriori principle",
+          "def": "If an itemset is rare, every bigger itemset that contains it is at least as rare. So if {jam} appears in only 2% of baskets, {jam, cheese} cannot appear in more than 2%, and need never be counted when 2% is below the threshold."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Set **minimum support** (e.g. 1% of baskets)",
+              "Count single items; keep the frequent ones",
+              "Build pairs only from frequent items; count; keep frequent pairs",
+              "Build triples only from frequent pairs; repeat until none survive",
+              "Turn frequent itemsets into rules; filter by **confidence** and **lift**"
+            ],
+            "caption": "Apriori grows itemsets level by level and prunes anything containing a rare subset, which is what makes the search feasible."
+          }
+        },
+        {
+          "steps": [
+            "Choose a minimum support (and later a minimum confidence and lift).",
+            "Count how often each single item appears; drop items below minimum support.",
+            "Form candidate pairs using only surviving items. Count them and drop rare pairs.",
+            "Form candidate triples only if every pair inside them survived. Count, drop, and continue to bigger sets.",
+            "For each frequent itemset, generate rules by splitting it into an if-part and a then-part, and compute confidence and lift."
+          ]
+        },
+        {
+          "callout": "FP-Growth is a faster alternative that finds the same frequent itemsets without generating candidates explicitly. The `mlxtend` Python library offers both `apriori` and `fpgrowth`, plus `association_rules` to compute the metrics.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "All three measures are simple proportions. Write N for the total number of baskets."
+        },
+        {
+          "tex": "\\text{support}(A) = \\frac{\\text{number of baskets containing } A}{N}",
+          "plain": "Support is how common an itemset is: the share of all baskets that contain it. Support of a rule A → B is the support of A and B together.",
+          "symbols": [
+            [
+              "A",
+              "an itemset"
+            ],
+            [
+              "N",
+              "total number of baskets"
+            ]
+          ]
+        },
+        {
+          "tex": "\\text{confidence}(A \\to B) = \\frac{\\text{support}(A \\cup B)}{\\text{support}(A)} = P(B \\mid A)",
+          "plain": "Confidence: among baskets that contain A, the share that also contain B. It is the conditional probability of B given A. Notice it depends on direction: confidence of A → B usually differs from B → A.",
+          "symbols": [
+            [
+              "A \\cup B",
+              "baskets containing both A and B"
+            ],
+            [
+              "P(B \\mid A)",
+              "probability of B given A"
+            ]
+          ]
+        },
+        {
+          "tex": "\\text{lift}(A \\to B) = \\frac{\\text{confidence}(A \\to B)}{\\text{support}(B)} = \\frac{\\text{support}(A \\cup B)}{\\text{support}(A)\\,\\text{support}(B)}",
+          "plain": "Lift: how much more often A and B appear together than they would if they were unrelated. If the items were independent, together-support would equal the product of the two supports, and lift would be 1."
+        },
+        {
+          "term": "Lift",
+          "def": "Observed co-occurrence divided by the co-occurrence expected by chance. Lift above 1 means the items go together more than chance (complements); about 1 means no relationship; below 1 means they appear together less than chance (often substitutes)."
+        },
+        {
+          "p": "Why divide by support(B)? Because confidence alone rewards popular consequents. If B is in 70% of all baskets, any rule ending in B will show confidence near 70% even when A has nothing to do with it. Dividing by 70% asks the right question: does knowing A **raise** the chance of B above its normal level? Lift is also symmetric: lift of A → B equals lift of B → A."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Scoring three rules on the ten bills",
+            "setup": "Use the ten bills in the table above (N = 10).",
+            "steps": [
+              "{butter} → {bread}: butter is in 4 bills and all 4 also contain bread. Support = 4/10 = 0.4. Confidence = 4/4 = 1.0. Lift = 1.0 / 0.7 ≈ 1.43.",
+              "{tea} → {biscuits}: tea in 3 bills, both in 2 (T7, T9). Support = 0.2. Confidence = 2/3 ≈ 0.67. Biscuits alone have support 0.2, so lift = 0.67 / 0.2 ≈ 3.33.",
+              "{milk} → {bread}: milk in 6 bills, both in 4. Support = 0.4. Confidence = 4/6 ≈ 0.67. Lift = 0.67 / 0.7 ≈ 0.95."
+            ],
+            "result": "Milk → bread has the same confidence as tea → biscuits, but its lift is below 1: milk buyers are slightly less likely than average to buy bread. Tea → biscuits is the strongest real association, even though it is less frequent."
+          }
+        },
+        {
+          "example": {
+            "title": "Apriori pruning with minimum support 30%",
+            "setup": "Same ten bills; keep only itemsets in at least 3 bills.",
+            "steps": [
+              "Single items: bread 0.7, milk 0.6, butter 0.4, tea 0.3 survive. Jam (0.2) and biscuits (0.2) are dropped.",
+              "Candidate pairs, built only from survivors: {bread, butter} 0.4 kept, {bread, milk} 0.4 kept, {butter, milk} 0.2 dropped, {milk, tea} 0.2 dropped, {bread, tea} 0 dropped, {butter, tea} 0 dropped.",
+              "Pairs involving jam or biscuits are never counted at all, which is the saving.",
+              "Candidate triple {bread, butter, milk} would need {butter, milk} to be frequent. It is not, so the triple is pruned without counting."
+            ],
+            "result": "Only two frequent pairs survive. Note that the high-lift rule tea → biscuits was lost because biscuits were too rare at this threshold: the support threshold controls what you can discover."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "tea→biscuits",
+              "butter→bread",
+              "jam→bread",
+              "milk→tea",
+              "milk→bread",
+              "butter→milk"
+            ],
+            "values": [
+              3.33,
+              1.43,
+              1.43,
+              1.11,
+              0.95,
+              0.83
+            ],
+            "highlight": 0,
+            "yLabel": "lift",
+            "caption": "Lift for six rules from the ten bills. Anything above 1 is a positive association; milk → bread and butter → milk fall below 1 despite involving the two most popular items."
+          }
+        },
+        {
+          "example": {
+            "title": "Cross-selling at an electronics website",
+            "setup": "An online store has 50,000 orders in a month: 2,000 contain a phone case, 1,500 a screen protector, and 600 both (illustrative).",
+            "steps": [
+              "Support(case and protector) = 600 / 50,000 = 1.2%.",
+              "Confidence(case → protector) = 600 / 2,000 = 30%.",
+              "Support(protector) = 1,500 / 50,000 = 3%. Lift = 30% / 3% = 10.",
+              "Case buyers without a protector: 2,000 − 600 = 1,400. If a \"frequently bought together\" prompt converts 5% of them at ₹300 each, that is 70 extra sales worth ₹21,000 a month."
+            ],
+            "result": "A rule with tiny support (1.2%) can still be very valuable because its lift is 10. The revenue estimate is only a hypothesis until an A/B test confirms the prompt really causes the extra sales."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading and choosing rules",
+      "blocks": [
+        {
+          "p": "A real mining run can produce thousands of rules. Sorting them well matters more than the algorithm."
+        },
+        {
+          "bullets": [
+            "**Start with support** high enough that rules are actionable (a rule about 3 baskets a year will not justify a shelf move) but low enough not to miss niche, high-lift pairs.",
+            "**Filter by lift above 1**, often well above (1.5 or 2) for action.",
+            "**Then look at confidence** for the specific direction you will act on: \"show protectors to case buyers\" needs case → protector, not the reverse.",
+            "**Sense-check with a person** who knows the category. Many strong rules are obvious (left shoe → right shoe) or driven by an existing promotion.",
+            "**Test before you trust.** Rules show co-occurrence, not cause. Moving biscuits next to tea may or may not raise sales; only an experiment can tell."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Rule",
+              "Support",
+              "Confidence",
+              "Lift",
+              "Verdict"
+            ],
+            "rows": [
+              [
+                "tea → biscuits",
+                "0.20",
+                "0.67",
+                "3.33",
+                "Strong; worth testing"
+              ],
+              [
+                "butter → bread",
+                "0.40",
+                "1.00",
+                "1.43",
+                "Frequent, mild link"
+              ],
+              [
+                "milk → bread",
+                "0.40",
+                "0.67",
+                "0.95",
+                "Popularity only; ignore"
+              ],
+              [
+                "biscuits → tea",
+                "0.20",
+                "1.00",
+                "3.33",
+                "Same lift, other direction"
+              ]
+            ],
+            "caption": "Reading rules together. Lift is the same in both directions, but confidence is not: every biscuit buyer bought tea, while only two-thirds of tea buyers bought biscuits."
+          }
+        },
+        {
+          "think": {
+            "q": "Rule X has confidence 90% and lift 1.0. Rule Y has confidence 25% and lift 4.0. Which is more useful for cross-selling?",
+            "a": "Usually Y. X's consequent is bought by 90% of everyone anyway, so promoting it to A-buyers adds nothing. Y's consequent is normally bought by about 6% of customers (25% / 4), and A-buyers buy it four times as often, which is a real opportunity."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Association rules in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "The beer-and-nappies story, and what it teaches",
+            "story": "The most retold example in data mining claims that a retailer found young fathers buying beer and nappies together on Friday evenings, and placed the two side by side. The story has circulated since the 1990s and its details are disputed; it may be partly or wholly a myth. It survives because it captures the promise of basket analysis: a surprising, high-lift pair that nobody would have guessed. The lesson for practitioners is the opposite of the legend: surprising rules must be checked against the raw data, explained by someone who knows the customers, and tested before any shelves are moved."
+          }
+        },
+        {
+          "case": {
+            "title": "Festival bundles at a supermarket chain (illustrative)",
+            "story": "Before Diwali, a chain mines last year's festival-season bills by region. Rules such as {ghee, besan} → {sugar} (high lift) and {diyas} → {rangoli colours} guide bundle offers and end-of-aisle displays. Rules with lift near 1 are discarded even when confidence is high, because they only reflect popular staples. Two bundles are trialled in a sample of stores first, and sales are compared with similar stores without the display."
+          }
+        },
+        {
+          "bullets": [
+            "**E-commerce:** \"frequently bought together\" widgets and checkout add-ons.",
+            "**Banking:** which products tend to be held together (salary account, credit card, insurance) to plan cross-sell offers.",
+            "**Healthcare:** combinations of diagnoses or prescriptions that co-occur, as a starting point for clinical review.",
+            "**Manufacturing:** fault codes that tend to appear together, pointing to a shared root cause."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Ranking by confidence alone** promotes popular items; always check lift.",
+            "**Support too low** creates thousands of noisy rules from coincidences; too high hides valuable niche pairs.",
+            "**Many rules, many coincidences.** Testing thousands of rules guarantees some impressive-looking ones by chance. Validate on a later time period.",
+            "**No quantities, prices or order.** Basic rules ignore how much was bought, margin, and sequence (for \"bought A, then B next month\" use sequential pattern mining).",
+            "**Not personalised.** A rule applies to everyone who buys A. For recommendations tailored to each customer, use collaborative filtering."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Association rules",
+              "items": [
+                "Works on baskets (what is bought together)",
+                "Same rule for every customer",
+                "Easy to explain: support, confidence, lift",
+                "Great for layout, bundles, promotions",
+                "No customer history needed"
+              ]
+            },
+            "right": {
+              "title": "Collaborative filtering",
+              "items": [
+                "Works on user × item histories",
+                "Personalised per customer",
+                "Harder to explain (similarities, factors)",
+                "Great for \"recommended for you\"",
+                "Needs history for each user"
+              ]
+            },
+            "caption": "Many retailers use both: rules for store-level and bundle decisions, collaborative filtering for personalised recommendations."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is a good lift value?",
+      "a": "Above 1 means a positive association. In practice teams often look for 1.5 or more, together with enough support to matter. Very high lifts on tiny supports are often coincidences."
+    },
+    {
+      "q": "Is lift the same in both directions?",
+      "a": "Yes. Lift of A → B equals lift of B → A. Confidence, however, depends on direction."
+    },
+    {
+      "q": "Does a strong rule mean A causes people to buy B?",
+      "a": "No. It shows the items appear together. A third factor (a festival, a promotion, a type of customer) may drive both. Test changes with an experiment."
+    },
+    {
+      "q": "What minimum support should I start with?",
+      "a": "There is no universal value. Start so that a rule represents enough baskets to act on (for example several hundred a month), inspect the number of rules, and adjust."
+    },
+    {
+      "q": "Apriori or FP-Growth?",
+      "a": "They find the same frequent itemsets. FP-Growth is usually faster on large data; Apriori is simpler to explain. In `mlxtend` you can swap one for the other."
+    },
+    {
+      "q": "Can I use association rules for online recommendations?",
+      "a": "Yes, for \"frequently bought together\" on a product page. For a personalised homepage, collaborative filtering usually performs better."
+    }
+  ]
+}

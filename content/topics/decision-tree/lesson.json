@@ -1,0 +1,85 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 11,
+  "goals": [
+    "Explain how a tree chooses its yes/no questions",
+    "Compute Gini impurity for a node",
+    "Control overfitting with depth and leaf size"
+  ],
+  "why": "Trees produce rules people can read, which is why banks and hospitals like them. They are also the building block of random forests and gradient boosting, the strongest models for tabular data.",
+  "explain": [
+    "A decision tree plays **20 Questions** with your data. At each step it asks the single yes/no question (for example \"income ≤ ₹13 lakh?\") that best separates the classes.",
+    "\"Best\" means the children become as **pure** as possible. Purity is measured by **Gini impurity**: 0 when a node contains one class only, 0.5 for a 50/50 mix of two classes.",
+    "The tree tries **every feature and every threshold**, keeps the split with the largest drop in impurity, and repeats inside each branch.",
+    "Left alone, it keeps splitting until every leaf is pure, which means it memorises noise. Limit **max_depth** and **min_samples_leaf**, or prune it.",
+    "To predict, drop a new case down the branches to a leaf: the leaf's majority class is the prediction, and its class mix is the probability."
+  ],
+  "formula": {
+    "tex": "G = 1 - \\sum_c p_c^2",
+    "plain": "Gini = 1 minus the sum of squared class shares. 0 = pure, higher = more mixed."
+  },
+  "example": {
+    "title": "First split for loan approvals",
+    "steps": [
+      "Root: 20 repaid, 20 defaulted → Gini = 1 − (0.5² + 0.5²) = 0.5",
+      "Candidate \"income ≤ ₹13.5L\": left 4 repaid / 16 defaulted, right 16 / 4",
+      "Each child: Gini = 1 − (0.2² + 0.8²) = 0.32 → weighted = 0.32",
+      "Impurity drop 0.5 → 0.32 = gain 0.18; if no other split beats it, this becomes the root question"
+    ],
+    "result": "The tree's first rule: income ≤ ₹13.5L → mostly default. It then repeats inside each branch."
+  },
+  "mistakes": [
+    "Growing deep trees without limits (overfitting).",
+    "Trusting impurity-based feature importance (biased towards features with many values).",
+    "Expecting smooth or diagonal boundaries (trees make staircases)."
+  ],
+  "takeaways": [
+    "Greedy yes/no splits that maximise purity",
+    "Gini 0 = pure, 0.5 = 50/50",
+    "Limit depth or leaf size to avoid overfitting"
+  ],
+  "use": [
+    "Explainable rules",
+    "Mixed numeric and categorical data, no scaling needed",
+    "Non-linear effects and interactions"
+  ],
+  "avoid": [
+    "When you need top accuracy (use forests or boosting)",
+    "Smooth or diagonal relationships",
+    "Very small, unstable datasets"
+  ],
+  "interview": [
+    "How does a tree choose a split?",
+    "Gini vs entropy?",
+    "How do you prevent overfitting in trees?",
+    "Why are trees unstable?"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_iris\nfrom sklearn.tree import DecisionTreeClassifier, export_text\nX, y = load_iris(return_X_y=True)\nt = DecisionTreeClassifier(max_depth=2, random_state=0).fit(X, y)\nprint(export_text(t, feature_names=[\"sepal_len\", \"sepal_wid\", \"petal_len\", \"petal_wid\"]))"
+  },
+  "check": [
+    {
+      "q": "A node has 9 of class A and 1 of class B. Gini?",
+      "options": [
+        "0.18",
+        "0.5",
+        "0.9",
+        "0.1"
+      ],
+      "answer": 0,
+      "why": "1 − (0.9² + 0.1²) = 1 − 0.82 = 0.18."
+    },
+    {
+      "q": "Train accuracy 100%, test 70%. Fix?",
+      "options": [
+        "Deeper tree",
+        "Limit max_depth / min_samples_leaf",
+        "Remove the test set",
+        "Scale features"
+      ],
+      "answer": 1,
+      "why": "The tree is overfitting."
+    }
+  ],
+  "chapterMinutes": 18
+}

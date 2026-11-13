@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Distinguish a population from a sample",
+    "State the Central Limit Theorem in plain English",
+    "Compute the standard error of a mean"
+  ],
+  "why": "The CLT is why polls of 1,000 people can describe a nation, and why A/B tests, quality control and confidence intervals work at all.",
+  "explain": [
+    "The **population** is everyone you care about; a **sample** is the subset you actually measure. Sample statistics (like the sample mean) vary from sample to sample.",
+    "**Central Limit Theorem**: take many samples of size n and compute each sample's mean. Those means form a **normal** distribution, centred on the true mean, **whatever the shape of the original data**, as long as n is reasonably large (often 30+).",
+    "The spread of those sample means is the **standard error** (SE) = σ / √n. Quadrupling the sample size halves the uncertainty.",
+    "That is why averages are far more predictable than individual values: one customer's spend is wild; the average of 1,000 customers' spends is very stable."
+  ],
+  "formula": {
+    "tex": "\\bar X \\approx \\mathcal{N}\\!\\left(\\mu, \\frac{\\sigma^2}{n}\\right), \\qquad SE = \\frac{\\sigma}{\\sqrt n}",
+    "plain": "Sample means are roughly normal around the true mean, with spread σ / √n."
+  },
+  "example": {
+    "title": "Average basket size",
+    "steps": [
+      "Individual baskets are skewed: mean ₹500, SD ₹300",
+      "Sample n = 100 customers → SE = 300 / √100 = ₹30",
+      "So about 95% of sample means fall within ₹500 ± 2×30 = ₹440–₹560",
+      "With n = 400: SE = 300 / 20 = ₹15 (half the uncertainty)"
+    ],
+    "result": "You need 4× the data for 2× the precision, a key rule for budgeting surveys and experiments."
+  },
+  "mistakes": [
+    "Thinking the CLT makes the raw data normal. It is about the distribution of means.",
+    "Ignoring biased sampling: the CLT cannot fix a non-representative sample."
+  ],
+  "takeaways": [
+    "Sample means are approximately normal (CLT)",
+    "SE = σ / √n",
+    "4× data → 2× precision"
+  ],
+  "practice": {
+    "code": "import numpy as np\nrng = np.random.default_rng(0)\npop = rng.exponential(500, 1_000_000)          # very skewed \"basket sizes\"\nmeans = [rng.choice(pop, 100).mean() for _ in range(5000)]\nprint(round(np.mean(means)), round(np.std(means), 1), round(pop.std() / 10, 1))  # SE ≈ σ/√n"
+  },
+  "check": [
+    {
+      "q": "σ = 20, n = 25. Standard error of the mean?",
+      "options": [
+        "4",
+        "0.8",
+        "20",
+        "5"
+      ],
+      "answer": 0,
+      "why": "20 / √25 = 4."
+    },
+    {
+      "q": "To halve the standard error you need…",
+      "options": [
+        "2× the data",
+        "4× the data",
+        "½ the data",
+        "8× the data"
+      ],
+      "answer": 1,
+      "why": "SE ∝ 1/√n."
+    }
+  ],
+  "chapterMinutes": 18
+}

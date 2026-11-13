@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 12,
+  "goals": [
+    "Describe an eigenvector as a direction that only gets stretched",
+    "Connect eigenvectors of a covariance matrix to PCA",
+    "Interpret eigenvalues as \"how much variance\" lies along a direction"
+  ],
+  "why": "Eigenvectors are the engine of PCA, Google's original PageRank, and spectral clustering. Whenever you hear \"principal components\", eigenvectors are underneath.",
+  "explain": [
+    "A matrix transforms vectors: it rotates, stretches or squashes them. Most vectors change direction. A few special directions only get **stretched or shrunk, never turned**. Those are the **eigenvectors**.",
+    "The amount of stretching is the **eigenvalue**. Eigenvalue 3 means \"this direction gets three times longer\"; 0.5 means it is halved.",
+    "In data science the key matrix is the **covariance matrix** of your features. Its eigenvectors point along the directions where the data spreads out most, and the eigenvalues say how much spread (variance) there is in each direction.",
+    "PCA keeps the eigenvectors with the largest eigenvalues and drops the rest. That compresses 50 correlated features into, say, 5 directions that hold most of the information."
+  ],
+  "formula": {
+    "tex": "A v = \\lambda v",
+    "plain": "Applying matrix A to eigenvector v gives the same direction v, just scaled by the number λ (the eigenvalue)."
+  },
+  "example": {
+    "title": "Height and weight of employees",
+    "steps": [
+      "Height and weight are strongly correlated: the data forms a tilted ellipse",
+      "Covariance matrix eigenvectors: one along the ellipse's long axis (a \"body size\" direction), one across it",
+      "Suppose the eigenvalues are 9.5 and 0.5",
+      "Share of variance on the first direction = 9.5 / (9.5 + 0.5) = 95%"
+    ],
+    "result": "One number (\"body size\") captures 95% of the information in two. That is PCA reducing 2 features to 1."
+  },
+  "mistakes": [
+    "Forgetting to scale features before PCA: a feature with big units dominates the covariance matrix.",
+    "Thinking eigenvectors are features. They are new directions made from combinations of the original features."
+  ],
+  "takeaways": [
+    "Eigenvector = direction that is only stretched",
+    "Eigenvalue = how much it is stretched (variance along it, for a covariance matrix)",
+    "PCA = keep the top eigenvectors"
+  ],
+  "check": [
+    {
+      "q": "An eigenvalue of 0 means the direction…",
+      "options": [
+        "Is stretched infinitely",
+        "Is squashed to nothing (no variance along it)",
+        "Is rotated 90°",
+        "Has the most variance"
+      ],
+      "answer": 1,
+      "why": "λ = 0 collapses that direction. For a covariance matrix, there is no spread along it."
+    },
+    {
+      "q": "Eigenvalues are 6, 3 and 1. What share of variance does the first component hold?",
+      "options": [
+        "50%",
+        "60%",
+        "30%",
+        "10%"
+      ],
+      "answer": 1,
+      "why": "6 / (6 + 3 + 1) = 0.6."
+    }
+  ],
+  "practice": {
+    "code": "import numpy as np\nX = np.random.default_rng(0).multivariate_normal([0, 0], [[3, 2.5], [2.5, 3]], 500)\nvals, vecs = np.linalg.eigh(np.cov(X.T))\nprint(vals / vals.sum())          # share of variance per direction\nprint(vecs)                       # the directions (columns)"
+  },
+  "chapterMinutes": 18
+}

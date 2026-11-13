@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Describe the bell curve by its mean and SD",
+    "Apply the 68–95–99.7 rule",
+    "Convert values to z-scores and percentiles"
+  ],
+  "why": "Measurement errors, manufacturing tolerances, test scores and averages of many things are approximately normal. Six Sigma quality programmes, control charts and confidence intervals all rely on it.",
+  "explain": [
+    "The **normal distribution** is the symmetric bell curve. It is completely described by two numbers: the **mean** μ (centre) and the **standard deviation** σ (width).",
+    "**68–95–99.7 rule**: about 68% of values fall within ±1σ of the mean, 95% within ±2σ and 99.7% within ±3σ.",
+    "A **z-score** says how many SDs a value lies from the mean: z = (x − μ) / σ. It lets you compare apples and oranges (an exam score vs a sprint time).",
+    "Why is it everywhere? When many small independent effects add up, the total tends to be normal. That is the Central Limit Theorem, covered next."
+  ],
+  "formula": {
+    "tex": "z = \\frac{x-\\mu}{\\sigma}",
+    "plain": "z-score = distance from the mean in units of standard deviations."
+  },
+  "example": {
+    "title": "Bolt diameters on a production line",
+    "steps": [
+      "Diameter ~ Normal(mean 10.00 mm, SD 0.02 mm)",
+      "Tolerance 9.96–10.04 mm = mean ± 2 SD",
+      "Within ±2 SD ≈ 95% → about 5% of bolts are rejected",
+      "Tighten the process to SD 0.0133 mm → ±3 SD → only 0.3% rejected"
+    ],
+    "result": "Reducing variation, not moving the mean, is what cuts scrap. That is the core idea of Six Sigma."
+  },
+  "mistakes": [
+    "Assuming everything is normal: incomes, claim sizes and web traffic are heavily skewed.",
+    "Using the 68–95–99.7 rule on small samples or skewed data."
+  ],
+  "takeaways": [
+    "Bell curve defined by μ and σ",
+    "68–95–99.7 within 1, 2, 3 SDs",
+    "z-scores standardise values"
+  ],
+  "practice": {
+    "code": "from scipy.stats import norm\nprint(norm.cdf(2) - norm.cdf(-2))          # 0.954  share within ±2 SD\nprint(norm.cdf(184, loc=170, scale=7))     # height 184 cm → 97.7th percentile"
+  },
+  "check": [
+    {
+      "q": "Mean 100, SD 15. What share of values lies between 70 and 130?",
+      "options": [
+        "68%",
+        "95%",
+        "99.7%",
+        "50%"
+      ],
+      "answer": 1,
+      "why": "70–130 is ±2 SD."
+    },
+    {
+      "q": "Mean 50, SD 4. The z-score of 44 is…",
+      "options": [
+        "−1.5",
+        "1.5",
+        "−6",
+        "0.67"
+      ],
+      "answer": 0,
+      "why": "(44 − 50) / 4 = −1.5."
+    }
+  ],
+  "chapterMinutes": 18
+}

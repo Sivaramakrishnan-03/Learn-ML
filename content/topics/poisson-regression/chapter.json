@@ -1,0 +1,425 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "A highway operator needs to decide how many toll lanes to open at each hour. On a quiet afternoon about three cars arrive per minute; at the Friday evening rush, many more. The number of arrivals in a minute is a **count**: 0, 1, 2, 3 … never 2.7 and never negative. Ordinary regression ignores those facts and can predict \"−1.6 cars\". **Poisson regression**, and the wider family of **generalised linear models (GLMs)** it belongs to, is built for exactly this kind of target.",
+  "sections": [
+    {
+      "heading": "The problem: predicting counts",
+      "blocks": [
+        {
+          "p": "Many business targets are counts of events in a window of time or space: insurance claims per policy per year, defects per shift, customer complaints per branch per month, website sign-ups per day, vehicles arriving per minute. They share three features that ordinary least squares handles badly."
+        },
+        {
+          "bullets": [
+            "**They cannot be negative.** A straight line can easily dip below zero for some inputs.",
+            "**They are whole numbers, often small.** Many zeros, a few ones and twos, the occasional large value.",
+            "**Their spread grows with their size.** A branch that averages 2 complaints a month varies by a couple either way; one that averages 50 varies by much more. Ordinary regression assumes equal spread everywhere."
+          ]
+        },
+        {
+          "term": "Count data",
+          "def": "A target that records how many times something happened: 0, 1, 2, 3 and so on. It is never negative and never fractional."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(0.2 + 0.35*x)",
+            "fn2": "2.108*x - 1.645",
+            "xMin": 0,
+            "xMax": 8,
+            "xLabel": "feature x (e.g. hour-of-day demand index)",
+            "yLabel": "expected count",
+            "legend": [
+              "Poisson (log link) mean",
+              "straight line fitted to it"
+            ],
+            "caption": "Expected counts often grow multiplicatively, curving upwards. A straight line fitted to that curve (illustrative) predicts about −1.6 events at x = 0, which is impossible, and misses at both ends. The Poisson model’s curve can never go below zero."
+          }
+        },
+        {
+          "p": "Poisson regression fixes all three problems by changing two things about linear regression: the **distribution** we assume for the target and the **link** between the features and the average."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the toll booth",
+      "blocks": [
+        {
+          "p": "Stand at a toll booth and count cars each minute for an hour. You might see 3, 1, 4, 3, 0, 2, 5, 3 … The average is about 3, but individual minutes vary because cars arrive independently and at random. That randomness has a very particular shape, named after the French mathematician Siméon Denis Poisson."
+        },
+        {
+          "term": "Poisson distribution",
+          "def": "The probability pattern for the number of independent random events in a fixed window when they happen at a steady average rate. It has one number, the rate λ, which is both its average and its variance."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "values": [
+              0.05,
+              0.149,
+              0.224,
+              0.224,
+              0.168,
+              0.101,
+              0.05,
+              0.022,
+              0.008
+            ],
+            "highlight": 3,
+            "yLabel": "probability",
+            "caption": "Cars per minute when the average rate is 3. Two or three cars are most likely (22% each), a completely empty minute happens 5% of the time, and 7 or more is rare. Notice the shape is lopsided: it cannot go below zero but has a tail to the right."
+          }
+        },
+        {
+          "p": "Now imagine the rate changes with conditions. Friday evening doubles the traffic; heavy rain cuts it by a fifth; a holiday weekend raises it by half. These effects naturally **multiply**: rush hour in the rain is 2 × 0.8 = 1.6 times the base rate. They do not add a fixed number of cars."
+        },
+        {
+          "steps": [
+            "**Start from a base rate** for ordinary conditions, say 3 cars per minute.",
+            "**Multiply by a factor for each condition**: × 2 for rush hour, × 0.8 for rain.",
+            "**The result is the expected rate** for that minute: 3 × 2 × 0.8 = 4.8 cars.",
+            "**Actual counts scatter randomly around that rate** following the Poisson pattern."
+          ],
+          "title": "How Poisson regression thinks"
+        },
+        {
+          "think": {
+            "q": "Why do multiplicative effects suit counts better than additive ones?",
+            "a": "An additive effect such as \"rain removes 2 cars a minute\" would give negative counts on a quiet night with 1 car a minute. A multiplicative effect such as \"rain cuts traffic by 20%\" works at any level and can never push the rate below zero."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Linear score** b₀ + b₁x₁ + …",
+              "**Exponentiate** to get a positive rate",
+              "**Assume Poisson** scatter around that rate",
+              "**Fit** by maximum likelihood",
+              "**Read** e^b as rate ratios"
+            ],
+            "caption": "Poisson regression in one line: a linear score, turned into a positive expected count by the exponential function, with Poisson randomness around it."
+          }
+        },
+        {
+          "p": "**Step 1: Build a linear score** from the features, just like multiple regression."
+        },
+        {
+          "p": "**Step 2: Turn the score into a rate** by exponentiating it. Whatever the score, e raised to that score is positive, so the predicted count can never be negative. Taking logs of both sides gives the usual way of writing the model: the **log of the expected count** is linear in the features. The log is called the **link function**."
+        },
+        {
+          "term": "Link function",
+          "def": "The transformation that connects the average of the target to the linear score. For Poisson regression it is the log: log(expected count) = linear score."
+        },
+        {
+          "p": "**Step 3: Assume Poisson randomness** around that rate, which automatically means bigger expected counts come with bigger spread."
+        },
+        {
+          "p": "**Step 4: Fit.** There is no simple \"least squares\" here. Instead, the computer finds the coefficients under which the observed counts would have been most probable. This is called maximum likelihood, and it is how almost all GLMs are fitted."
+        },
+        {
+          "term": "Maximum likelihood",
+          "def": "A fitting principle: choose the parameter values that make the data you actually observed as probable as possible. For ordinary regression with bell-shaped errors it gives the same answer as least squares."
+        },
+        {
+          "p": "**Step 5: Interpret.** Exponentiate each coefficient to get a multiplier on the rate."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "P(Y = k) = \\frac{\\lambda^k e^{-\\lambda}}{k!}",
+          "plain": "The probability of seeing exactly k events when the average rate is λ. For λ = 3 and k = 0 this is e⁻³ ≈ 0.050: about one minute in twenty has no cars.",
+          "symbols": [
+            [
+              "k",
+              "a possible count: 0, 1, 2, …"
+            ],
+            [
+              "\\lambda",
+              "the rate (average count) in the window"
+            ],
+            [
+              "k!",
+              "k factorial: 1 × 2 × … × k (and 0! = 1)"
+            ]
+          ]
+        },
+        {
+          "tex": "\\log \\mu = b_0 + b_1 x_1 + \\dots + b_p x_p \\quad\\Longleftrightarrow\\quad \\mu = e^{b_0} \\cdot e^{b_1 x_1} \\cdots e^{b_p x_p}",
+          "plain": "Left: the log of the expected count is a weighted sum of the features. Right: the same thing un-logged, showing that each feature multiplies the expected count by its own factor.",
+          "symbols": [
+            [
+              "\\mu",
+              "expected count (the model’s λ for that row)"
+            ],
+            [
+              "e^{b_0}",
+              "base rate when all features are 0"
+            ],
+            [
+              "e^{b_j}",
+              "rate ratio for a one-unit increase in feature j"
+            ]
+          ]
+        },
+        {
+          "term": "Rate ratio",
+          "def": "e raised to a Poisson coefficient. It is the factor by which the expected count is multiplied when that feature rises by one unit, holding others fixed. A rate ratio of 1.25 means 25% more events."
+        },
+        {
+          "p": "Often the observation windows differ in size: one policy was held for a full year, another for three months; one branch has 200 customers, another 5,000. More exposure naturally means more events, and the model must not credit that to the features. The fix is an **offset**: add the log of the exposure to the score with its coefficient fixed at 1."
+        },
+        {
+          "tex": "\\log \\mu_i = \\log(\\text{exposure}_i) + b_0 + b_1 x_{i1} + \\dots",
+          "plain": "The expected count equals exposure times a rate. The features explain the rate per unit of exposure (claims per policy-year), not the raw count.",
+          "symbols": [
+            [
+              "\\text{exposure}_i",
+              "size of the observation window for row i (years, customers, km)"
+            ]
+          ]
+        },
+        {
+          "callout": "Poisson regression is one member of the GLM family. Every GLM has three parts: a distribution for the target, a link function, and a linear score. Change the first two and you get a different model for a different kind of target.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Staffing a toll booth",
+            "setup": "On weekday afternoons cars arrive at an average of 3 per minute. One lane can process 5 cars per minute. How often will the lane be overloaded?",
+            "steps": [
+              "P(0) = e⁻³ ≈ 0.050. P(1) = 3e⁻³ ≈ 0.149. P(2) = 9e⁻³ / 2 ≈ 0.224.",
+              "P(3) = 27e⁻³ / 6 ≈ 0.224. P(4) ≈ 0.168. P(5) ≈ 0.101.",
+              "P(5 or fewer) = 0.050 + 0.149 + 0.224 + 0.224 + 0.168 + 0.101 ≈ 0.916.",
+              "P(more than 5) ≈ 1 − 0.916 = 0.084."
+            ],
+            "result": "About 8% of minutes will see more cars than one lane can handle, so queues will build regularly. A Poisson regression of arrivals on hour, day and weather lets the operator compute this for every hour of the week and staff lanes accordingly."
+          }
+        },
+        {
+          "example": {
+            "title": "Day shift versus night shift defects, by hand",
+            "setup": "A plant records defects per shift. Eight day shifts: 0, 1, 2, 2, 3, 3, 4, 5. Eight night shifts: 2, 3, 3, 4, 5, 5, 6, 8. Fit log(expected defects) = b₀ + b₁ × night.",
+            "steps": [
+              "With a single 0/1 feature, the Poisson fit simply matches each group’s average.",
+              "Day average = 20 / 8 = 2.5, so e^b₀ = 2.5 and b₀ = ln 2.5 ≈ 0.916.",
+              "Night average = 36 / 8 = 4.5, so e^(b₀ + b₁) = 4.5 and the rate ratio e^b₁ = 4.5 / 2.5 = 1.8.",
+              "b₁ = ln 1.8 ≈ 0.588. (statsmodels gives exactly these values.)",
+              "Sanity check on the Poisson assumption: day variance ≈ 2.6 against mean 2.5; night variance ≈ 3.7 against mean 4.5. Close enough."
+            ],
+            "result": "Night shifts produce about 80% more defects than day shifts. That is a clear, quotable number for the plant manager, and the starting point for asking why (fatigue, lighting, staffing)."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: pricing car insurance with exposure",
+            "setup": "An insurer’s model: log(expected claims per policy-year) = −2.3 + 0.4 × young_driver + 0.1 × (km driven per year ÷ 10,000).",
+            "steps": [
+              "Base rate: e^−2.3 ≈ 0.100 claims per policy-year (an older driver with near-zero mileage).",
+              "Young driver: rate ratio e^0.4 ≈ 1.49, i.e. about 49% more claims.",
+              "Each extra 10,000 km: rate ratio e^0.1 ≈ 1.105, about 10.5% more.",
+              "Young driver doing 20,000 km: 0.100 × 1.49 × e^0.2 = 0.100 × 1.49 × 1.22 ≈ 0.18 claims per year.",
+              "If that policy is held for only 6 months (exposure 0.5), expected claims ≈ 0.18 × 0.5 ≈ 0.09."
+            ],
+            "result": "Multiply the expected claim count by the average claim cost and you have the core of the risk premium. Rate ratios translate directly into loadings: \"young drivers pay about 49% more\"."
+          }
+        },
+        {
+          "callout": "Exposure changes conclusions. Branch A has 30 claims over 200 policy-years (0.15 per year); branch B has 45 claims over 500 policy-years (0.09 per year). B has more claims, but A is the riskier book.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "The GLM family and over-dispersion",
+      "blocks": [
+        {
+          "p": "Once you see Poisson regression as \"distribution + link + linear score\", a whole family opens up. You have already met two members: linear regression and, in the next chapter, logistic regression."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Target type",
+              "Example",
+              "Distribution",
+              "Link",
+              "Model name"
+            ],
+            "rows": [
+              [
+                "Any real number",
+                "Flat price",
+                "Normal",
+                "Identity",
+                "Linear regression"
+              ],
+              [
+                "Yes / no",
+                "Loan default",
+                "Binomial",
+                "Logit",
+                "Logistic regression"
+              ],
+              [
+                "Count",
+                "Claims per year",
+                "Poisson",
+                "Log",
+                "Poisson regression"
+              ],
+              [
+                "Over-dispersed count",
+                "Complaints per branch",
+                "Negative binomial",
+                "Log",
+                "Negative binomial regression"
+              ],
+              [
+                "Positive, skewed amount",
+                "Claim size in ₹",
+                "Gamma",
+                "Log",
+                "Gamma regression"
+              ]
+            ],
+            "caption": "Five common GLMs. Pick the row that matches your target. Insurers often combine a Poisson model for claim counts with a gamma model for claim sizes."
+          }
+        },
+        {
+          "term": "Generalised linear model (GLM)",
+          "def": "A model that predicts the average of a target as a transformed linear score, with a distribution chosen to match the target (normal, binomial, Poisson, gamma …). Linear, logistic and Poisson regression are all GLMs."
+        },
+        {
+          "p": "The Poisson distribution makes a strong promise: **variance equals mean**. Real counts often vary more than that, because of things the model cannot see (some customers are simply more accident-prone). This is called **over-dispersion**."
+        },
+        {
+          "term": "Over-dispersion",
+          "def": "When count data vary more than the Poisson model allows, i.e. the variance is clearly larger than the mean. Coefficients stay roughly right, but standard errors are too small, so the model looks more certain than it is."
+        },
+        {
+          "bullets": [
+            "**Check it:** compare the variance of the counts with their mean within groups, or look at the Pearson chi-square divided by the residual degrees of freedom. Values well above 1 signal over-dispersion.",
+            "**If the ratio is about 3**, Poisson standard errors are too small by a factor of about √3 ≈ 1.7, so many effects will look significant when they are not.",
+            "**Fix it** with negative binomial regression, or a quasi-Poisson model that inflates standard errors.",
+            "**Too many zeros** (most customers never complain, a few complain often) may need a zero-inflated or hurdle model."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Motor insurance pricing",
+            "story": "GLMs are a long-established standard tool in general insurance pricing, particularly motor. A typical approach models claim frequency with a Poisson GLM (log link, policy-years as the exposure offset) on rating factors such as driver age band, vehicle group, region and no-claim discount, and models claim severity separately with a gamma GLM. The pure premium is expected frequency × expected severity. Because effects are multiplicative, the rate ratios become the relativities in the rating tables that underwriters and regulators review, which is one reason the approach has lasted even as machine-learning models are added alongside it."
+          }
+        },
+        {
+          "bullets": [
+            "**Manufacturing:** defects per batch against line speed, shift and supplier.",
+            "**Retail:** footfall or transactions per hour for staffing rosters.",
+            "**Public health:** disease cases per district, with population as exposure.",
+            "**Web analytics:** sign-ups or clicks per day against campaigns and seasonality.",
+            "**Reliability engineering:** failures per 1,000 operating hours for components."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Using OLS on small counts:** negative predictions and wrong uncertainty. Use Poisson.",
+            "**Ignoring exposure:** comparing raw counts across windows of different size misleads. Use an offset.",
+            "**Ignoring over-dispersion:** overconfident conclusions. Check variance against mean; use negative binomial.",
+            "**Reading coefficients additively:** a coefficient of 0.4 means × 1.49, not +0.4 events.",
+            "**Forgetting that counts can depend on each other:** contagious events (one complaint triggering others) break the independence assumption."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Poisson regression fits when…",
+              "items": [
+                "Target is a non-negative count",
+                "Variance is roughly equal to the mean",
+                "Effects plausibly multiply the rate",
+                "Windows of different size can be handled with an offset",
+                "You need explainable rate ratios"
+              ]
+            },
+            "right": {
+              "title": "Consider instead…",
+              "items": [
+                "Variance ≫ mean → **negative binomial**",
+                "Excess zeros → **zero-inflated / hurdle models**",
+                "Large counts in the thousands → OLS on log counts may be fine",
+                "Complex interactions → **gradient boosting with Poisson loss**",
+                "Rare yes/no events → **logistic regression**"
+              ]
+            },
+            "caption": "Poisson regression is the natural first model for counts; know when to upgrade it."
+          }
+        },
+        {
+          "callout": "scikit-learn offers `PoissonRegressor` (which applies a small L2 penalty by default; set `alpha=0` for a plain fit) and gradient boosting with `loss=\"poisson\"`. For p-values and an offset, statsmodels’ `GLM` with `family=Poisson()` is convenient.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why not just take the log of the counts and use ordinary regression?",
+      "a": "The log of zero is undefined, and small counts often include many zeros. Adding 1 before logging is a crude patch that distorts results. Poisson regression models the log of the expected count, which is always fine."
+    },
+    {
+      "q": "How do I interpret a coefficient of −0.22?",
+      "a": "Exponentiate it: e^−0.22 ≈ 0.80. Each one-unit increase in that feature multiplies the expected count by 0.80, i.e. about 20% fewer events, holding other features fixed."
+    },
+    {
+      "q": "What is the difference between Poisson regression and a GLM?",
+      "a": "GLM is the family name; Poisson regression is one member. Choosing a binomial distribution with a logit link gives logistic regression; a normal distribution with identity link gives ordinary linear regression."
+    },
+    {
+      "q": "When should I use negative binomial instead?",
+      "a": "When the variance of the counts is clearly larger than the mean, after accounting for the features. Negative binomial adds an extra parameter that lets the variance grow faster than the mean."
+    },
+    {
+      "q": "What is an offset, in plain words?",
+      "a": "A way of telling the model \"this row had twice as much opportunity for events\", so it predicts rates per unit of exposure rather than raw counts. You add log(exposure) to the model with its coefficient fixed at 1."
+    },
+    {
+      "q": "Can the target be a rate such as 0.15 claims per year instead of a count?",
+      "a": "Model the count with log(exposure) as an offset; that is equivalent and keeps the Poisson assumptions valid. scikit-learn’s alternative is to use the rate as the target with the exposure as `sample_weight`."
+    }
+  ]
+}

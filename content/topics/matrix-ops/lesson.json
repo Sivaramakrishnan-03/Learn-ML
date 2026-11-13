@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Compute a dot product and explain what it measures",
+    "Multiply a matrix by a vector to make many predictions at once",
+    "Know what transpose and inverse are used for"
+  ],
+  "why": "A linear model's prediction is a dot product. Predicting for a million rows at once is one matrix multiplication, which is why NumPy and GPUs are so fast at ML.",
+  "explain": [
+    "The **dot product** of two vectors multiplies them position by position and adds the results. If a = [2, 3] and b = [4, 1], then a·b = 2×4 + 3×1 = 11.",
+    "Why care? A linear model is a dot product: **price = weights · features**. With weights [₹4 lakh per 100 sq ft, ₹2 lakh per bedroom] and a flat [9, 2], the price is 4×9 + 2×2 = ₹40 lakh.",
+    "**Matrix × vector** does a dot product for every row. Put 1,000 flats in a matrix X and the weights in a vector w: `X @ w` gives all 1,000 prices in one operation.",
+    "The **transpose** (Xᵀ) flips rows and columns. The **inverse** (X⁻¹) \"undoes\" a matrix, like dividing. Linear regression's exact formula uses both: β = (XᵀX)⁻¹Xᵀy. You will rarely compute them by hand; libraries do it, but you should recognise them."
+  ],
+  "formula": {
+    "tex": "a \\cdot b = \\sum_i a_i b_i",
+    "plain": "Dot product: multiply matching positions and add everything up."
+  },
+  "example": {
+    "title": "Score three loan applicants at once",
+    "steps": [
+      "Weights w = [0.5 per ₹lakh income, 0.01 per credit point]",
+      "Applicants (rows): [10, 700], [4, 600], [20, 800]",
+      "Row 1: 0.5×10 + 0.01×700 = 5 + 7 = 12",
+      "Row 2: 0.5×4 + 0.01×600 = 2 + 6 = 8",
+      "Row 3: 0.5×20 + 0.01×800 = 10 + 8 = 18"
+    ],
+    "result": "X @ w = [12, 8, 18]. One matrix multiplication scored every applicant."
+  },
+  "mistakes": [
+    "Shape mismatch errors: (n × d) @ (d,) works, but (n × d) @ (n,) does not. Check `.shape` first.",
+    "Thinking matrix multiplication is element-wise: `*` multiplies element by element, `@` is matrix multiplication in NumPy."
+  ],
+  "takeaways": [
+    "Dot product = weighted sum = how a linear model predicts",
+    "X @ w makes predictions for all rows at once",
+    "Inner dimensions must match when multiplying"
+  ],
+  "check": [
+    {
+      "q": "[1, 2, 3] · [4, 0, 2] = ?",
+      "options": [
+        "10",
+        "6",
+        "12",
+        "0"
+      ],
+      "answer": 0,
+      "why": "1×4 + 2×0 + 3×2 = 4 + 0 + 6 = 10."
+    },
+    {
+      "q": "In NumPy, which operator multiplies matrices?",
+      "options": [
+        "*",
+        "@",
+        "**",
+        "//"
+      ],
+      "answer": 1,
+      "why": "`@` (or np.dot) is matrix multiplication. `*` is element-wise."
+    }
+  ],
+  "practice": {
+    "code": "import numpy as np\nX = np.array([[10, 700], [4, 600], [20, 800]])\nw = np.array([0.5, 0.01])\nprint(X @ w)                      # [12.  8. 18.]\nprint(X.T.shape, np.linalg.inv(X.T @ X).shape)"
+  },
+  "chapterMinutes": 18
+}

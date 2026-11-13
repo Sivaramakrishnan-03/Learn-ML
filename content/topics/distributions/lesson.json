@@ -1,0 +1,63 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Match common distributions to real processes",
+    "Use binomial and Poisson for counts",
+    "Know where the t and chi-square distributions appear"
+  ],
+  "why": "Choosing the right distribution is choosing the right model of reality: call-centre staffing (Poisson), defect rates (binomial), waiting times (exponential). The wrong choice gives wrong risk estimates.",
+  "explain": [
+    "**Binomial**: the number of successes in n yes/no trials with success probability p. Example: how many of 20 leads convert.",
+    "**Poisson**: the number of events in a fixed interval when events happen independently at an average rate λ. Example: calls per minute, defects per metre of cable.",
+    "**Exponential**: the waiting time between Poisson events. Example: minutes until the next customer arrives.",
+    "**Uniform**: every value in a range is equally likely. **t-distribution**: like the normal but with fatter tails, used when estimating a mean from a small sample. **Chi-square**: the distribution of sums of squared normals, used in tests on counts and variances."
+  ],
+  "example": {
+    "title": "Call-centre staffing",
+    "steps": [
+      "Calls arrive at λ = 3 per minute (Poisson)",
+      "P(0 calls in a minute) = e⁻³ ≈ 0.05",
+      "P(more than 6 calls) ≈ 0.034 → about 2 minutes in every hour",
+      "Staff for peaks, not for the average of 3"
+    ],
+    "result": "The distribution, not just the average, tells you how often the team will be overwhelmed."
+  },
+  "mistakes": [
+    "Modelling counts with a normal distribution when counts are small.",
+    "Using Poisson when the variance is much larger than the mean (over-dispersion). Try negative binomial instead."
+  ],
+  "takeaways": [
+    "Binomial = successes out of n",
+    "Poisson = events per interval; exponential = time between them",
+    "t for small-sample means; chi-square for counts"
+  ],
+  "practice": {
+    "code": "from scipy.stats import binom, poisson\nprint(poisson.pmf(0, 3), 1 - poisson.cdf(6, 3))   # 0.0498, 0.0335\nprint(binom.pmf(0, 10, 0.1))                     # 0.349: no defects in 10 items at 10% rate"
+  },
+  "check": [
+    {
+      "q": "Number of website sign-ups per hour is best modelled as…",
+      "options": [
+        "Uniform",
+        "Poisson",
+        "Normal with negative values",
+        "Exponential"
+      ],
+      "answer": 1,
+      "why": "A count of independent events per interval."
+    },
+    {
+      "q": "Number of heads in 10 coin flips follows…",
+      "options": [
+        "Binomial",
+        "Poisson",
+        "Exponential",
+        "t"
+      ],
+      "answer": 0,
+      "why": "A fixed number of yes/no trials."
+    }
+  ],
+  "chapterMinutes": 19
+}

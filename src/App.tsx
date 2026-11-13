@@ -13,6 +13,11 @@ import Chooser from './pages/Chooser';
 import Glossary from './pages/Glossary';
 import Search from './pages/Search';
 import Playbook from './pages/Playbook';
+import { ExamList, Exam } from './pages/Exams';
+import { ProjectList, ProjectPage } from './pages/Projects';
+import Settings from './pages/Settings';
+import About from './pages/About';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
   const prog = useProgress();
@@ -37,6 +42,8 @@ export default function App() {
           <NavLink to="/roles">🎭 Role tracks</NavLink>
           <NavLink to="/placement">🧭 Placement quiz</NavLink>
           <NavLink to="/playbook">📚 The Playbook</NavLink>
+          <NavLink to="/exams">🎓 Track exams</NavLink>
+          <NavLink to="/projects">🛠 Projects</NavLink>
           <div className="sec">Featured animations</div>
           <NavLink to="/topic/linear-regression">📈 Linear Regression</NavLink>
           <NavLink to="/topic/kmeans">🍕 K-Means</NavLink>
@@ -45,6 +52,8 @@ export default function App() {
           <NavLink to="/compare">⚖️ Compare models</NavLink>
           <NavLink to="/chooser">🔀 Which model?</NavLink>
           <NavLink to="/glossary">📖 Glossary</NavLink>
+          <NavLink to="/settings">⚙️ Settings</NavLink>
+          <NavLink to="/about">ℹ️ About</NavLink>
         </nav>
         <div className="progress-mini">
           Progress: <b>{done}</b> / {TOPICS.length} topics
@@ -52,6 +61,7 @@ export default function App() {
         </div>
       </aside>
       <main className="main">
+        <ErrorBoundary resetKey={loc.pathname}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/tree" element={<SkillTree />} />
@@ -64,8 +74,15 @@ export default function App() {
           <Route path="/glossary" element={<Glossary />} />
           <Route path="/search" element={<Search />} />
           <Route path="/playbook" element={<Playbook />} />
+          <Route path="/exams" element={<ExamList />} />
+          <Route path="/exam/:track" element={<Exam />} />
+          <Route path="/projects" element={<ProjectList />} />
+          <Route path="/project/:id" element={<ProjectPage />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<p>Page not found. <NavLink to="/">Go home</NavLink></p>} />
         </Routes>
+        </ErrorBoundary>
       </main>
     </div>
   );

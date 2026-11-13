@@ -1,0 +1,72 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Compute mean, median, mode, variance and standard deviation",
+    "Choose the right \"typical value\" for skewed data",
+    "Use quartiles and the IQR to describe spread"
+  ],
+  "why": "Every report starts with descriptive statistics. Choosing mean vs median wrongly is how \"average salary\" headlines mislead whole countries.",
+  "explain": [
+    "**Centre**: the **mean** is the arithmetic average; the **median** is the middle value when sorted; the **mode** is the most frequent value.",
+    "The mean is pulled by extreme values; the median is not. For skewed data (salaries, house prices, delivery times) the median is usually the honest \"typical\" value.",
+    "**Spread**: the **standard deviation** (SD) is the typical distance from the mean. The **interquartile range** (IQR = Q3 − Q1) is the width of the middle 50% and, like the median, is robust to outliers.",
+    "Always report a centre **and** a spread. \"Average delivery 2 days\" means something very different with an SD of 0.2 days than with an SD of 3 days."
+  ],
+  "formula": {
+    "tex": "\\bar x = \\frac{1}{n}\\sum x_i, \\qquad s = \\sqrt{\\frac{1}{n-1}\\sum (x_i-\\bar x)^2}",
+    "plain": "Mean = sum ÷ count. Sample SD = square root of the average squared distance from the mean (dividing by n − 1 for a sample)."
+  },
+  "example": {
+    "title": "Five employees' monthly bonus (₹ thousand)",
+    "steps": [
+      "Data: 2, 3, 3, 4, 100 (the last is the CEO)",
+      "Mean = 112 / 5 = 22.4",
+      "Median = 3 (middle value)",
+      "Mode = 3"
+    ],
+    "result": "Saying \"the average bonus is ₹22,400\" is technically true and completely misleading. The median of ₹3,000 describes a typical employee."
+  },
+  "mistakes": [
+    "Using the mean for heavily skewed data.",
+    "Reporting a centre without any measure of spread.",
+    "Dividing by n instead of n − 1 for a sample SD (a small difference for large n)."
+  ],
+  "takeaways": [
+    "Mean is sensitive to outliers; median is robust",
+    "Report centre + spread",
+    "IQR and box plots summarise skewed data well"
+  ],
+  "use": [
+    "First step of every analysis and dashboard",
+    "Data quality checks (impossible minimums and maximums)"
+  ],
+  "practice": {
+    "code": "import pandas as pd\ns = pd.Series([2, 3, 3, 4, 100])\nprint(s.describe())                 # count, mean, std, min, quartiles, max\nprint(\"median\", s.median(), \"IQR\", s.quantile(.75) - s.quantile(.25))"
+  },
+  "check": [
+    {
+      "q": "House prices in a city are right-skewed. Which \"typical price\" is best?",
+      "options": [
+        "Mean",
+        "Median",
+        "Maximum",
+        "Range"
+      ],
+      "answer": 1,
+      "why": "The median ignores the few very expensive houses."
+    },
+    {
+      "q": "Mean of 4, 6, 8?",
+      "options": [
+        "5",
+        "6",
+        "7",
+        "18"
+      ],
+      "answer": 1,
+      "why": "18 / 3 = 6."
+    }
+  ],
+  "chapterMinutes": 19
+}

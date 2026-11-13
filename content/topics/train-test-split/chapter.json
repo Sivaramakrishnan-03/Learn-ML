@@ -1,0 +1,361 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 19,
+  "hook": "A data team proudly reports that their new demand-forecasting model is 99% accurate. Three months after launch, the warehouse is full of the wrong stock. What went wrong? They graded the model on the same data it had learned from, like a teacher who sets the exam using the exact questions the class practised the night before. The **train / test split** is the simple habit that stops this from happening, and it is the first thing any serious reviewer checks.",
+  "sections": [
+    {
+      "heading": "The problem: a model that has seen the answers",
+      "blocks": [
+        {
+          "p": "Every machine learning model learns from examples. You show it past loans and whether they were repaid, past months and how much was sold, past emails and whether they were spam. From these examples it builds a rule. The question that matters to the business is not \"does the rule fit the past?\" but **\"will the rule work on cases it has never seen?\"**"
+        },
+        {
+          "term": "Model",
+          "def": "A rule, learned from data, that turns inputs (income, age, month, price) into a prediction (will repay, units sold). It is the thing we want to judge."
+        },
+        {
+          "term": "Generalisation",
+          "def": "How well a model performs on new data it did not learn from. This is the only performance that matters once the model is in use."
+        },
+        {
+          "p": "Here is the trap. A flexible model can simply **memorise** its examples. Imagine a \"model\" that is just a lookup table: if it sees a customer it has met before, it repeats that customer's answer. On the data it learned from it scores 100%. On a new customer it has nothing useful to say. Scoring a model on its own learning data rewards memory, not understanding."
+        },
+        {
+          "p": "The fix is old and simple: before you do anything else, **set some data aside** and never let the model see it while learning. At the end, you score the model on that hidden data. Because the model has never met these rows, its score is an honest preview of how it will behave in the real world."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Lookup table (train)",
+              "Lookup table (test)",
+              "Sensible model (train)",
+              "Sensible model (test)"
+            ],
+            "values": [
+              100,
+              52,
+              86,
+              83
+            ],
+            "highlight": 1,
+            "yLabel": "accuracy %",
+            "caption": "Illustrative scores. The memorising lookup table looks perfect on the data it learned from and collapses on unseen data. The sensible model scores a little lower in training but almost the same on new data. Only the test bars tell you which model to trust."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the exam you have not seen",
+      "blocks": [
+        {
+          "p": "Think about how a good school tests a student. During the term the student works through practice papers, checks their answers and learns from mistakes. On exam day they receive **new questions** on the same topics. If they understood the material, they do well. If they only memorised the practice answers, they are found out."
+        },
+        {
+          "steps": [
+            "**The practice papers are the training data.** The student (the model) is allowed to study them as much as they like.",
+            "**The exam paper is the test data.** It is locked in the head teacher's office until exam day.",
+            "**Exam questions must be new but similar.** They cover the same syllabus, in the same style, so the score reflects real ability.",
+            "**The exam is sat once.** If the student could retake the same paper fifty times and keep the best mark, the mark would mean much less."
+          ],
+          "title": "The school analogy, step by step"
+        },
+        {
+          "p": "Each of those four rules has a direct machine learning version. Train on one part of the data, test on another. Make sure the test part looks like the real world the model will face. And look at the test score **only once**, at the very end."
+        },
+        {
+          "term": "Training set",
+          "def": "The rows the model is allowed to learn from. Usually 70–80% of the data."
+        },
+        {
+          "term": "Test set",
+          "def": "Rows kept aside and never used for learning or for choosing between models. Used once, at the end, to estimate real-world performance. Also called the hold-out set."
+        },
+        {
+          "think": {
+            "q": "A colleague says: \"Our dataset is small, so I trained on all of it and tested on all of it, to make full use of the data.\" What is wrong?",
+            "a": "The test score now measures how well the model remembers its own examples, not how it handles new ones. It will be optimistic, sometimes wildly so. With small data the right answer is cross-validation (next chapters), not skipping the hold-out."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Collect** and clean the full dataset",
+              "**Split first**: train 80% / test 20%",
+              "**Learn and tune** using the training part only",
+              "**Score once** on the locked test set",
+              "**Report** the test score as the expected real-world performance"
+            ],
+            "caption": "The split happens before any learning, scaling or model choice. Everything to the left of \"Score once\" must ignore the test rows."
+          }
+        },
+        {
+          "p": "**Step 1: Decide the split.** Common choices are 80/20 or 70/30. Larger datasets can afford a smaller share for testing: with a million rows, 2% is still 20,000 test rows."
+        },
+        {
+          "p": "**Step 2: Shuffle and cut.** For ordinary data, rows are shuffled randomly and then divided. In scikit-learn this is one line: `train_test_split(X, y, test_size=0.2, random_state=42)`. The `random_state` fixes the shuffle so the split is the same every time you run the code."
+        },
+        {
+          "p": "**Step 3: Add a validation set if you need to choose.** Most projects try several models or settings. Choosing the best one is itself a kind of learning, so you need a third slice of data, carved out of the training part, to make that choice. The test set stays untouched."
+        },
+        {
+          "term": "Validation set",
+          "def": "A slice of the training data used to compare models or settings while you are still building. Using it keeps the test set clean for the final, honest score."
+        },
+        {
+          "p": "**Step 4: Score once.** After you have picked your final model, retrain it on all the training data (train plus validation) and score it on the test set. Write that number down. If you go back and change things because you did not like it, the test set has quietly become a validation set."
+        },
+        {
+          "callout": "Split **before** any preprocessing that learns from data: filling missing values with an average, scaling, choosing features. If those steps see the test rows, information leaks from the exam into the practice papers.",
+          "tone": "warn"
+        },
+        {
+          "term": "Data leakage",
+          "def": "Any way that information from the test data (or from the future) sneaks into training. Leakage makes scores look better than they will be in real use."
+        }
+      ]
+    },
+    {
+      "heading": "Under the hood: what the test score really estimates",
+      "blocks": [
+        {
+          "p": "There is no heavy maths in splitting data, but two ideas explain why the rules matter. The first is that a test score is an **estimate** with uncertainty. The second is that the split must imitate the way the model will be used."
+        },
+        {
+          "p": "Suppose your classifier gets 85% of 200 test rows right. If you had drawn a different 200 rows, you might have seen 82% or 88%. The uncertainty of an accuracy measured on n rows is roughly the standard error below."
+        },
+        {
+          "tex": "\\text{SE} = \\sqrt{\\frac{p(1-p)}{n}}",
+          "plain": "Take the accuracy p, multiply by (1 − p), divide by the number of test rows, and take the square root. About 95% of the time, the true accuracy lies within roughly 2 standard errors of what you measured.",
+          "symbols": [
+            [
+              "p",
+              "measured accuracy as a proportion (0.85 for 85%)"
+            ],
+            [
+              "n",
+              "number of rows in the test set"
+            ],
+            [
+              "\\text{SE}",
+              "standard error: typical size of the random wobble in the score"
+            ]
+          ]
+        },
+        {
+          "p": "Why does n sit in the denominator? Because every extra test row is another independent check, and many checks average out luck. Why p(1 − p)? Because a score near 50% is the most uncertain kind of coin, while a score near 0% or 100% has little room to wobble."
+        },
+        {
+          "p": "For 85% on 200 rows, 1.96 × SE is about **±4.9 percentage points**. On 2,000 rows it shrinks to about **±1.6 points**. So two models that score 84% and 86% on 200 test rows are not clearly different at all."
+        },
+        {
+          "term": "Stratified split",
+          "def": "A split that keeps the share of each class (say 2% fraud, 98% genuine) the same in the training and test sets. Essential when one class is rare."
+        },
+        {
+          "callout": "The golden rule: **the test set must look like tomorrow.** For customers, that means new customers. For time series, that means future months. For factories, possibly a different plant. Choose the split that copies how the model will be used.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Stratifying a fraud dataset",
+            "setup": "A bank has 10,000 card transactions, of which 200 (2%) are fraud. It wants an 80/20 split.",
+            "steps": [
+              "Test set size = 20% of 10,000 = 2,000 rows. Training set = 8,000 rows.",
+              "If the split were perfectly proportional, the test set would hold 2% of 2,000 = 40 frauds and the training set 160.",
+              "With a purely random split, the number of frauds landing in the test set varies. Its average is 40, but its standard deviation is about 5.6, and there is roughly a 9% chance of getting 30 or fewer, or 50 or more.",
+              "A test set with only 28 frauds would make recall estimates jumpy: each missed fraud moves recall by more than 3.5 points.",
+              "A stratified split (`stratify=y`) forces exactly 40 frauds into the test set and 160 into training."
+            ],
+            "result": "Both sets now carry the true 2% fraud rate, so the test score is not distorted by an unlucky shuffle."
+          }
+        },
+        {
+          "example": {
+            "title": "A three-way split for a churn project",
+            "setup": "A telecom operator has 50,000 customers and wants to compare three models before reporting one score to management.",
+            "steps": [
+              "Hold out a test set of 15%: 7,500 customers, locked away.",
+              "From the remaining 42,500, keep 7,500 as a validation set (again about 15% of the original). Training set = 35,000.",
+              "Train three models on the 35,000. Validation F1 scores: 0.61, 0.66, 0.64. Pick the second.",
+              "Retrain the chosen model on training plus validation (42,500 customers).",
+              "Score once on the 7,500 test customers: F1 = 0.65."
+            ],
+            "result": "The test score (0.65) is close to the validation score (0.66), which suggests the choice was not a fluke. The number reported to management is 0.65, the honest one."
+          }
+        },
+        {
+          "example": {
+            "title": "Monthly sales: why you must split by time (business case)",
+            "setup": "A two-wheeler dealer in Pune has 36 months of sales, January 2022 to December 2024, and wants to forecast next month's demand.",
+            "steps": [
+              "A random split might put October 2024 in the test set and November 2024 in the training set. The model then \"knows\" what happened after the month it is predicting.",
+              "The festive surge that starts around Navratri and Diwali would be visible on both sides of the split, making the forecast look much better than it can be in real life.",
+              "Correct approach: train on months 1–30 (January 2022 to June 2024), test on months 31–36 (July to December 2024).",
+              "This copies reality: on the day you use the model, only the past is available."
+            ],
+            "result": "The time-based test error is usually worse than the random-split error, and that worse number is the true one."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Months",
+              "Period",
+              "Role"
+            ],
+            "rows": [
+              [
+                "1–30",
+                "Jan 2022 – Jun 2024",
+                "Training"
+              ],
+              [
+                "31–36",
+                "Jul 2024 – Dec 2024",
+                "Test"
+              ],
+              [
+                "37",
+                "Jan 2025",
+                "The real forecast"
+              ]
+            ],
+            "caption": "A time-based split: the test months always come after the training months, exactly as the real forecast comes after all known data."
+          }
+        },
+        {
+          "example": {
+            "title": "Leakage in numbers: scaling before splitting",
+            "setup": "Five monthly incomes in ₹ thousand: 10, 20, 30, 40 (training) and 100 (test). You want to subtract the mean before modelling.",
+            "steps": [
+              "Wrong way: compute the mean of all five values = (10 + 20 + 30 + 40 + 100) / 5 = 40.",
+              "Right way: compute the mean of the training values only = (10 + 20 + 30 + 40) / 4 = 25.",
+              "The wrong mean is 15 higher because it \"knows\" about the large test value.",
+              "Every training row is now shifted using information the model should not have had."
+            ],
+            "result": "Always learn preprocessing quantities (means, medians, scales) from the training set only, then apply them to the test set."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing the right kind of split",
+      "blocks": [
+        {
+          "p": "The default random split is right for many problems, but not all. The question to ask is always: **\"What will be different about the data on the day the model is used?\"**"
+        },
+        {
+          "bullets": [
+            "**Random split**: rows are independent and the future looks like the past. Example: classifying product photos.",
+            "**Stratified split**: classification with a rare class, such as fraud, defects or churn. Keeps class shares equal.",
+            "**Time-based split**: anything with dates, such as sales, prices, sensor readings or monthly churn. Train on earlier periods, test on later ones.",
+            "**Group split**: several rows belong to the same customer, patient, vehicle or machine. All rows of one group go to the same side, so the model is tested on truly new customers. In scikit-learn, `GroupShuffleSplit`."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Random split",
+              "items": [
+                "Rows shuffled before cutting",
+                "Fine when rows are independent",
+                "Test rows come from the same period as training",
+                "Overstates accuracy for time series"
+              ]
+            },
+            "right": {
+              "title": "Time-based split",
+              "items": [
+                "Cut at a date: past trains, future tests",
+                "Required for forecasting and monthly data",
+                "Mimics the real moment of prediction",
+                "Usually gives a lower, more honest score"
+              ]
+            },
+            "caption": "Pick the split that copies how predictions will be made. For anything with a calendar, the right-hand column wins."
+          }
+        },
+        {
+          "p": "**How big should the test set be?** Big enough that its uncertainty is small compared with the differences you care about. As a rule of thumb, aim for at least a few hundred test rows, and at least 30–50 examples of the rarest class. If you cannot afford that, use cross-validation for model choice and accept a wider error band on the final score."
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "A credit model that met new customers (illustrative)",
+            "story": "An Indian NBFC builds a model to approve two-wheeler loans. The first version is split randomly across 2019–2023 applications and scores an AUC of 0.86. A reviewer asks for an out-of-time test: train on 2019–2022, test on 2023. The AUC drops to 0.78. Investigation shows that 2023 brought new dealer partners and a shift towards younger first-time borrowers, which the random split had hidden because every period was mixed into both sides. The team rebuilds features that capture dealer and borrower type, re-tests on 2023, and reaches 0.82. The model goes live with 0.82 as the stated expectation, and monthly monitoring confirms results close to that figure."
+          }
+        },
+        {
+          "bullets": [
+            "**Manufacturing quality**: models trained on one production line are tested on a different line or a later batch, so drifting machines do not hide behind shuffled data.",
+            "**Retail demand**: forecasts are tested on the most recent weeks, including at least one promotion period.",
+            "**Healthcare**: models are often tested on patients from a different hospital before anyone trusts them.",
+            "**Kaggle-style competitions** keep a private test set the participants never see, for exactly the reasons in this chapter."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Preprocessing before splitting.** Scaling, imputing, or selecting features on the full dataset leaks test information. Use a scikit-learn Pipeline so every step is learned from training data only.",
+            "**Peeking at the test set repeatedly.** Each peek followed by a tweak turns the test set into a validation set, and the final score becomes optimistic.",
+            "**Random splits on time series.** The model sees the future. Split by date.",
+            "**Duplicates across the split.** The same customer or the same product photo on both sides makes the test easy. Remove duplicates or split by group.",
+            "**A tiny test set.** 50 rows give a score that can swing by 10 points or more. Use cross-validation for decisions."
+          ]
+        },
+        {
+          "callout": "A single split is still a single draw of luck. Cross-validation repeats the split several times and averages, which is the natural next step and the subject of a later chapter.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is 80/20 always the right ratio?",
+      "a": "No, it is just a common default. With very large data you can test on 1–5%. With small data, use cross-validation for choosing models and keep a modest test set for the final check."
+    },
+    {
+      "q": "Why do I get a different score each time I run my code?",
+      "a": "Because each run shuffles differently. Set `random_state` to a fixed number so the split is reproducible, and remember that the spread across shuffles is a reminder that the score itself is uncertain."
+    },
+    {
+      "q": "What is the difference between validation and test data?",
+      "a": "Validation data helps you choose between models or settings while building. Test data is used once, after every choice is made, to estimate real-world performance."
+    },
+    {
+      "q": "After testing, should I retrain on all the data?",
+      "a": "Often yes. Once the test score is recorded, many teams retrain the final model on training plus test data before deployment, because more data usually helps. The recorded test score remains the stated expectation."
+    },
+    {
+      "q": "Can I split after cleaning the data?",
+      "a": "Simple cleaning that does not learn from the data (fixing typos, removing impossible values, parsing dates) is fine before splitting. Anything that computes a statistic, such as a mean for imputation, must be learned from the training part only."
+    },
+    {
+      "q": "My test score is higher than my training score. Is that a problem?",
+      "a": "It can happen by luck, especially with small test sets or with regularised models. If the gap is large, check for leakage or for a test set that is accidentally easier than training."
+    }
+  ]
+}

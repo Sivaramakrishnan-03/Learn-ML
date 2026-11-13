@@ -1,0 +1,398 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 18,
+  "hook": "A bank wants to score one lakh loan applications before Monday morning. Each application has a handful of numbers, and the scoring model is a recipe of weights. Scoring them one by one in a loop works; scoring them all in **one matrix multiplication** is hundreds of times faster. That single operation, repeated billions of times on graphics cards, is what powers modern AI. This chapter teaches the four verbs of linear algebra: dot product, matrix multiplication, transpose and inverse.",
+  "sections": [
+    {
+      "heading": "The problem: combining many numbers, many times",
+      "blocks": [
+        {
+          "p": "In the previous chapter, data became vectors (one per item) stacked into a matrix (one row per item). Now we want to **do** something with that data. The most common task in all of ML is: take an item's features, weight each one by how important it is, and add them up into a single score: a predicted price, a credit score, a probability of churn."
+        },
+        {
+          "p": "Doing this for one item is a **dot product**. Doing it for every item at once is a **matrix–vector multiplication**. Doing it for many models or many layers at once is **matrix–matrix multiplication**. Two more operations, **transpose** and **inverse**, appear whenever we solve for the best weights."
+        },
+        {
+          "term": "Weight",
+          "def": "A number that says how much one feature contributes to a score. A weight of 4 on \"area in hundreds of sq ft\" means each extra 100 sq ft adds 4 to the predicted price. Learning a model mostly means finding good weights."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Features** of one item (a vector)",
+              "**Weights** of the model (a vector)",
+              "**Dot product**: multiply pairs, add",
+              "**One score** (price, risk, probability)"
+            ],
+            "caption": "A linear model in one picture. Every linear regression, logistic regression and neural-network neuron starts with exactly this dot product."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the restaurant bill",
+      "blocks": [
+        {
+          "p": "You order 2 dosas, 3 coffees and 1 vada. The menu says dosa ₹80, coffee ₹40, vada ₹30. How do you get the bill? Multiply each quantity by its price and add: 2 × 80 + 3 × 40 + 1 × 30 = 160 + 120 + 30 = ₹310. You have just computed a dot product of the order vector [2, 3, 1] with the price vector [80, 40, 30]."
+        },
+        {
+          "steps": [
+            "**One table, one bill:** order vector · price vector = one number. That is a dot product.",
+            "**Ten tables, ten bills:** stack the ten orders as rows of a matrix and multiply by the price vector. You get a vector of ten bills. That is matrix × vector.",
+            "**Ten tables, two menus** (normal and festival prices): put the two price lists side by side as columns of a matrix. Multiplying gives a 10 × 2 table of bills. That is matrix × matrix.",
+            "**Undoing it:** if you know the bills and the quantities but have lost the menu, can you recover the prices? That is what an inverse does."
+          ],
+          "title": "From one bill to many"
+        },
+        {
+          "p": "There is a second, geometric reading of the dot product: it measures **how much two vectors point the same way**. Two customers who spend heavily in the same categories have a large dot product; customers with opposite habits have a small or negative one. A handy way to remember it: the dot product is a \"how much do we agree\" score."
+        },
+        {
+          "term": "Dot product",
+          "def": "Multiply two equal-length vectors position by position and add the results, giving one number. It is a weighted sum, and it also measures how aligned two vectors are."
+        },
+        {
+          "think": {
+            "q": "The dot product of [1, 0] and [0, 1] is 0. What does that say about the two arrows?",
+            "a": "They are at right angles: one points purely east, the other purely north, so they share no direction at all. In general a dot product of zero means the vectors are perpendicular (also called orthogonal)."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**Dot product:** line up two vectors of equal length, multiply matching entries, add.",
+            "**Matrix × vector:** take the dot product of each row of the matrix with the vector. An (m × n) matrix times an n-vector gives an m-vector.",
+            "**Matrix × matrix:** entry (i, j) of the result is the dot product of row i of the first matrix with column j of the second. (m × n) times (n × p) gives (m × p).",
+            "**Transpose:** turn rows into columns. An (m × n) matrix becomes (n × m).",
+            "**Inverse:** for a square matrix A, find the matrix A⁻¹ that undoes it, so that A⁻¹A = I (the identity, which changes nothing)."
+          ],
+          "title": "The five operations"
+        },
+        {
+          "p": "The one rule that prevents most errors: **inner dimensions must match.** To multiply (m × n) by (n × p), the n's must be equal; the answer has the outer dimensions (m × p). A (3 × 2) matrix can multiply a 2-vector but not a 3-vector."
+        },
+        {
+          "term": "Transpose",
+          "def": "Flipping a matrix over its diagonal so rows become columns, written Xᵀ. A 1,000 × 5 data matrix becomes 5 × 1,000."
+        },
+        {
+          "term": "Identity matrix",
+          "def": "A square matrix with 1s on the diagonal and 0s elsewhere, written I. Multiplying by it changes nothing, like multiplying a number by 1."
+        },
+        {
+          "term": "Inverse",
+          "def": "For a square matrix A, the matrix A⁻¹ with A⁻¹A = I. It plays the role of division. Not every matrix has one: if A squashes some direction to zero, the information is lost and cannot be undone."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Operation",
+              "Shapes",
+              "Result",
+              "NumPy"
+            ],
+            "rows": [
+              [
+                "Dot product",
+                "(n,) · (n,)",
+                "one number",
+                "a @ b"
+              ],
+              [
+                "Matrix × vector",
+                "(m, n) @ (n,)",
+                "(m,)",
+                "X @ w"
+              ],
+              [
+                "Matrix × matrix",
+                "(m, n) @ (n, p)",
+                "(m, p)",
+                "A @ B"
+              ],
+              [
+                "Transpose",
+                "(m, n)",
+                "(n, m)",
+                "X.T"
+              ],
+              [
+                "Inverse",
+                "(n, n)",
+                "(n, n)",
+                "np.linalg.inv(A)"
+              ]
+            ],
+            "caption": "Shapes are the grammar of linear algebra. Check that the inner numbers match before multiplying, and the result takes the outer numbers."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\mathbf{a} \\cdot \\mathbf{b} = \\sum_{i=1}^{n} a_i b_i = a_1 b_1 + a_2 b_2 + \\dots + a_n b_n",
+          "plain": "Multiply matching entries and add. The restaurant bill is order · prices.",
+          "symbols": [
+            [
+              "a_i, b_i",
+              "the i-th entries of the two vectors"
+            ],
+            [
+              "n",
+              "their common length"
+            ]
+          ]
+        },
+        {
+          "p": "The geometric reading uses the angle between the arrows. If two vectors point the same way, the angle is 0 and cos 0 = 1, so the dot product is as big as it can be. At right angles cos 90° = 0. Pointing opposite ways, cos 180° = −1."
+        },
+        {
+          "tex": "\\mathbf{a} \\cdot \\mathbf{b} = \\lVert \\mathbf{a} \\rVert \\, \\lVert \\mathbf{b} \\rVert \\cos\\theta",
+          "plain": "Dot product = length of a × length of b × how aligned they are. Divide by both lengths and you are left with cos θ, the cosine similarity, a pure \"same direction\" score between −1 and 1.",
+          "symbols": [
+            [
+              "\\theta",
+              "the angle between the two arrows"
+            ],
+            [
+              "\\cos\\theta",
+              "cosine similarity: 1 = same direction, 0 = unrelated, −1 = opposite"
+            ]
+          ]
+        },
+        {
+          "tex": "(AB)_{ij} = \\sum_{k=1}^{n} A_{ik} B_{kj}",
+          "plain": "To fill row i, column j of the answer, walk along row i of A and down column j of B, multiplying pairs and adding. Every entry of a matrix product is one dot product.",
+          "symbols": [
+            [
+              "A_{ik}",
+              "row i, column k of A"
+            ],
+            [
+              "B_{kj}",
+              "row k, column j of B"
+            ]
+          ]
+        },
+        {
+          "p": "Order matters. In general AB is not equal to BA, unlike ordinary numbers where 3 × 5 = 5 × 3. Often BA is not even allowed because the shapes do not match."
+        },
+        {
+          "p": "Finally, the formula you will see in every regression textbook. It finds the weights β that make a linear model's predictions Xβ as close as possible to the actual answers y. You do not need to derive it, but you can now read every piece: transpose, matrix product, inverse."
+        },
+        {
+          "tex": "\\hat{\\beta} = (X^\\top X)^{-1} X^\\top y",
+          "plain": "Best weights = (inverse of X-transpose-X) times X-transpose times the targets. It is the matrix version of \"divide the covariance of x and y by the variance of x\".",
+          "symbols": [
+            [
+              "X",
+              "data matrix, one row per item"
+            ],
+            [
+              "y",
+              "vector of actual target values"
+            ],
+            [
+              "\\hat{\\beta}",
+              "the estimated best weights"
+            ],
+            [
+              "X^\\top",
+              "transpose of X"
+            ]
+          ]
+        },
+        {
+          "callout": "Libraries rarely compute that inverse literally. It is slow and numerically fragile. scikit-learn's LinearRegression solves the same problem with more stable methods (a least-squares solver based on matrix factorisations). The formula is for understanding, not for typing.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Score three loan applicants in one go",
+            "setup": "A simple scoring model uses weights w = [0.5 per ₹ lakh of annual income, 0.01 per credit-score point]. Applicants (rows): [10, 700], [4, 600], [20, 800].",
+            "steps": [
+              "Applicant 1: 0.5 × 10 + 0.01 × 700 = 5 + 7 = 12.",
+              "Applicant 2: 0.5 × 4 + 0.01 × 600 = 2 + 6 = 8.",
+              "Applicant 3: 0.5 × 20 + 0.01 × 800 = 10 + 8 = 18.",
+              "In matrix form: X is (3 × 2), w is (2,), so X @ w has shape (3,) = [12, 8, 18]."
+            ],
+            "result": "One matrix–vector multiplication scored every applicant. For one lakh applicants the code is identical; only the number of rows changes."
+          }
+        },
+        {
+          "example": {
+            "title": "Store revenue and cost with a matrix product",
+            "setup": "Weekly units of [chips, biscuits, juice]: Store 1 = [120, 80, 40], Store 2 = [90, 110, 60]. Price per unit ₹50, ₹30, ₹100; cost per unit ₹35, ₹20, ₹60. Put prices and costs as two columns of a (3 × 2) matrix P.",
+            "steps": [
+              "Sales matrix S is (2 × 3); P is (3 × 2); inner dimensions 3 and 3 match, so S @ P is (2 × 2).",
+              "Store 1 revenue = 120 × 50 + 80 × 30 + 40 × 100 = 6,000 + 2,400 + 4,000 = ₹12,400.",
+              "Store 1 cost = 120 × 35 + 80 × 20 + 40 × 60 = 4,200 + 1,600 + 2,400 = ₹8,200.",
+              "Store 2 revenue = 90 × 50 + 110 × 30 + 60 × 100 = 4,500 + 3,300 + 6,000 = ₹13,800.",
+              "Store 2 cost = 90 × 35 + 110 × 20 + 60 × 60 = 3,150 + 2,200 + 3,600 = ₹8,950."
+            ],
+            "result": "S @ P = [[12,400, 8,200], [13,800, 8,950]]. Margins: Store 1 ₹4,200, Store 2 ₹4,850. Four dot products, one operation."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "S1 revenue",
+              "S1 cost",
+              "S2 revenue",
+              "S2 cost"
+            ],
+            "values": [
+              12400,
+              8200,
+              13800,
+              8950
+            ],
+            "highlight": 2,
+            "yLabel": "₹ per week",
+            "caption": "The four entries of S @ P. Each bar is one dot product of a store's sales row with a price or cost column."
+          }
+        },
+        {
+          "example": {
+            "title": "Recover a lost menu with an inverse",
+            "setup": "A bakery remembers only two bills: 2 cakes + 1 bread = ₹500, and 1 cake + 3 breads = ₹600. Find the price of each.",
+            "steps": [
+              "Write it as A p = b with A = [[2, 1], [1, 3]], p = [cake, bread], b = [500, 600].",
+              "For a 2 × 2 matrix [[a, b], [c, d]], the inverse is 1/(ad − bc) × [[d, −b], [−c, a]]. Here ad − bc = 2 × 3 − 1 × 1 = 5.",
+              "A⁻¹ = (1/5) × [[3, −1], [−1, 2]].",
+              "p = A⁻¹ b: cake = (3 × 500 − 1 × 600)/5 = 900/5 = 180; bread = (−1 × 500 + 2 × 600)/5 = 700/5 = 140.",
+              "Check: 2 × 180 + 140 = 500 and 180 + 3 × 140 = 600."
+            ],
+            "result": "Cake ₹180, bread ₹140. Solving for model weights in regression is the same idea with more rows and columns."
+          }
+        },
+        {
+          "example": {
+            "title": "Cosine similarity between shoppers",
+            "setup": "Monthly spend in [groceries, toys, home, electronics] (₹ thousand): Asha = [5, 0, 3, 1], Ben = [4, 1, 2, 0], Chitra = [0, 5, 0, 4].",
+            "steps": [
+              "Asha · Ben = 20 + 0 + 6 + 0 = 26. ‖Asha‖ = √35 ≈ 5.92; ‖Ben‖ = √21 ≈ 4.58. Cosine = 26 / (5.92 × 4.58) ≈ 0.96.",
+              "Asha · Chitra = 0 + 0 + 0 + 4 = 4. ‖Chitra‖ = √41 ≈ 6.40. Cosine = 4 / (5.92 × 6.40) ≈ 0.11."
+            ],
+            "result": "Asha and Ben shop almost identically in pattern (0.96); Asha and Chitra barely overlap (0.11). Recommend Ben's purchases to Asha, not Chitra's."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Why GPUs love matrix multiplication",
+      "blocks": [
+        {
+          "p": "Each entry of a matrix product can be computed independently of the others. That makes the work perfect for hardware with thousands of small cores working in parallel, which is what a graphics card (GPU) is. A neural-network layer is literally \"input matrix @ weight matrix\", followed by a simple function."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Python loop over rows",
+              "items": [
+                "One applicant at a time",
+                "Interpreter overhead on every step",
+                "Easy to read, slow to run",
+                "Fine for 100 rows"
+              ]
+            },
+            "right": {
+              "title": "Vectorised X @ w",
+              "items": [
+                "All rows in one call",
+                "Runs in optimised compiled code (BLAS)",
+                "Uses CPU vector units or GPU cores",
+                "Essential for millions of rows"
+              ]
+            },
+            "caption": "Same arithmetic, very different speed. \"Vectorise your code\" means replace loops with matrix operations."
+          }
+        },
+        {
+          "think": {
+            "q": "A neural-network layer takes 64 samples with 512 features each and has a weight matrix of shape (512, 256). What shape is the output?",
+            "a": "(64, 512) @ (512, 256) = (64, 256). The inner 512s match and disappear; the outer numbers remain: 64 samples, each now described by 256 new numbers."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Credit scoring at batch scale (illustrative)",
+            "story": "A consumer-lending team scores every live account each night to decide credit-limit increases. Their logistic regression model has 40 features, so the core computation is a (number of accounts × 40) matrix times a 40-entry weight vector, followed by a function that turns each score into a probability. Rewriting a row-by-row Python loop as one NumPy matrix multiplication cut the nightly run from hours to minutes, with identical results. The model itself did not change; only the arithmetic was organised better."
+          }
+        },
+        {
+          "bullets": [
+            "**Recommendation engines:** cosine similarity between user and product vectors ranks what to show next.",
+            "**Neural networks and LLMs:** almost all computation is matrix multiplication of activations by weight matrices.",
+            "**Supply chain:** a bill-of-materials matrix times a production plan gives the parts needed.",
+            "**Image processing:** rotating, scaling or shearing an image multiplies every pixel coordinate by a 2 × 2 matrix."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls and limits",
+      "blocks": [
+        {
+          "bullets": [
+            "**`*` is not `@`.** In NumPy, `A * B` multiplies element by element; `A @ B` is matrix multiplication. Mixing them gives wrong numbers silently whenever the shapes happen to allow both.",
+            "**Order matters:** AB is usually not BA.",
+            "**Singular matrices have no inverse.** If two columns carry the same information (for example price in rupees and the same price in dollars), XᵀX cannot be inverted. In regression this is perfect multicollinearity; drop a duplicate column or use regularisation such as Ridge.",
+            "**Near-singular is almost as bad:** strongly correlated features make inverses unstable, so tiny data changes swing the weights wildly.",
+            "**Dot products depend on scale:** a vector with large entries has large dot products with everything. Use cosine similarity when only direction matters."
+          ]
+        },
+        {
+          "callout": "Matrices are not just tables; they are machines that transform vectors. The next chapter asks: which directions does such a machine leave pointing the same way? Those are eigenvectors.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between a dot product and matrix multiplication?",
+      "a": "A dot product combines two vectors into one number. Matrix multiplication is many dot products at once: every row of the first matrix with every column of the second."
+    },
+    {
+      "q": "Why is it called a \"linear\" model?",
+      "a": "Because the prediction is a dot product: features multiplied by weights and added. Doubling a feature's change doubles its effect on the prediction. No squares, no curves, just straight-line relationships."
+    },
+    {
+      "q": "When would a matrix have no inverse?",
+      "a": "When it squashes some direction down to zero, so two different inputs give the same output and you cannot tell which one you started from. In data terms, this happens when one feature is an exact combination of others."
+    },
+    {
+      "q": "Do I need to multiply matrices by hand?",
+      "a": "Only enough to understand it. In practice `@` in NumPy or PyTorch does it. What you must be able to do by hand is check shapes."
+    },
+    {
+      "q": "Is cosine similarity better than Euclidean distance?",
+      "a": "Neither is better in general. Cosine compares direction (taste, topic) and ignores size; Euclidean compares position and includes size. Text embeddings usually use cosine; physical measurements usually use Euclidean."
+    },
+    {
+      "q": "What does \"vectorised code\" mean?",
+      "a": "Code that applies operations to whole arrays at once (`X @ w`, `a + b`) instead of looping over elements in Python. It is shorter, and typically tens to hundreds of times faster."
+    }
+  ]
+}

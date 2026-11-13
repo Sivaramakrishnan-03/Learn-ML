@@ -1,0 +1,75 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Choose between one-sample, two-sample and paired t-tests",
+    "Read a t-statistic and its p-value",
+    "Check the assumptions"
+  ],
+  "why": "The t-test, invented by William Gosset to monitor Guinness beer quality, is still the workhorse for comparing two means: before vs after, plant A vs plant B.",
+  "explain": [
+    "A **t-test** asks whether a difference in means is large compared with the noise. t = difference ÷ standard error of the difference.",
+    "**One-sample**: is this mean different from a target (do bottles contain 500 ml)? **Two-sample (Welch)**: do two independent groups differ? **Paired**: the same units measured twice (before/after training).",
+    "Paired tests are far more powerful when they apply, because each unit acts as its own control and removes person-to-person variation.",
+    "Assumptions: independent observations and roughly normal data (or reasonably large samples). Use Welch's version by default; it does not assume equal variances."
+  ],
+  "formula": {
+    "tex": "t = \\frac{\\bar x_1 - \\bar x_2}{SE_{\\text{diff}}}",
+    "plain": "t = observed difference divided by its standard error (how many \"noise units\" apart the means are)."
+  },
+  "example": {
+    "title": "New fertiliser",
+    "steps": [
+      "Plot A (old): mean height 50 cm; plot B (new): 53 cm; 30 plants each",
+      "Standard error of the difference = 1.25 cm",
+      "t = (53 − 50) / 1.25 = 2.4",
+      "With ~58 degrees of freedom, p ≈ 0.02"
+    ],
+    "result": "A 3 cm difference is unlikely to be pure luck. Next question: is 3 cm worth the extra cost?"
+  },
+  "mistakes": [
+    "Using an independent t-test on paired data.",
+    "Running t-tests on many pairs of groups (use ANOVA, or correct for multiple comparisons)."
+  ],
+  "takeaways": [
+    "t = difference / noise",
+    "Paired data → paired t-test",
+    "Welch's t-test as the default for two groups"
+  ],
+  "use": [
+    "Comparing two means with small to moderate samples"
+  ],
+  "avoid": [
+    "Three or more groups (ANOVA)",
+    "Strongly skewed small samples (Mann–Whitney U)",
+    "Proportions with large samples (z-test / chi-square)"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom scipy import stats\nrng = np.random.default_rng(1)\na, b = rng.normal(50, 5, 30), rng.normal(53, 5, 30)\nprint(stats.ttest_ind(a, b, equal_var=False))      # Welch's t-test\nbefore = rng.normal(70, 8, 20); after = before + rng.normal(2, 2, 20)\nprint(stats.ttest_rel(before, after))              # paired"
+  },
+  "check": [
+    {
+      "q": "Same 20 employees tested before and after training. Which test?",
+      "options": [
+        "Two-sample t-test",
+        "Paired t-test",
+        "Chi-square",
+        "ANOVA"
+      ],
+      "answer": 1,
+      "why": "Same units measured twice."
+    },
+    {
+      "q": "Difference 4, SE of difference 2. t = ?",
+      "options": [
+        "0.5",
+        "2",
+        "8",
+        "6"
+      ],
+      "answer": 1,
+      "why": "4 / 2 = 2."
+    }
+  ],
+  "chapterMinutes": 16
+}

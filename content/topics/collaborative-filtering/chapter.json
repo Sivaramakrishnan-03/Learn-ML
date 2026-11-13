@@ -1,0 +1,431 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A streaming app in India has 20,000 titles and a user who will scroll through perhaps 30 before giving up. Showing her the most popular titles is a waste: she has already seen most of them, or they are not her taste. Yet the app knows something powerful: millions of other people's viewing histories, some of whom watch just like her. **Collaborative filtering** turns those shared tastes into a personal shortlist for every user, and it powers the recommendations on most large streaming and shopping platforms.",
+  "sections": [
+    {
+      "heading": "The problem: too many choices, too little attention",
+      "blocks": [
+        {
+          "p": "Online catalogues are enormous and attention is short. A good recommendation system increases what people watch, buy or read, and helps them find items they would never have searched for. The question is how to guess what a particular person will like when they have interacted with only a tiny fraction of the catalogue."
+        },
+        {
+          "term": "User–item matrix",
+          "def": "A table with one row per user and one column per item, where each cell holds a rating or an interaction (watched, bought, clicked). Most cells are empty because each user has seen only a few items."
+        },
+        {
+          "term": "Sparsity",
+          "def": "The share of empty cells in the user–item matrix. With 1 million users and 50,000 items there are 50 billion cells; even 100 million ratings fill only 0.2% of them."
+        },
+        {
+          "p": "Collaborative filtering fills in the empty cells using only the pattern of who liked what. It needs no information about the items themselves (no genres, no descriptions). The name says it all: users **collaborate**, without knowing it, to **filter** the catalogue for each other."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "User",
+              "Desert Chase",
+              "Highway Heist",
+              "Monsoon Letters",
+              "Wedding Season"
+            ],
+            "rows": [
+              [
+                "Asha",
+                "5",
+                "4",
+                "1",
+                "?"
+              ],
+              [
+                "Ravi",
+                "5",
+                "5",
+                "1",
+                "2"
+              ],
+              [
+                "Meera",
+                "1",
+                "2",
+                "5",
+                "5"
+              ],
+              [
+                "Kabir",
+                "4",
+                "4",
+                "2",
+                "1"
+              ]
+            ],
+            "caption": "A tiny user–item matrix of ratings from 1 to 5 (fictional titles: two action films, two romances). The question mark is what we want to predict: would Asha enjoy \"Wedding Season\"?"
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: asking friends with the same taste",
+      "blocks": [
+        {
+          "p": "How do you choose a film to watch? Probably by asking friends, but not just any friends. You ask the ones whose taste has matched yours before."
+        },
+        {
+          "steps": [
+            "**Remember past agreements.** Ravi loved the same three films you loved and disliked the ones you disliked. Meera has the opposite taste.",
+            "**Ask the like-minded.** \"Ravi, Kabir, what did you think of Wedding Season?\" Both found it dull.",
+            "**Weight their opinions** by how often they have agreed with you before.",
+            "**Turn it around for items.** You can also reason about films: \"people who liked Desert Chase also liked Highway Heist\", so if you liked one you will probably like the other."
+          ],
+          "title": "Recommendations by trusted taste"
+        },
+        {
+          "p": "The first approach is **user-based** collaborative filtering, the second **item-based**. A third approach, **matrix factorisation**, goes deeper: it discovers hidden \"taste dimensions\" such as how much a person likes action or romance, without anyone defining those dimensions."
+        },
+        {
+          "think": {
+            "q": "Why might a platform prefer item-based over user-based similarity in practice?",
+            "a": "Items are usually more stable than users. A film's audience profile changes slowly, while a user's taste history keeps growing and changing. There are also often fewer items than users, so item similarities can be computed in advance and reused. Amazon described exactly this item-to-item approach in a well-known 2003 paper."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "term": "Cosine similarity",
+          "def": "A measure of how alike two lists of numbers are, based on the angle between them when seen as arrows. 1 means pointing the same way, 0 means unrelated, −1 means opposite."
+        },
+        {
+          "term": "Latent factor",
+          "def": "A hidden dimension of taste learned from data, such as \"action-ness\" or \"family-friendliness\". Each user and each item gets a short list of factor values, and they are not named by anyone in advance."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Collect interactions into a **user–item matrix**",
+              "Measure **similarity** (users or items) or learn **latent factors**",
+              "Predict scores for items the user has not seen",
+              "Rank, filter (already seen, out of stock) and show the **top N**",
+              "Measure clicks and watches; retrain regularly"
+            ],
+            "caption": "A recommendation pipeline. The prediction step is the machine-learning core; ranking, business filters and feedback turn it into a product."
+          }
+        },
+        {
+          "steps": [
+            "**Neighbourhood methods (user- or item-based):** compute similarities between rows (users) or columns (items) of the matrix, then predict a missing cell as a similarity-weighted average of the known ratings from the most similar neighbours.",
+            "**Matrix factorisation:** give every user a vector of k factor values and every item a vector of k factor values, and learn them so that their dot product reproduces the known ratings. Missing cells are then predicted by the same dot product.",
+            "**Ranking:** sort the predicted scores for each user, remove items already consumed, apply business rules, and show the top few."
+          ]
+        },
+        {
+          "term": "Implicit feedback",
+          "def": "Interactions that suggest preference without a rating: views, clicks, purchases, watch time. Most real systems rely on implicit data because few people bother to rate."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\text{sim}(u, v) = \\frac{\\sum_{i} r_{ui}\\, r_{vi}}{\\sqrt{\\sum_{i} r_{ui}^2}\\; \\sqrt{\\sum_{i} r_{vi}^2}}",
+          "plain": "Cosine similarity between users u and v over the items both have rated: multiply their ratings item by item and add up, then divide by the \"length\" of each user's rating list.",
+          "symbols": [
+            [
+              "r_{ui}",
+              "rating of user u for item i"
+            ],
+            [
+              "\\text{sim}(u,v)",
+              "similarity of users u and v"
+            ]
+          ]
+        },
+        {
+          "tex": "\\hat{r}_{ui} = \\frac{\\sum_{v \\in N(u)} \\text{sim}(u,v)\\, r_{vi}}{\\sum_{v \\in N(u)} |\\text{sim}(u,v)|}",
+          "plain": "Predicted rating of user u for item i: take the neighbours who rated item i, weight each neighbour's rating by their similarity to u, and divide by the total weight. Very similar neighbours count most.",
+          "symbols": [
+            [
+              "\\hat{r}_{ui}",
+              "predicted rating"
+            ],
+            [
+              "N(u)",
+              "the most similar users who rated item i"
+            ]
+          ]
+        },
+        {
+          "tex": "\\hat{r}_{ui} = \\mu + b_u + b_i + p_u \\cdot q_i",
+          "plain": "Matrix factorisation prediction: the overall average rating, plus a user bias (some people rate everything high), plus an item bias (some films are liked by everyone), plus the dot product of the user's and item's factor vectors, which captures personal taste match.",
+          "symbols": [
+            [
+              "\\mu",
+              "global average rating"
+            ],
+            [
+              "b_u, b_i",
+              "user and item biases"
+            ],
+            [
+              "p_u",
+              "factor vector of user u"
+            ],
+            [
+              "q_i",
+              "factor vector of item i"
+            ]
+          ]
+        },
+        {
+          "tex": "\\min \\sum_{(u,i)\\,\\text{known}} \\left(r_{ui} - \\hat{r}_{ui}\\right)^2 + \\lambda \\left(\\lVert p_u \\rVert^2 + \\lVert q_i \\rVert^2 + b_u^2 + b_i^2\\right)",
+          "plain": "Training objective: make predictions close to the known ratings (squared errors), while a penalty λ keeps the factors small so the model does not memorise noise. Only known cells are used; empty cells are not treated as zeros.",
+          "symbols": [
+            [
+              "\\lambda",
+              "regularisation strength"
+            ]
+          ]
+        },
+        {
+          "p": "The factors are usually learned by stochastic gradient descent: go through known ratings one by one, compute the error, and nudge the user's and item's vectors in the direction that reduces it. Alternating least squares (ALS) is a popular alternative that scales well on Spark."
+        },
+        {
+          "callout": "Raw cosine on 1-to-5 ratings is misleading because all ratings are positive. In the example below Meera, whose taste is exactly opposite to Asha's, still gets a cosine of 0.51. Subtracting each user's average rating first (Pearson correlation) fixes this: their correlation is −1.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "User-based prediction for Asha",
+            "setup": "Use the matrix above. Compare users on the three films Asha has rated: Asha (5, 4, 1), Ravi (5, 5, 1), Meera (1, 2, 5), Kabir (4, 4, 2). Predict Asha's rating for \"Wedding Season\".",
+            "steps": [
+              "Asha–Ravi: dot product = 5×5 + 4×5 + 1×1 = 46. Lengths: √(25 + 16 + 1) = √42 ≈ 6.48 and √(25 + 25 + 1) = √51 ≈ 7.14. Cosine = 46 / (6.48 × 7.14) ≈ 0.994.",
+              "Asha–Kabir: dot = 20 + 16 + 2 = 38. Kabir's length = √36 = 6. Cosine = 38 / (6.48 × 6) ≈ 0.977.",
+              "Asha–Meera: dot = 5 + 8 + 5 = 18, length √30 ≈ 5.48, cosine ≈ 0.51, but the Pearson correlation is −1 (perfectly opposite taste), so we leave Meera out.",
+              "Use the two nearest neighbours: Ravi rated Wedding Season 2, Kabir rated it 1.",
+              "Prediction = (0.994 × 2 + 0.977 × 1) / (0.994 + 0.977) ≈ 2.965 / 1.971 ≈ 1.50."
+            ],
+            "result": "Predicted rating about 1.5 out of 5: do not recommend \"Wedding Season\" to Asha. Her neighbours are action fans who disliked it."
+          }
+        },
+        {
+          "example": {
+            "title": "Taste factors for an OTT recommendation",
+            "setup": "Matrix factorisation has learned two factors (action, romance). User Priya = (0.9, 0.2). Film \"Fast Chase\" = (0.95, 0.1). Film \"Love Letters\" = (0.1, 0.9).",
+            "steps": [
+              "Priya · Fast Chase = 0.9 × 0.95 + 0.2 × 0.1 = 0.855 + 0.02 = 0.875.",
+              "Priya · Love Letters = 0.9 × 0.1 + 0.2 × 0.9 = 0.09 + 0.18 = 0.27.",
+              "Rank: Fast Chase first."
+            ],
+            "result": "High dot product means a good taste match. Nobody told the model that these factors mean action and romance; the names are our interpretation after inspecting which films score high on each factor."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "factor 1 (\"action\")",
+            "yLabel": "factor 2 (\"romance\")",
+            "caption": "Users (blue) and films (orange) placed in the same two-factor taste space. Priya sits near Fast Chase, so their dot product is large. In real systems there are typically tens to hundreds of factors rather than two.",
+            "points": [
+              [
+                0.9,
+                0.2,
+                0
+              ],
+              [
+                0.3,
+                0.85,
+                0
+              ],
+              [
+                0.6,
+                0.6,
+                0
+              ],
+              [
+                0.95,
+                0.1,
+                1
+              ],
+              [
+                0.1,
+                0.9,
+                1
+              ],
+              [
+                0.7,
+                0.5,
+                1
+              ],
+              [
+                0.8,
+                0.3,
+                1
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "One learning step of matrix factorisation",
+            "setup": "Global average μ = 3.5 (ignore biases for simplicity). User vector p = (1.2, 0.3), item vector q = (0.8, −0.5). The user actually rated the item 5. Learning rate 0.1, no regularisation in this step.",
+            "steps": [
+              "Prediction = 3.5 + (1.2 × 0.8 + 0.3 × (−0.5)) = 3.5 + (0.96 − 0.15) = 4.31.",
+              "Error = 5 − 4.31 = 0.69.",
+              "Update user: p + 0.1 × 0.69 × q = (1.2 + 0.0552, 0.3 − 0.0345) ≈ (1.255, 0.266).",
+              "Update item (using the old p): q + 0.1 × 0.69 × p = (0.8 + 0.0828, −0.5 + 0.0207) ≈ (0.883, −0.479).",
+              "New prediction = 3.5 + (1.255 × 0.883 + 0.266 × (−0.479)) ≈ 4.48."
+            ],
+            "result": "One step moved the prediction from 4.31 towards the true 5. Repeating this over millions of known ratings, many times, shapes the factor vectors of every user and item."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Cold start and evaluating recommenders",
+      "blocks": [
+        {
+          "term": "Cold start",
+          "def": "The problem of recommending for a new user with no history, or recommending a new item nobody has interacted with yet. Collaborative filtering has nothing to work with in either case."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Situation",
+              "Common remedy"
+            ],
+            "rows": [
+              [
+                "New user",
+                "Popular or trending items; ask for a few preferences at sign-up"
+              ],
+              [
+                "New item",
+                "Content-based similarity (genre, cast, description embeddings)"
+              ],
+              [
+                "Little data overall",
+                "Start content-based; add collaborative signals as data grows"
+              ],
+              [
+                "Some history",
+                "Hybrid model blending collaborative and content features"
+              ]
+            ],
+            "caption": "Cold-start strategies. Most production recommenders are hybrids for exactly this reason."
+          }
+        },
+        {
+          "p": "**Evaluating offline.** Hide each user's most recent interactions (a time-based split, so the model never sees the future), generate recommendations from the earlier data and check how many hidden items appear in the list."
+        },
+        {
+          "bullets": [
+            "**Precision@k:** of the top k recommendations, the share the user actually engaged with. If 2 of the top 5 were watched, precision@5 = 2 / 5 = 40%.",
+            "**Recall@k:** of all the items the user engaged with in the hidden period, the share that appeared in the top k.",
+            "**Ranking-aware metrics** such as NDCG give more credit when hits appear near the top of the list.",
+            "**Online A/B tests** decide in the end: watch time, conversion and retention, not offline scores."
+          ]
+        },
+        {
+          "callout": "Optimising the average error on ratings (RMSE) is not the same as producing a good top-10 list. Users only see the top of the ranking, so evaluate the ranking.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Recommenders in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "The Netflix Prize",
+            "story": "Netflix famously ran a public competition, announced in 2006, offering $1 million to any team that could improve the accuracy of its film-rating predictions by 10%. The prize was awarded in 2009 to a team that blended many models. Matrix factorisation methods with user and item biases were among the most important ingredients and became widely known through the competition. A lasting lesson was also practical: the winning blend was very complex, and later public accounts from Netflix explained that the business had shifted towards streaming and ranking, so improving rating prediction alone was not the whole goal."
+          }
+        },
+        {
+          "bullets": [
+            "**E-commerce:** \"customers who bought this also bought\" (item-based) and personalised homepages.",
+            "**Music and video:** playlists and \"because you watched\" rows built from implicit listening and viewing data.",
+            "**Food delivery and quick commerce:** reorder suggestions and restaurant rankings tailored to each user.",
+            "**B2B:** recommending spare parts to workshops based on what similar workshops order, or articles to consultants based on what colleagues with similar projects read."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Popularity bias:** popular items get recommended more, so they get more interactions, so they get recommended even more. Niche items never get a chance unless you deliberately add diversity or exploration.",
+            "**Feedback loops:** the model trains on data that its own recommendations created. Keep some randomised traffic to measure true preferences.",
+            "**Leakage in evaluation:** random splits let the model learn from a user's future behaviour. Use time-based splits.",
+            "**Treating empty cells as dislikes:** \"not watched\" usually means \"not seen\", not \"disliked\". Implicit-feedback methods weight missing cells carefully.",
+            "**Filter bubbles:** pure similarity can trap users in narrow tastes. Many platforms add diversity and freshness rules."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Collaborative filtering",
+              "items": [
+                "Uses behaviour of many users",
+                "No item descriptions needed",
+                "Finds surprising cross-genre matches",
+                "Suffers from cold start",
+                "Gets better with more users"
+              ]
+            },
+            "right": {
+              "title": "Content-based filtering",
+              "items": [
+                "Uses item features (genre, text, price)",
+                "Works for brand-new items",
+                "Recommends \"more of the same\"",
+                "Needs good item descriptions",
+                "Works with one user's history alone"
+              ]
+            },
+            "caption": "Hybrid systems combine both: content features cover cold start, collaborative signals add serendipity. Modern \"two-tower\" neural recommenders learn user and item vectors from both kinds of input."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is collaborative filtering supervised or unsupervised?",
+      "a": "It sits in between. There is no separate label column; the model learns structure from the interaction matrix itself. Matrix factorisation does fit the known ratings, so its training looks like supervised learning, but the \"answers\" are just the observed cells of the same matrix."
+    },
+    {
+      "q": "User-based or item-based?",
+      "a": "Item-based is usually more stable and scales better when there are many more users than items. User-based can capture fast-changing personal taste. Matrix factorisation typically beats both on accuracy at scale."
+    },
+    {
+      "q": "How many latent factors should I use?",
+      "a": "Commonly tens to a few hundred. Tune it on a time-based validation set: too few underfits, too many overfits unless regularisation is strong."
+    },
+    {
+      "q": "What if users never give ratings?",
+      "a": "Use implicit feedback: views, clicks, purchases, watch time. Libraries such as `implicit` (ALS for implicit data) and LightFM are designed for this."
+    },
+    {
+      "q": "How do I recommend to a brand-new user?",
+      "a": "Start with popular or trending items, ask a few preference questions, use context (location, device, time of day) and switch to personalised recommendations after a few interactions."
+    },
+    {
+      "q": "Which Python tools should I try?",
+      "a": "`surprise` for classic rating-based algorithms, `implicit` and LightFM for implicit feedback, Spark MLlib's ALS for very large data, and TensorFlow Recommenders or PyTorch for neural two-tower models."
+    }
+  ]
+}

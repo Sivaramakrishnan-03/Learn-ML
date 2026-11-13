@@ -1,0 +1,65 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 11,
+  "goals": [
+    "Design an A/B test with a clear metric and sample size",
+    "Analyse a conversion-rate test",
+    "Avoid peeking and other classic pitfalls"
+  ],
+  "why": "Amazon, Booking.com and Netflix run thousands of experiments a year. A/B testing is how product decisions move from opinion to evidence.",
+  "explain": [
+    "Randomly split users into **control (A)** and **variant (B)**. Randomisation balances everything else, so differences in outcome can be attributed to the change.",
+    "Before starting, decide: the **primary metric** (e.g. conversion), the **minimum detectable effect** worth acting on, α and power, and therefore the **sample size**. Then run to that size.",
+    "Analyse with a two-proportion z-test (or a t-test for averages) and report the **effect with a confidence interval**, not just a p-value.",
+    "Pitfalls: **peeking** and stopping as soon as p < 0.05 (inflates false positives), testing many metrics, novelty effects, and sample-ratio mismatch (the split is not really 50/50)."
+  ],
+  "example": {
+    "title": "New checkout button",
+    "steps": [
+      "A: 1,000 visitors, 50 purchases (5.0%)",
+      "B: 1,000 visitors, 65 purchases (6.5%)",
+      "Pooled rate 5.75%; SE of difference = √(0.0575 × 0.9425 × 2/1000) ≈ 0.0104",
+      "z = 0.015 / 0.0104 ≈ 1.44 → p ≈ 0.15"
+    ],
+    "result": "A +1.5-point lift looks great but is not statistically convincing with 1,000 per arm. The test was under-powered: detecting this lift with 80% power needs roughly 3,800 visitors per arm."
+  },
+  "mistakes": [
+    "No sample-size calculation up front.",
+    "Peeking daily and stopping early.",
+    "Declaring victory on a secondary metric after the primary metric failed."
+  ],
+  "takeaways": [
+    "Randomise, pre-register the metric and sample size",
+    "Report the lift with a CI",
+    "No peeking (or use sequential methods)"
+  ],
+  "practice": {
+    "code": "from statsmodels.stats.proportion import proportions_ztest, confint_proportions_2indep\nfrom statsmodels.stats.power import NormalIndPower\nfrom statsmodels.stats.proportion import proportion_effectsize\nprint(proportions_ztest([65, 50], [1000, 1000]))\nprint(confint_proportions_2indep(65, 1000, 50, 1000))\nes = proportion_effectsize(0.065, 0.05)\nprint(round(NormalIndPower().solve_power(es, alpha=0.05, power=0.8)))   # visitors per arm",
+    "note": "Uses statsmodels: run locally if the in-browser runner lacks it."
+  },
+  "check": [
+    {
+      "q": "Why randomise users into A and B?",
+      "options": [
+        "To get more traffic",
+        "To balance all other factors so the change explains the difference",
+        "It is a legal requirement",
+        "To reduce cost"
+      ],
+      "answer": 1,
+      "why": "Randomisation removes confounding."
+    },
+    {
+      "q": "Stopping the test the first time p < 0.05 leads to…",
+      "options": [
+        "More power",
+        "An inflated false-positive rate",
+        "Exact results",
+        "Smaller samples, same accuracy"
+      ],
+      "answer": 1,
+      "why": "Repeated peeking gives many chances to hit significance by luck."
+    }
+  ],
+  "chapterMinutes": 15
+}

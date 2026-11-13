@@ -1,0 +1,63 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Create NumPy arrays and check their shape",
+    "Use vectorised operations instead of loops",
+    "Use boolean masks to filter data"
+  ],
+  "why": "pandas, scikit-learn, SciPy and PyTorch are all built on NumPy arrays. Vectorised NumPy code is often 50–100× faster than a Python loop.",
+  "explain": [
+    "A NumPy **array** is a grid of numbers of the same type. `np.array([1, 2, 3])` is 1-D; a table is 2-D with a `.shape` like (rows, columns).",
+    "**Vectorisation** means applying an operation to the whole array at once: `prices * 1.18` adds GST to a million prices in one line, without writing a loop.",
+    "**Broadcasting** lets arrays of different shapes combine sensibly: subtracting a row of column-means from a whole table centres every column.",
+    "**Boolean masks** filter data: `prices[prices > 50]` keeps only the values above 50. This idea carries straight over to pandas."
+  ],
+  "example": {
+    "title": "Add GST and find expensive items",
+    "steps": [
+      "prices = np.array([40, 120, 75])",
+      "with_gst = prices * 1.18 → [47.2, 141.6, 88.5]",
+      "mask = with_gst > 80 → [False, True, True]",
+      "with_gst[mask] → [141.6, 88.5]"
+    ],
+    "result": "No loops: one line per step, and it scales to millions of rows."
+  },
+  "mistakes": [
+    "Writing Python for-loops over arrays.",
+    "Confusing shape (3,) with (3, 1): many \"shape mismatch\" errors come from this."
+  ],
+  "takeaways": [
+    "Arrays + vectorised maths = fast",
+    "Always check `.shape`",
+    "Boolean masks filter"
+  ],
+  "practice": {
+    "code": "import numpy as np\nprices = np.array([40, 120, 75])\nwith_gst = prices * 1.18\nprint(with_gst[with_gst > 80])          # [141.6  88.5]\nX = np.random.default_rng(0).normal(size=(1000, 3))\nprint(X.shape, X.mean(axis=0).round(2))  # column means"
+  },
+  "check": [
+    {
+      "q": "np.array([[1, 2, 3], [4, 5, 6]]).shape is…",
+      "options": [
+        "(3, 2)",
+        "(2, 3)",
+        "(6,)",
+        "(2,)"
+      ],
+      "answer": 1,
+      "why": "2 rows, 3 columns."
+    },
+    {
+      "q": "Fastest way to double every element of a NumPy array a?",
+      "options": [
+        "A for-loop",
+        "a * 2",
+        "list comprehension",
+        "map()"
+      ],
+      "answer": 1,
+      "why": "Vectorised arithmetic runs in optimised C."
+    }
+  ],
+  "chapterMinutes": 19
+}

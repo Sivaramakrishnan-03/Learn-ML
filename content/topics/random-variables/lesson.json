@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain what a random variable is",
+    "Distinguish discrete and continuous random variables",
+    "Compute the mean and variance of a simple random variable"
+  ],
+  "why": "Daily sales, delivery times and the number of defects per batch are random variables. Modelling them properly is how you set safety stock, SLAs and quality limits.",
+  "explain": [
+    "A **random variable** is a number decided by chance. Before you roll a die, its result is a random variable that can take values 1–6.",
+    "**Discrete** random variables take countable values (number of customers today: 0, 1, 2 …). **Continuous** ones can take any value in a range (delivery time: 2.37 hours).",
+    "Its **distribution** lists how likely each value is. The **mean** (expected value, μ) is the centre of gravity. The **variance** (σ²) measures spread: the average squared distance from the mean. The **standard deviation** σ is its square root, in the original units.",
+    "Two random variables can have the same mean but very different risk. That difference is exactly what variance captures."
+  ],
+  "formula": {
+    "tex": "\\mu = \\sum x\\,P(x), \\qquad \\sigma^2 = \\sum (x-\\mu)^2 P(x)",
+    "plain": "Mean = probability-weighted average. Variance = probability-weighted average squared distance from the mean."
+  },
+  "example": {
+    "title": "Daily orders at a small shop",
+    "steps": [
+      "Orders: 0 (prob 0.2), 1 (0.5), 2 (0.3)",
+      "Mean = 0×0.2 + 1×0.5 + 2×0.3 = 1.1 orders",
+      "Variance = (0−1.1)²×0.2 + (1−1.1)²×0.5 + (2−1.1)²×0.3 = 0.242 + 0.005 + 0.243 = 0.49",
+      "Standard deviation = √0.49 = 0.7 orders"
+    ],
+    "result": "On average 1.1 orders per day, typically varying by about ±0.7."
+  },
+  "mistakes": [
+    "Reporting variance in squared units: use the standard deviation when talking to stakeholders.",
+    "Treating the mean as the most likely value. It may not even be a possible value (1.1 orders)."
+  ],
+  "takeaways": [
+    "A random variable is a number decided by chance",
+    "Mean = centre, variance/SD = spread",
+    "Same mean, different variance = different risk"
+  ],
+  "check": [
+    {
+      "q": "Which is continuous?",
+      "options": [
+        "Number of complaints",
+        "Delivery time in hours",
+        "Dice roll",
+        "Number of cars sold"
+      ],
+      "answer": 1,
+      "why": "Time can take any value in a range."
+    },
+    {
+      "q": "Variance is 16. The standard deviation is…",
+      "options": [
+        "16",
+        "8",
+        "4",
+        "256"
+      ],
+      "answer": 2,
+      "why": "√16 = 4."
+    }
+  ],
+  "practice": {
+    "code": "import numpy as np\nx, p = np.array([0, 1, 2]), np.array([0.2, 0.5, 0.3])\nmu = (x * p).sum(); var = ((x - mu)**2 * p).sum()\nprint(mu, var, var**0.5)          # 1.1 0.49 0.7"
+  },
+  "chapterMinutes": 16
+}

@@ -1,0 +1,72 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Explain the maximum-margin idea",
+    "Identify support vectors",
+    "Tune C to trade margin width against errors"
+  ],
+  "why": "SVMs were the state of the art before deep learning, and remain strong for small to medium datasets with many features, such as text, bioinformatics and image descriptors.",
+  "explain": [
+    "Many lines can separate two classes. An SVM picks the one with the **widest street** (margin) between them, like placing a road as far as possible from both villages.",
+    "Only the points on the edge of the street, the **support vectors**, define the boundary. Move any other point and nothing changes.",
+    "Real data overlaps, so the **soft margin** allows some violations. **C** controls the trade-off: large C means few violations and a narrow street (risk of overfitting); small C means a wider street that tolerates errors.",
+    "SVMs need **scaled features**. For non-linear boundaries, use the **kernel trick** (next topic)."
+  ],
+  "example": {
+    "title": "Effect of C on a noisy dataset",
+    "steps": [
+      "C = 0.01: wide margin, 12% training errors, CV accuracy 85%",
+      "C = 1: balanced margin, 6% training errors, CV accuracy 91%",
+      "C = 1,000: narrow margin bending around noise, 1% training errors, CV accuracy 84%"
+    ],
+    "result": "C = 1 wins. As always, choose by validation, not training error."
+  },
+  "mistakes": [
+    "Not scaling features.",
+    "Expecting probabilities (they need extra calibration).",
+    "Using it on millions of rows (training scales poorly)."
+  ],
+  "takeaways": [
+    "Maximise the margin",
+    "Support vectors define the boundary",
+    "C trades margin width against training errors"
+  ],
+  "use": [
+    "Small to medium datasets with many features",
+    "Clear margin of separation",
+    "Text classification (linear SVM)"
+  ],
+  "avoid": [
+    "Very large datasets",
+    "When probabilities or interpretability are required"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.svm import SVC\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import cross_val_score\nX, y = load_breast_cancer(return_X_y=True)\nfor C in [0.01, 1, 100]:\n    print(C, cross_val_score(make_pipeline(StandardScaler(), SVC(kernel=\"linear\", C=C)), X, y, cv=5).mean().round(3))"
+  },
+  "check": [
+    {
+      "q": "Support vectors are…",
+      "options": [
+        "All training points",
+        "The points on or inside the margin that define the boundary",
+        "Outliers removed before training",
+        "The cluster centres"
+      ],
+      "answer": 1,
+      "why": "Only they determine the separating hyperplane."
+    },
+    {
+      "q": "Very large C tends to…",
+      "options": [
+        "Widen the margin",
+        "Narrow the margin and risk overfitting",
+        "Remove support vectors",
+        "Make it unsupervised"
+      ],
+      "answer": 1,
+      "why": "It strongly penalises any violation."
+    }
+  ],
+  "chapterMinutes": 16
+}

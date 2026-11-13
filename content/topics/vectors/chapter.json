@@ -1,0 +1,402 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "Open any spreadsheet of customers, cars or invoices and you are already looking at linear algebra. Each row is a list of numbers describing one thing; the whole sheet is a grid of such lists. Machine learning does not see \"Priya, Chennai, loyal customer\". It sees **[4, 3, 0.8]**. Once you learn to read data as **vectors and matrices**, every algorithm from k-means to neural networks becomes far less mysterious.",
+  "sections": [
+    {
+      "heading": "The problem: computers need data as numbers in a fixed order",
+      "blocks": [
+        {
+          "p": "Imagine a property consultancy with 5,000 flats on its books. A human broker describes a flat in words: \"spacious, two bedrooms, fairly new\". A computer cannot compare two such descriptions. It needs the same facts, measured the same way, in the same order, every time: **area 900 sq ft, 2 bedrooms, 5 years old**."
+        },
+        {
+          "p": "That fixed, ordered list of numbers is called a **vector**. Stack the vectors of all 5,000 flats on top of each other and you get a **matrix**. These two objects are the containers in which all machine learning data lives."
+        },
+        {
+          "term": "Vector",
+          "def": "An ordered list of numbers, such as [900, 2, 5]. Each position always means the same thing (here: area, bedrooms, age). In ML, one vector usually describes one item: one flat, one customer, one transaction."
+        },
+        {
+          "term": "Matrix",
+          "def": "A rectangular table of numbers with rows and columns. In ML, each **row is one item** (a sample) and each **column is one measurement** (a feature). It is a spreadsheet without the headers."
+        },
+        {
+          "term": "Feature",
+          "def": "One measured property of an item, such as area, age or monthly spend. Each feature becomes one position in the vector and one column in the matrix."
+        },
+        {
+          "p": "Why should a business reader care? Because almost every question an analyst asks of data turns into a question about vectors. \"Which customers are similar?\" becomes \"which vectors are close together?\" \"What does a typical store look like?\" becomes \"what is the average vector?\" \"Predict the price\" becomes \"combine the numbers in this vector with some weights\"."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Flat",
+              "Area (sq ft)",
+              "Bedrooms",
+              "Age (years)"
+            ],
+            "rows": [
+              [
+                "Flat A",
+                "900",
+                "2",
+                "5"
+              ],
+              [
+                "Flat B",
+                "1,200",
+                "3",
+                "2"
+              ],
+              [
+                "Flat C",
+                "650",
+                "1",
+                "12"
+              ]
+            ],
+            "caption": "Three flats as a 3 × 3 matrix. Read across a row and you get one flat's vector, for example Flat A = [900, 2, 5]. Read down a column and you get one feature for every flat."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: addresses on a map",
+      "blocks": [
+        {
+          "p": "Think of a vector as an address. In a city laid out in a grid, \"3 blocks east, 4 blocks north\" pins down exactly one spot. Two numbers, in an agreed order, describe a location. Swap the order and you end up somewhere else, which is why order matters in a vector."
+        },
+        {
+          "steps": [
+            "**Two numbers = a point on a flat map.** A customer described by (visits per month, average basket) is a dot on a two-axis chart.",
+            "**Three numbers = a point in a room.** Add \"years as a customer\" and the dot floats in three-dimensional space: east, north and up.",
+            "**Fifty numbers = a point in fifty-dimensional space.** Nobody can picture this, but the arithmetic is identical. Every rule you learn in two dimensions carries over.",
+            "**Close dots = similar items.** Two customers whose dots sit near each other behave alike. Far-apart dots behave differently."
+          ],
+          "title": "From a map to many dimensions"
+        },
+        {
+          "p": "You can also think of a vector as an **arrow** from the origin (the point where every number is zero) to that address. The arrow has a direction and a length. Both ideas, \"point\" and \"arrow\", are useful, and mathematicians switch between them freely."
+        },
+        {
+          "term": "Dimension",
+          "def": "The number of entries in a vector, or equivalently the number of features. A vector with 3 entries lives in 3-dimensional space. \"High-dimensional data\" just means many features."
+        },
+        {
+          "think": {
+            "q": "A customer is described as [visits = 4, basket = ₹3k]. Another is [basket = ₹3k, visits = 4]. Are these the same vector?",
+            "a": "Not as written. A vector is an ordered list, so [4, 3] and [3, 4] are different points. In practice we fix the column order once for the whole dataset so that position 1 always means visits and position 2 always means basket."
+          }
+        },
+        {
+          "callout": "A vector does not \"know\" what its numbers mean. The meaning lives in your agreed column order. Shuffle the columns of a dataset by accident and every model trained on it becomes nonsense.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How it works: the basic operations",
+      "blocks": [
+        {
+          "p": "There are only a handful of things you do with vectors, and each one has a plain business meaning. All of them work position by position."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Describe** each item as a vector of features",
+              "**Stack** the vectors into a matrix (rows = items)",
+              "**Combine** vectors: add, average, scale",
+              "**Measure** lengths and distances",
+              "**Use** distances and averages in ML models"
+            ],
+            "caption": "The everyday pipeline. Data goes into a matrix, simple vector operations summarise it, and distances feed algorithms such as k-NN and k-means."
+          }
+        },
+        {
+          "p": "**Addition.** Add two vectors of the same length by adding matching positions. If Store 1 sold [120, 80, 40] units of three products and Store 2 sold [90, 110, 60], the region sold [210, 190, 100]."
+        },
+        {
+          "p": "**Scalar multiplication.** Multiply every entry by the same single number. Raising every price by 10% means multiplying the price vector by 1.1."
+        },
+        {
+          "term": "Scalar",
+          "def": "An ordinary single number, as opposed to a list. Multiplying a vector by a scalar stretches or shrinks the arrow without changing its direction (or flips it if the number is negative)."
+        },
+        {
+          "p": "**Averaging.** Add the vectors and divide by how many there are. The average of all customer vectors is the \"typical customer\". This is exactly the centroid used by k-means."
+        },
+        {
+          "p": "**Length.** How far is the point from zero? For [3, 4] the answer is 5, by Pythagoras."
+        },
+        {
+          "p": "**Distance.** Subtract one vector from the other and take the length of the result. This is how algorithms decide which items are similar."
+        },
+        {
+          "term": "Norm",
+          "def": "The length of a vector, written ‖v‖. The usual one, the Euclidean norm, is Pythagoras: square every entry, add, take the square root."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "We write a vector in bold or with an arrow and list its entries. A vector with n entries is said to live in ℝⁿ (\"R-n\"), the space of all lists of n real numbers."
+        },
+        {
+          "tex": "\\mathbf{v} = (v_1, v_2, \\dots, v_n)",
+          "plain": "A vector is n numbers in a fixed order. v₁ is the first feature, v₂ the second, and so on.",
+          "symbols": [
+            [
+              "\\mathbf{v}",
+              "the whole vector"
+            ],
+            [
+              "v_i",
+              "the i-th entry (feature) of the vector"
+            ],
+            [
+              "n",
+              "the number of entries (the dimension)"
+            ]
+          ]
+        },
+        {
+          "p": "Adding and scaling happen entry by entry. There is nothing hidden; the formula just says \"do it to every position\"."
+        },
+        {
+          "tex": "\\mathbf{a} + \\mathbf{b} = (a_1 + b_1, \\dots, a_n + b_n), \\qquad c\\,\\mathbf{a} = (c\\,a_1, \\dots, c\\,a_n)",
+          "plain": "Add matching entries; multiply every entry by the number c. Both vectors must have the same length to be added."
+        },
+        {
+          "p": "Length comes from Pythagoras. In two dimensions, the arrow [3, 4] is the long side of a right-angled triangle with sides 3 and 4, so its length is √(9 + 16) = 5. With more entries you simply keep adding squares."
+        },
+        {
+          "tex": "\\lVert \\mathbf{v} \\rVert = \\sqrt{v_1^2 + v_2^2 + \\dots + v_n^2}",
+          "plain": "Square every entry, add them up, take the square root. Squaring makes negative entries count as positive distance.",
+          "symbols": [
+            [
+              "\\lVert \\mathbf{v} \\rVert",
+              "the length (norm) of v"
+            ]
+          ]
+        },
+        {
+          "p": "Distance between two items is the length of their difference. The difference vector says \"how far apart are they in each feature\"; the norm combines those gaps into one number."
+        },
+        {
+          "tex": "d(\\mathbf{a}, \\mathbf{b}) = \\lVert \\mathbf{a} - \\mathbf{b} \\rVert = \\sqrt{\\sum_{i=1}^{n} (a_i - b_i)^2}",
+          "plain": "For every feature, take the gap between the two items, square it, add all the squared gaps, and take the square root.",
+          "symbols": [
+            [
+              "d(\\mathbf{a},\\mathbf{b})",
+              "Euclidean distance between items a and b"
+            ],
+            [
+              "\\sum",
+              "\"add up\", here over all n features"
+            ]
+          ]
+        },
+        {
+          "p": "A whole dataset with m items and n features is an m × n matrix, usually called X. Its shape is always quoted as (rows, columns). When scikit-learn reports `X.shape == (1000, 5)`, it means 1,000 items, 5 features each."
+        },
+        {
+          "tex": "X = \\begin{pmatrix} x_{11} & x_{12} & \\cdots & x_{1n} \\\\ \\vdots & & \\ddots & \\vdots \\\\ x_{m1} & x_{m2} & \\cdots & x_{mn} \\end{pmatrix}",
+          "plain": "The entry in row i and column j, xᵢⱼ, is feature j of item i. Row i is the vector for item i.",
+          "symbols": [
+            [
+              "m",
+              "number of rows (items, samples)"
+            ],
+            [
+              "n",
+              "number of columns (features)"
+            ],
+            [
+              "x_{ij}",
+              "feature j of item i"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Which customer is most similar?",
+            "setup": "Three customers described by (visits per month, average basket in ₹ thousand): A = [4, 3], B = [7, 7], C = [5, 3]. Which of B or C is more like A?",
+            "steps": [
+              "A − B = [4 − 7, 3 − 7] = [−3, −4]. Distance = √((−3)² + (−4)²) = √(9 + 16) = √25 = 5.",
+              "A − C = [4 − 5, 3 − 3] = [−1, 0]. Distance = √(1 + 0) = 1.",
+              "C is 1 unit from A; B is 5 units away."
+            ],
+            "result": "C is five times closer to A than B is. A recommender would suggest to A the products that C liked. This is the heart of k-nearest neighbours."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "visits per month",
+            "yLabel": "basket (₹ thousand)",
+            "caption": "The three customers as points. A (blue) and C sit almost on top of each other; B is far up and to the right. Distance on this chart is exactly the Euclidean distance we computed.",
+            "points": [
+              [
+                4,
+                3,
+                0
+              ],
+              [
+                5,
+                3,
+                1
+              ],
+              [
+                7,
+                7,
+                2
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "Regional sales with vector arithmetic",
+            "setup": "A snacks distributor tracks weekly units of [chips, biscuits, juice]. Store 1 sold [120, 80, 40]; Store 2 sold [90, 110, 60]. Next month a festival is expected to lift Store 1 demand by 10%.",
+            "steps": [
+              "Regional total = [120 + 90, 80 + 110, 40 + 60] = [210, 190, 100].",
+              "Average store = [210, 190, 100] ÷ 2 = [105, 95, 50].",
+              "Festival forecast for Store 1 = 1.1 × [120, 80, 40] = [132, 88, 44]."
+            ],
+            "result": "Three business questions (total, typical store, scenario forecast) answered with addition, averaging and scalar multiplication. Spreadsheets do this column by column; NumPy does it for whole vectors at once."
+          }
+        },
+        {
+          "example": {
+            "title": "Why units can wreck a distance",
+            "setup": "Flat A = [900 sq ft, 2 bedrooms, 5 years], Flat B = [1,200, 3, 2], Flat C = [650, 1, 12]. Which flat is closer to A?",
+            "steps": [
+              "A − B = [−300, −1, 3]. Distance = √(90,000 + 1 + 9) = √90,010 ≈ 300.02.",
+              "A − C = [250, 1, −7]. Distance = √(62,500 + 1 + 49) = √62,550 ≈ 250.10.",
+              "C wins, but only because its area gap (250) is smaller than B's (300). Bedrooms and age changed the answer by a few hundredths.",
+              "C is a seven-years-older one-bedroom flat. Most buyers would call B, not C, the closer match to A."
+            ],
+            "result": "Raw distances are dominated by the feature with the biggest numbers. Before using distances, standardise each feature (subtract its mean, divide by its standard deviation) so that every feature gets a fair say."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading shapes: rows, columns and NumPy",
+      "blocks": [
+        {
+          "p": "Most errors beginners hit in ML code are shape errors. Getting fluent at reading shapes saves hours."
+        },
+        {
+          "bullets": [
+            "`X.shape == (500, 8)`: 500 samples (rows), 8 features (columns). This is the scikit-learn convention everywhere.",
+            "`y.shape == (500,)`: one target value per sample, stored as a flat vector.",
+            "`X[0]` is the first sample's vector; `X[:, 2]` is the third feature for every sample.",
+            "An image of 28 × 28 pixels is usually flattened into a vector of 784 numbers before a classic model sees it.",
+            "A sentence fed to a language model becomes a list of vectors (embeddings), often with hundreds of entries each."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "A vector",
+              "items": [
+                "One list of numbers",
+                "Shape (n,)",
+                "Usually one item: one customer, one flat",
+                "Geometrically a point or an arrow",
+                "Example: [900, 2, 5]"
+              ]
+            },
+            "right": {
+              "title": "A matrix",
+              "items": [
+                "A table of numbers",
+                "Shape (m, n)",
+                "Usually a whole dataset: m items, n features",
+                "Geometrically a cloud of m points",
+                "Example: 5,000 flats × 3 features"
+              ]
+            },
+            "caption": "Vector = one row; matrix = the whole sheet. Keep \"rows are samples\" in your head and most shape puzzles solve themselves."
+          }
+        },
+        {
+          "callout": "When code fails with a message like \"shapes (3,2) and (3,) not aligned\", stop and print `.shape` for every array involved. Nine times out of ten, a matrix is the wrong way round.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Vectors in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Product recommendations from purchase vectors (illustrative)",
+            "story": "An online electronics retailer describes each customer by how much they spent in 20 categories over the last year: a vector with 20 entries. To recommend accessories, the system finds the 50 customers whose vectors are closest to yours and suggests what they bought that you have not. When the team first tried raw rupee amounts, big spenders dominated every neighbourhood. Converting each vector into shares of total spend (so every customer's entries add to 1) made \"people who shop like you\" mean similar taste rather than similar wallet size, and click-through on recommendations improved in an A/B test."
+          }
+        },
+        {
+          "bullets": [
+            "**Text and search:** modern search engines and chatbots turn every sentence into an embedding vector; \"similar meaning\" becomes \"nearby vectors\".",
+            "**Manufacturing quality:** each produced part is a vector of sensor readings; parts far from the average vector are flagged for inspection.",
+            "**Finance:** a portfolio is a vector of weights across assets; daily returns of many stocks form a matrix.",
+            "**Automotive:** a car's state at each moment (speed, acceleration, steering angle, battery temperature) is a vector logged many times per second."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and what comes next",
+      "blocks": [
+        {
+          "bullets": [
+            "**Mixed units:** rupees next to years next to counts means distance is dominated by the largest numbers. Standardise first.",
+            "**Categories are not numbers:** coding city as Chennai = 1, Mumbai = 2, Delhi = 3 invents a fake order and fake distances. Use one-hot encoding (one 0/1 column per city).",
+            "**Too many dimensions:** with hundreds of features, all points start to look roughly equally far apart (the \"curse of dimensionality\"). Dimensionality reduction such as PCA helps.",
+            "**Rows and columns swapped:** some tools store features as rows. Check the convention before feeding data in."
+          ]
+        },
+        {
+          "p": "Vectors and matrices are the nouns of linear algebra. The next chapter introduces the verbs: the dot product, matrix multiplication, transpose and inverse, which are how models actually combine features into predictions."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is a vector the same as a Python list?",
+      "a": "Conceptually yes: an ordered list of numbers. In practice we use NumPy arrays, because they support arithmetic on whole vectors at once (`a + b`, `2 * a`) and are far faster than looping over lists."
+    },
+    {
+      "q": "What is the difference between a point and a vector?",
+      "a": "Mathematically the same list of numbers. \"Point\" emphasises a location (a customer in feature space); \"vector\" emphasises an arrow with direction and length (a change, a difference between two customers). You can use either picture."
+    },
+    {
+      "q": "Why do people talk about 300-dimensional space? Nobody can imagine that.",
+      "a": "Correct, and nobody tries. You reason in 2D or 3D, and the formulas (distance, average, length) work the same way with 300 entries. Trust the algebra where your imagination stops."
+    },
+    {
+      "q": "Are rows always samples?",
+      "a": "In scikit-learn, pandas and most of applied ML, yes: rows are samples and columns are features. Some maths textbooks and older tools use the opposite convention, so check when reading formulas."
+    },
+    {
+      "q": "Is Euclidean distance the only option?",
+      "a": "No. Manhattan distance adds absolute gaps instead of squares (like walking a city grid). Cosine similarity compares directions rather than positions, which is popular for text. You will meet it in the next chapter."
+    },
+    {
+      "q": "Do I need to compute any of this by hand at work?",
+      "a": "Rarely. NumPy does it in one line, for example `np.linalg.norm(a - b)`. Doing a few by hand is still worth it, because it tells you what the library is doing and when its answer will mislead you."
+    }
+  ]
+}

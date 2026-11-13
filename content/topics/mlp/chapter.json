@@ -1,0 +1,434 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A relay team loses a race by half a second. The coach does not just blame the last runner. She works backwards: the anchor lost 0.2 seconds, partly because the third runner's handover was late, which happened partly because the second runner started slowly. Each runner gets exactly their share of the blame and trains on it. A **multilayer perceptron** learns the same way: errors are passed backwards through its layers, and every connection adjusts by its share. That procedure, **backpropagation**, is how almost every neural network is trained.",
+  "sections": [
+    {
+      "heading": "The problem: patterns a straight line cannot capture",
+      "blocks": [
+        {
+          "p": "The perceptron chapter ended at a wall: a single neuron can only draw a straight line, so it cannot even learn XOR. Real business problems are full of such bends. Credit risk might be low for young applicants with stable jobs and for older applicants with assets, but high for some combinations in between. A straight line cannot carve out those regions."
+        },
+        {
+          "p": "The fix is to **stack neurons in layers**. The first layer of neurons turns raw inputs into new intermediate features; the next layer combines those features; and so on. With enough neurons, such a network can approximate almost any smooth relationship. The challenge is how to train the middle layers, which have no \"correct answer\" of their own."
+        },
+        {
+          "term": "Layer",
+          "def": "A group of neurons that all receive the same inputs and pass their outputs on together. Networks have an input layer (the features), one or more hidden layers, and an output layer."
+        },
+        {
+          "term": "Hidden layer",
+          "def": "A layer between input and output. It is \"hidden\" because we never see or set its correct values; the network invents useful intermediate features there."
+        },
+        {
+          "term": "Multilayer perceptron (MLP)",
+          "def": "A neural network made of fully connected layers: every neuron in one layer feeds every neuron in the next. Also called a feed-forward neural network."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Input layer**: income, utilisation, age…",
+              "**Hidden layer 1**: weighted sums + ReLU",
+              "**Hidden layer 2**: combinations of features",
+              "**Output layer**: sigmoid → probability",
+              "**Loss**: compare with actual outcome"
+            ],
+            "caption": "An MLP processes inputs left to right (the forward pass). Training then sends error information right to left (the backward pass) to adjust every weight."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: a factory of specialists",
+      "blocks": [
+        {
+          "p": "Think of a loan-approval office organised in two floors."
+        },
+        {
+          "steps": [
+            "**Ground floor clerks** each look at the raw application and compute one judgement: one rates \"income stability\", another \"debt pressure\", another \"credit history depth\". Each is a neuron.",
+            "**The first-floor manager** never reads applications. She only reads the clerks' judgements and combines them into a final probability of repayment.",
+            "**A loan goes bad.** The manager adjusts how much she trusts each clerk, and passes back a note to each clerk saying how much their judgement contributed to the mistake.",
+            "**Each clerk adjusts** how they weigh the raw inputs, in proportion to the blame they received.",
+            "**Over thousands of applications,** clerks become specialists in whatever intermediate judgements are most useful. Nobody told them what to specialise in."
+          ],
+          "title": "Learning in a two-floor office"
+        },
+        {
+          "p": "The striking part is the last step: hidden neurons **invent their own features**. In image networks, early neurons end up detecting edges and later ones detect shapes, without anyone designing them."
+        },
+        {
+          "think": {
+            "q": "If a clerk's judgement was not used by the manager at all (weight zero), how much blame should the clerk receive?",
+            "a": "None. Blame flows back in proportion to the connection strength. A clerk whose output is ignored did not influence the mistake, so their weights get no update from it. This is exactly what the chain rule calculates."
+          }
+        },
+        {
+          "callout": "Backpropagation is simply a careful, efficient way of assigning blame: it computes, for every weight, how much a tiny change in that weight would change the error.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How an MLP is trained, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**Initialise** all weights with small random numbers (not zeros, or all neurons in a layer would stay identical).",
+            "**Forward pass:** feed a batch of examples through the network, layer by layer, to get predictions.",
+            "**Compute the loss:** compare predictions with actual values (log loss for classification, squared error for regression).",
+            "**Backward pass (backpropagation):** starting from the loss, work backwards through the layers using the chain rule to get the gradient of the loss for every weight.",
+            "**Update** every weight a small step against its gradient: w ← w − η × gradient.",
+            "**Repeat** over many batches and epochs, checking a validation set to know when to stop."
+          ],
+          "title": "The training loop"
+        },
+        {
+          "term": "Activation function",
+          "def": "A non-linear function applied to each neuron's weighted sum. Without it, stacked layers would collapse into one straight-line model. Common choices: ReLU in hidden layers, sigmoid or softmax at the output."
+        },
+        {
+          "term": "ReLU",
+          "def": "Rectified Linear Unit: output the input if it is positive, otherwise 0. Written max(0, z). Simple, fast and the default in most modern networks."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.max(0, x)/4",
+            "fn2": "1/(1+Math.exp(-x))",
+            "xMin": -6,
+            "xMax": 6,
+            "legend": [
+              "ReLU (scaled ÷4 to fit)",
+              "sigmoid"
+            ],
+            "xLabel": "weighted sum z",
+            "yLabel": "neuron output",
+            "caption": "Two activation functions. ReLU is zero for negative inputs and rises in a straight line for positive ones (drawn at quarter height to share the axis). Sigmoid squashes any number into 0–1, which is ideal for an output probability."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Each layer does the perceptron calculation for many neurons at once, then applies an activation:"
+        },
+        {
+          "tex": "\\mathbf{h} = \\operatorname{ReLU}(W_1 \\mathbf{x} + \\mathbf{b}_1), \\qquad p = \\sigma(\\mathbf{v} \\cdot \\mathbf{h} + c)",
+          "plain": "Hidden neurons: weighted sums of the inputs plus biases, passed through ReLU. Output: a weighted sum of the hidden neurons plus a bias, passed through the sigmoid to give a probability.",
+          "symbols": [
+            [
+              "\\mathbf{x}",
+              "input features"
+            ],
+            [
+              "W_1, \\mathbf{b}_1",
+              "hidden-layer weights and biases"
+            ],
+            [
+              "\\mathbf{h}",
+              "hidden-layer outputs"
+            ],
+            [
+              "\\mathbf{v}, c",
+              "output weights and bias"
+            ],
+            [
+              "\\sigma",
+              "sigmoid function, 1 / (1 + e^{−z})"
+            ]
+          ]
+        },
+        {
+          "tex": "L = -\\big[\\, y \\ln p + (1 - y) \\ln(1 - p) \\,\\big]",
+          "plain": "Log loss: if the true answer is 1, the loss is −ln p, small when p is near 1 and huge when p is near 0. It punishes confident wrong answers heavily.",
+          "symbols": [
+            [
+              "y",
+              "actual label, 1 or 0"
+            ],
+            [
+              "p",
+              "predicted probability"
+            ]
+          ]
+        },
+        {
+          "term": "Chain rule",
+          "def": "A calculus rule for chains of calculations: if A affects B and B affects C, then the effect of A on C is (effect of A on B) × (effect of B on C)."
+        },
+        {
+          "tex": "\\frac{\\partial L}{\\partial w_{11}} = \\underbrace{(p - y)}_{\\partial L/\\partial z} \\cdot \\underbrace{v_1}_{\\partial z/\\partial h_1} \\cdot \\underbrace{\\mathbb{1}[a_1 > 0]}_{\\partial h_1/\\partial a_1} \\cdot \\underbrace{x_1}_{\\partial a_1/\\partial w_{11}}",
+          "plain": "The blame for a first-layer weight is a product of links along the path from that weight to the loss: the output error (p − y), how strongly hidden neuron 1 feeds the output (v₁), whether that neuron was active (1 if its sum was positive, else 0), and the input the weight multiplies (x₁).",
+          "symbols": [
+            [
+              "a_1",
+              "hidden neuron 1's weighted sum before ReLU"
+            ],
+            [
+              "z",
+              "output neuron's weighted sum before sigmoid"
+            ],
+            [
+              "\\mathbb{1}[a_1>0]",
+              "1 if the neuron was active, else 0"
+            ]
+          ]
+        },
+        {
+          "p": "The beautiful shortcut: for sigmoid plus log loss, the error at the output simplifies to just p − y. Backpropagation reuses each layer's blame to compute the previous layer's, so the cost of computing all gradients is roughly the same as one extra forward pass, even for millions of weights."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Solving XOR with two hidden neurons",
+            "setup": "Use ReLU hidden neurons with hand-picked weights: h₁ = max(0, x₁ + x₂), h₂ = max(0, x₁ + x₂ − 1). Output = h₁ − 2h₂.",
+            "steps": [
+              "(0,0): h₁ = 0, h₂ = max(0, −1) = 0 → output 0 − 0 = 0.",
+              "(0,1): h₁ = 1, h₂ = max(0, 0) = 0 → output 1.",
+              "(1,0): h₁ = 1, h₂ = 0 → output 1.",
+              "(1,1): h₁ = 2, h₂ = 1 → output 2 − 2 = 0."
+            ],
+            "result": "Exactly XOR. Hidden neuron h₁ counts how many inputs are on; h₂ fires only when both are. The output subtracts the \"both\" case. A network trained by backpropagation discovers weights like these by itself."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: a forward pass for a loan applicant (illustrative)",
+            "setup": "Inputs (scaled): x₁ = income score 1.0, x₂ = credit utilisation 0.5. Hidden neuron 1: a₁ = 0.5x₁ + 0.3x₂ + 0.1. Hidden neuron 2: a₂ = −0.2x₁ + 0.8x₂ + 0. Output: z = 1.2h₁ − 0.7h₂ − 0.2, p = sigmoid(z). The applicant actually repaid (y = 1).",
+            "steps": [
+              "a₁ = 0.5 × 1.0 + 0.3 × 0.5 + 0.1 = 0.5 + 0.15 + 0.1 = 0.75 → h₁ = ReLU(0.75) = 0.75.",
+              "a₂ = −0.2 × 1.0 + 0.8 × 0.5 = −0.2 + 0.4 = 0.2 → h₂ = 0.2.",
+              "z = 1.2 × 0.75 − 0.7 × 0.2 − 0.2 = 0.9 − 0.14 − 0.2 = 0.56.",
+              "p = 1 / (1 + e^−0.56) ≈ 0.636: a 63.6% predicted chance of repayment.",
+              "Loss = −ln(0.636) ≈ 0.452."
+            ],
+            "result": "The network leans towards \"will repay\" but not confidently. Hidden neuron 1 behaves like an \"income strength\" detector (positive weight to output); neuron 2, driven by utilisation, pulls the probability down."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Quantity",
+              "Calculation",
+              "Value"
+            ],
+            "rows": [
+              [
+                "a₁, h₁",
+                "0.5(1.0) + 0.3(0.5) + 0.1",
+                "0.75"
+              ],
+              [
+                "a₂, h₂",
+                "−0.2(1.0) + 0.8(0.5)",
+                "0.20"
+              ],
+              [
+                "z",
+                "1.2(0.75) − 0.7(0.20) − 0.2",
+                "0.56"
+              ],
+              [
+                "p",
+                "sigmoid(0.56)",
+                "0.636"
+              ],
+              [
+                "Loss",
+                "−ln(0.636)",
+                "0.452"
+              ]
+            ],
+            "caption": "The forward pass, line by line. Every number on the right is reused in the backward pass, which is why networks store these values during training."
+          }
+        },
+        {
+          "example": {
+            "title": "One step of backpropagation",
+            "setup": "Continue the same applicant, learning rate η = 0.5. Compute gradients for the output weight v₁ (= 1.2) and the first-layer weight w₁₁ (= 0.5, linking x₁ to hidden neuron 1).",
+            "steps": [
+              "Output error: ∂L/∂z = p − y = 0.636 − 1 = −0.364.",
+              "Output weight: ∂L/∂v₁ = (p − y) × h₁ = −0.364 × 0.75 ≈ −0.273.",
+              "First-layer weight: ∂L/∂w₁₁ = (p − y) × v₁ × 1 × x₁ = −0.364 × 1.2 × 1 × 1.0 ≈ −0.436 (neuron 1 was active, so the ReLU link is 1).",
+              "Updates: v₁ ← 1.2 − 0.5 × (−0.273) ≈ 1.336; w₁₁ ← 0.5 − 0.5 × (−0.436) ≈ 0.718.",
+              "Updating all nine weights and biases the same way and re-running the forward pass gives p ≈ 0.838 and loss ≈ 0.177."
+            ],
+            "result": "Negative gradients mean \"increase this weight to reduce the loss\". One step raised the predicted repayment probability from 0.636 to 0.838 for this applicant. Training repeats this over thousands of applicants, so no single one dominates."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Design choices and training in practice",
+      "blocks": [
+        {
+          "p": "An MLP has architectural choices (how many layers and neurons) and training choices (optimiser, learning rate, regularisation). Sensible defaults go a long way."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Choice",
+              "Typical starting point",
+              "Why"
+            ],
+            "rows": [
+              [
+                "Hidden layers",
+                "1–3",
+                "More layers capture more complex interactions but need more data"
+              ],
+              [
+                "Neurons per layer",
+                "32–256",
+                "Too few underfits; too many overfits without regularisation"
+              ],
+              [
+                "Hidden activation",
+                "ReLU",
+                "Fast and avoids vanishing gradients"
+              ],
+              [
+                "Optimiser",
+                "Adam",
+                "Adapts step size per weight; robust default"
+              ],
+              [
+                "Regularisation",
+                "L2 penalty, dropout, early stopping",
+                "Prevents memorising the training set"
+              ],
+              [
+                "Input scaling",
+                "Standardise every feature",
+                "Unscaled inputs make training slow and unstable"
+              ]
+            ],
+            "caption": "Defaults that work for most tabular MLPs. scikit-learn's MLPClassifier defaults to one hidden layer of 100 ReLU neurons trained with Adam."
+          }
+        },
+        {
+          "term": "Optimiser",
+          "def": "The rule that turns gradients into weight updates. Plain gradient descent takes a fixed-size step; Adam adapts the step for each weight based on recent gradients."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "0.7*Math.exp(-x/8)+0.08",
+            "fn2": "0.7*Math.exp(-x/10)+0.16+0.004*x",
+            "xMin": 0,
+            "xMax": 60,
+            "marks": [
+              {
+                "x": 18,
+                "label": "stop here"
+              }
+            ],
+            "legend": [
+              "training loss",
+              "validation loss"
+            ],
+            "xLabel": "epoch",
+            "yLabel": "log loss",
+            "caption": "Illustrative training curves. Training loss keeps falling, but validation loss reaches its lowest point and then rises as the network starts memorising. Early stopping keeps the weights from around the best epoch."
+          }
+        },
+        {
+          "p": "Networks are trained with **mini-batches**: the gradient is averaged over, say, 32 or 256 examples before each update. This is faster than one example at a time and less noisy, and it is the \"stochastic\" in stochastic gradient descent."
+        }
+      ]
+    },
+    {
+      "heading": "MLPs in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Backpropagation becomes mainstream (1986)",
+            "story": "In 1986 David Rumelhart, Geoffrey Hinton and Ronald Williams published a short paper in Nature showing that backpropagation could train networks with hidden layers to learn useful internal representations. The method had earlier roots, but this paper made it widely known. Decades later, larger networks, far more data and graphics processors turned the same training recipe into modern deep learning. Hinton later shared the 2018 Turing Award for this line of work. Convolutional networks, recurrent networks and transformers all keep the MLP's core: layers of weighted sums and activations, trained by backpropagation."
+          }
+        },
+        {
+          "bullets": [
+            "**Inside larger models:** every transformer block, the architecture behind large language models, contains an MLP sub-layer.",
+            "**Tabular prediction:** churn, demand and credit models, especially when combined with learned embeddings for categorical features.",
+            "**Sensor and signal data:** quality inspection and predictive maintenance from engineered sensor features.",
+            "**Recommendation systems:** MLPs combine user and item embeddings into a relevance score."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Data hungry.** With a few thousand rows of tabular data, gradient-boosted trees usually beat an MLP with far less tuning.",
+            "**Sensitive to scaling and settings.** Forgetting to standardise inputs, or a learning rate that is too high, can stop training altogether.",
+            "**Overfitting.** Many weights can memorise small datasets. Use validation-based early stopping, L2 regularisation or dropout.",
+            "**Hard to explain.** Weights do not translate into business rules. Use SHAP or partial-dependence plots, and consider simpler models where regulators need clear reasons.",
+            "**Local minima and randomness.** Different random starts give different networks. Fix seeds for reproducibility and compare several runs."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "MLP / neural networks shine for…",
+              "items": [
+                "Images, audio, text (with specialised layers)",
+                "Very large datasets",
+                "Learning embeddings for IDs and categories",
+                "Problems where one model must handle many tasks"
+              ]
+            },
+            "right": {
+              "title": "Boosted trees often win for…",
+              "items": [
+                "Small to medium tabular data",
+                "Mixed numeric and categorical columns",
+                "Fast iteration with little tuning",
+                "Easier explanation with SHAP and importance"
+              ]
+            },
+            "caption": "A practical rule for business data: start with gradient boosting on tables; reach for neural networks when data is unstructured or very large."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why do we need activation functions at all?",
+      "a": "Without them, each layer is a weighted sum, and a weighted sum of weighted sums is still just a weighted sum. The whole network would collapse into one linear model and could not learn XOR."
+    },
+    {
+      "q": "How many hidden layers and neurons should I use?",
+      "a": "For tabular data, start with one or two hidden layers of 64–128 neurons, then adjust using validation results. Bigger is not automatically better; it needs more data and regularisation."
+    },
+    {
+      "q": "Why not start all weights at zero?",
+      "a": "Then every neuron in a layer computes the same thing and receives the same update, so they stay identical forever. Small random starting values break this symmetry."
+    },
+    {
+      "q": "What is the difference between an MLP and deep learning?",
+      "a": "An MLP with several hidden layers is a deep network. \"Deep learning\" usually also includes specialised architectures such as convolutional networks for images and transformers for text, all trained by backpropagation."
+    },
+    {
+      "q": "What does \"vanishing gradient\" mean?",
+      "a": "In deep networks with sigmoid activations, the chain-rule products of many small slopes become tiny, so early layers barely learn. ReLU activations and careful initialisation largely fixed this."
+    },
+    {
+      "q": "Can I build an MLP in scikit-learn?",
+      "a": "Yes: `MLPClassifier` and `MLPRegressor` are fine for small to medium tabular problems. For larger networks or GPUs, use PyTorch or TensorFlow/Keras."
+    }
+  ]
+}

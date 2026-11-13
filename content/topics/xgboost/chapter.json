@@ -1,0 +1,394 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "Gradient boosting was a brilliant idea that, in its original form, was slow on big data and easy to overfit. In 2014 a PhD student, Tianqi Chen, released **XGBoost**, an engineered version with built-in regularisation and serious speed tricks, and it quickly became a favourite in machine-learning competitions. Microsoft's **LightGBM** and Yandex's **CatBoost** followed. Same engine as gradient boosting, but with a turbocharger and a pit crew.",
+  "sections": [
+    {
+      "heading": "The problem: boosting at industrial scale",
+      "blocks": [
+        {
+          "p": "A bank wants to score 50 million card transactions a day for fraud, using 300 features, many of them with missing values, and several categorical columns like merchant category and city. Classic gradient boosting can do this in principle. In practice it hits four walls."
+        },
+        {
+          "bullets": [
+            "**Speed:** finding the best split means sorting every feature at every node, which is slow on millions of rows.",
+            "**Overfitting:** the classic algorithm has no direct penalty on how complex each tree is.",
+            "**Missing values:** real data has gaps, and filling them by hand is tedious and can distort patterns.",
+            "**Categorical features:** one-hot encoding thousands of merchant codes creates huge, sparse tables."
+          ]
+        },
+        {
+          "p": "XGBoost, LightGBM and CatBoost are three open-source libraries that each solve these problems, with different design choices. Learning them is less about new theory and more about knowing what they add and when each shines."
+        },
+        {
+          "term": "Regularisation",
+          "def": "Any penalty that discourages a model from becoming too complex, trading a little training accuracy for better performance on new data."
+        },
+        {
+          "term": "Hyperparameter",
+          "def": "A setting you choose before training (such as tree depth or learning rate), as opposed to the values the model learns from data."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the same car, a racing team",
+      "blocks": [
+        {
+          "p": "Think of gradient boosting as a well-designed car. XGBoost, LightGBM and CatBoost do not change how the car drives; each tree still corrects the errors of the ones before. What they change is everything around it."
+        },
+        {
+          "steps": [
+            "**A better steering rule (second-order information).** Instead of only knowing which direction is downhill, the driver also knows how sharply the road curves, so each step can be sized better.",
+            "**Speed limits on complexity (regularisation).** Each new tree pays a penalty for every leaf and for extreme leaf values, so it only adds detail that earns its keep.",
+            "**A faster map (histograms).** Rather than checking every possible split point, values are grouped into a few hundred buckets and only bucket edges are tried.",
+            "**A plan for gaps (missing values).** At each split, the library learns which side rows with a missing value should go.",
+            "**Special handling for categories.** LightGBM and CatBoost can split on categorical columns directly, without giant one-hot tables."
+          ],
+          "title": "What the pit crew adds"
+        },
+        {
+          "think": {
+            "q": "If XGBoost uses the same basic boosting loop, why does regularisation matter so much?",
+            "a": "Because boosting is greedy: every round it will happily add a leaf that explains a few training rows perfectly, even if that leaf is noise. A penalty for each leaf and for large leaf values makes the algorithm ask \"Is this improvement big enough to justify the extra complexity?\" before adding detail."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How XGBoost grows each tree, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**Compute, for every row, two numbers** from the loss: the gradient g (slope) and the hessian h (curvature).",
+            "**Bucket each feature** into histogram bins (the default `tree_method=\"hist\"` in recent versions).",
+            "**For each candidate split,** add up g and h on the left and right, and compute a **gain** score that includes the regularisation penalties.",
+            "**Take the best split if its gain beats γ** (the minimum gain required); otherwise make this node a leaf.",
+            "**Set each leaf's value** with a formula that uses the summed g and h and the penalty λ.",
+            "**Add the tree** to the model with learning rate η and recompute g and h for the next round."
+          ],
+          "title": "Inside one boosting round"
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Per-row **gradient g** and **hessian h**",
+              "**Histogram bins** per feature",
+              "**Gain** for each split, with λ and γ",
+              "**Split or stop**; leaf weight = −G/(H + λ)",
+              "**Add tree × η**, next round"
+            ],
+            "caption": "XGBoost's tree builder. Every decision (whether to split, what each leaf predicts) comes from sums of g and h, which is what makes it both fast and regularised."
+          }
+        },
+        {
+          "term": "Hessian",
+          "def": "The second derivative of the loss: how fast the slope itself changes. It tells the algorithm how confident a step can be. For squared error it equals 1 for every row."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "XGBoost writes down one objective that combines fit and simplicity:"
+        },
+        {
+          "tex": "\\text{Obj} = \\sum_{i} L(y_i, \\hat{y}_i) + \\sum_{k} \\Big( \\gamma T_k + \\tfrac{1}{2} \\lambda \\sum_{j} w_{kj}^2 \\Big)",
+          "plain": "Total badness = how wrong the predictions are, plus a charge of γ for every leaf in every tree, plus a charge for large leaf values. Smaller is better.",
+          "symbols": [
+            [
+              "L",
+              "loss for one row"
+            ],
+            [
+              "T_k",
+              "number of leaves in tree k"
+            ],
+            [
+              "w_{kj}",
+              "value (weight) of leaf j in tree k"
+            ],
+            [
+              "\\gamma",
+              "cost per leaf (gamma)"
+            ],
+            [
+              "\\lambda",
+              "penalty on large leaf values (lambda)"
+            ]
+          ]
+        },
+        {
+          "p": "Using the per-row gradients and hessians, the best value for a leaf has a simple closed form. G and H are the sums of g and h over the rows in that leaf."
+        },
+        {
+          "tex": "w^{*} = -\\frac{G}{H + \\lambda}",
+          "plain": "The leaf's prediction is the (negative) total slope divided by the total curvature plus λ. Without λ, for squared error, this is just the average residual. λ shrinks it towards zero, especially for leaves with few rows.",
+          "symbols": [
+            [
+              "G",
+              "sum of gradients in the leaf"
+            ],
+            [
+              "H",
+              "sum of hessians in the leaf"
+            ]
+          ]
+        },
+        {
+          "tex": "\\text{Gain} = \\tfrac{1}{2} \\left[ \\frac{G_L^2}{H_L + \\lambda} + \\frac{G_R^2}{H_R + \\lambda} - \\frac{(G_L + G_R)^2}{H_L + H_R + \\lambda} \\right] - \\gamma",
+          "plain": "How much better the objective gets if we split a node into left and right children: score of left + score of right − score of not splitting, minus the leaf cost γ. Split only if the gain is positive.",
+          "symbols": [
+            [
+              "G_L, H_L",
+              "sums for rows going left"
+            ],
+            [
+              "G_R, H_R",
+              "sums for rows going right"
+            ]
+          ]
+        },
+        {
+          "callout": "For squared error, g = prediction − actual (the negative residual) and h = 1. So G is minus the sum of residuals and H is simply the number of rows. That makes these formulas easy to check by hand.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Leaf values with and without λ",
+            "setup": "Reuse the four stores from the gradient boosting chapter: sales 10, 14, 20, 28 (₹ lakh), starting prediction 18. With squared error, g = prediction − actual = 8, 4, −2, −10, and h = 1 for every store. Split {1, 2} vs {3, 4}.",
+            "steps": [
+              "Left leaf: G = 8 + 4 = 12, H = 2. Right leaf: G = −2 − 10 = −12, H = 2.",
+              "With λ = 0: w = −12 / 2 = −6 and +12 / 2 = +6 (the plain average residuals).",
+              "With λ = 1 (XGBoost's default): w = −12 / 3 = −4 and +12 / 3 = +4.",
+              "Gain with λ = 1, γ = 0: ½ × [144/3 + 144/3 − 0²/5] = ½ × 96 = 48."
+            ],
+            "result": "λ pulls leaf values towards zero, so each tree makes a more cautious correction. Leaves backed by only a handful of rows are shrunk the most."
+          }
+        },
+        {
+          "example": {
+            "title": "Choosing between two splits",
+            "setup": "Same data, λ = 1. Compare the split {1, 2} | {3, 4} with {1, 2, 3} | {4}.",
+            "steps": [
+              "Split A ({1, 2} | {3, 4}): gain = 48 (from above).",
+              "Split B: left G = 8 + 4 − 2 = 10, H = 3; right G = −10, H = 1.",
+              "Gain B = ½ × [10²/4 + 10²/2 − 0²/5] = ½ × (25 + 50) = 37.5.",
+              "48 > 37.5, so XGBoost chooses split A."
+            ],
+            "result": "The gain formula ranks splits the same way a human would (\"separate small from large stores first\"), but it already includes the regularisation penalty."
+          }
+        },
+        {
+          "example": {
+            "title": "Regularisation refuses a split",
+            "setup": "Should XGBoost split further? Try splitting the right leaf {3, 4} (g = −2 and −10) and the left leaf {1, 2} (g = 8 and 4), each into single stores.",
+            "steps": [
+              "Right leaf, λ = 1: ½ × [(−2)²/2 + (−10)²/2 − (−12)²/3] = ½ × (2 + 50 − 48) = 2.",
+              "With γ = 0 the gain is +2, so split. With γ = 5 the gain is 2 − 5 = −3, so do not split.",
+              "Left leaf, λ = 1: ½ × [8²/2 + 4²/2 − 12²/3] = ½ × (32 + 8 − 48) = −4. Refused even with γ = 0.",
+              "The same left split with λ = 0 would have gain ½ × (64 + 16 − 72) = +4 and be accepted."
+            ],
+            "result": "λ and γ are guards against splitting hairs. Splits that only separate one or two rows by a little need to clear a bar before they are allowed."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "XGBoost vs LightGBM vs CatBoost",
+      "blocks": [
+        {
+          "p": "All three implement regularised gradient boosting with histograms, missing-value handling, early stopping and optional GPU training. Their main differences are in how they grow trees and how they treat categorical features."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "",
+              "XGBoost",
+              "LightGBM",
+              "CatBoost"
+            ],
+            "rows": [
+              [
+                "Origin",
+                "Tianqi Chen; open source, paper 2016",
+                "Microsoft; open source, paper 2017",
+                "Yandex; open source since 2017"
+              ],
+              [
+                "Tree growth",
+                "Level-wise by default (depth limit)",
+                "Leaf-wise (grows the best leaf)",
+                "Symmetric (oblivious) trees"
+              ],
+              [
+                "Main size knob",
+                "max_depth (default 6)",
+                "num_leaves (default 31)",
+                "depth (default 6)"
+              ],
+              [
+                "Categoricals",
+                "Supported natively in recent versions (enable_categorical)",
+                "Native categorical splits",
+                "Ordered target statistics, its signature feature"
+              ],
+              [
+                "Signature tricks",
+                "Second-order gain, sparsity-aware missing handling",
+                "GOSS row sampling, exclusive feature bundling",
+                "Ordered boosting to reduce target leakage"
+              ]
+            ],
+            "caption": "A feature-level comparison. Which library is fastest or most accurate depends on the dataset and tuning; published benchmarks disagree, so try two on your own data."
+          }
+        },
+        {
+          "term": "Leaf-wise growth",
+          "def": "Growing a tree by always splitting whichever leaf gives the biggest gain, wherever it is. This can make deep, lopsided trees that fit quickly but overfit small data unless num_leaves or min_data_in_leaf is limited."
+        },
+        {
+          "term": "Target statistic (target encoding)",
+          "def": "Replacing a category (for example a city) with a number computed from the target, such as the average claim rate in that city. Done naively it leaks the answer; CatBoost computes it only from rows that come \"before\" each row in a random order."
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "Level 1: city tier = 1?",
+              "children": [
+                {
+                  "label": "Level 2: amount > ₹5,000?",
+                  "edge": "yes",
+                  "children": [
+                    {
+                      "label": "leaf A",
+                      "edge": "yes"
+                    },
+                    {
+                      "label": "leaf B",
+                      "edge": "no"
+                    }
+                  ]
+                },
+                {
+                  "label": "Level 2: amount > ₹5,000?",
+                  "edge": "no",
+                  "children": [
+                    {
+                      "label": "leaf C",
+                      "edge": "yes"
+                    },
+                    {
+                      "label": "leaf D",
+                      "edge": "no"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "A CatBoost-style symmetric tree: every node at the same level asks the same question. This is restrictive but acts as regularisation and makes prediction very fast."
+          }
+        },
+        {
+          "bullets": [
+            "**XGBoost:** a mature, widely deployed default with many language bindings and a large community.",
+            "**LightGBM:** often very fast on large datasets thanks to leaf-wise growth and its sampling tricks; watch for overfitting on small data.",
+            "**CatBoost:** strong when there are many categorical columns, and its defaults tend to need less tuning.",
+            "**scikit-learn HistGradientBoosting:** a LightGBM-inspired implementation built into scikit-learn; a good choice if you want no extra dependency."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "These libraries in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Motor insurance claim prediction (illustrative)",
+            "story": "An insurer prices motor policies using vehicle make and model, RTO region, driver age, no-claim bonus, add-ons and past claims. Several of these are categorical with hundreds of levels. The data science team compares CatBoost, LightGBM and XGBoost using the same five-fold, time-respecting validation and the same early stopping rule. CatBoost handles the high-cardinality columns without manual encoding and gives the best validation log loss for claim frequency, while LightGBM trains fastest for a separate claim-severity model. The team keeps both, documents the comparison, and uses SHAP values to explain premium drivers to the pricing committee and regulators."
+          }
+        },
+        {
+          "bullets": [
+            "**Fraud and risk:** real-time scoring of payments and loan applications.",
+            "**Marketing:** propensity-to-buy and uplift models on large customer tables.",
+            "**Operations:** predicting delivery delays, equipment failure and demand.",
+            "**Competitions:** these libraries are a common backbone of winning tabular solutions, often in blends."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Overfitting with too little data.** Leaf-wise trees and high learning rates can memorise small datasets. Use early stopping, smaller num_leaves or depth, and larger minimum leaf sizes.",
+            "**Tuning rabbit holes.** Dozens of hyperparameters invite endless searching. Tune a few that matter (learning rate, depth or leaves, minimum leaf size, row and column subsampling, λ) with cross-validation.",
+            "**Different names for similar things.** `eta` vs `learning_rate`, `lambda` vs `reg_lambda`, `colsample_bytree` vs `feature_fraction`. Read each library's docs before copying settings across.",
+            "**Not for images, audio or free text.** Neural networks dominate there. Boosted trees shine on tabular data.",
+            "**Explanations need care.** Use SHAP values or permutation importance rather than default \"split count\" importances."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Level-wise (XGBoost default)",
+              "items": [
+                "Splits every node at a depth before going deeper",
+                "Balanced trees, depth-limited",
+                "More predictable, safer on small data",
+                "May spend splits on low-gain nodes"
+              ]
+            },
+            "right": {
+              "title": "Leaf-wise (LightGBM)",
+              "items": [
+                "Always splits the single best leaf",
+                "Lopsided trees, leaf-count limited",
+                "Often reaches lower loss with fewer leaves",
+                "Needs limits to avoid overfitting"
+              ]
+            },
+            "caption": "Two strategies for growing the same kind of tree. XGBoost can also grow leaf-wise with grow_policy=\"lossguide\"."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which library should I learn first?",
+      "a": "Any one of them; the concepts transfer. XGBoost has the longest history and most examples. If your data has many categorical columns, try CatBoost early. If it is very large, try LightGBM."
+    },
+    {
+      "q": "Are these libraries always better than a random forest?",
+      "a": "Not always. On many tabular problems a well-tuned boosting library edges out a forest, but the margin varies and sometimes vanishes. Always compare on a validation set that mimics real use."
+    },
+    {
+      "q": "What does early stopping need?",
+      "a": "A validation set passed to the training call and a patience value, for example stop if no improvement in 50 rounds. The library then keeps the best number of trees."
+    },
+    {
+      "q": "Do I need to impute missing values?",
+      "a": "Usually not. All three learn a default direction for missing values at each split. Still check why data is missing; sometimes \"missing\" carries meaning you should keep as a feature."
+    },
+    {
+      "q": "Can I use them inside scikit-learn pipelines?",
+      "a": "Yes. Each provides scikit-learn-style classes (`XGBClassifier`, `LGBMClassifier`, `CatBoostClassifier`) that work with pipelines, cross-validation and grid search."
+    },
+    {
+      "q": "What are λ and γ in plain words?",
+      "a": "λ shrinks leaf values towards zero so no single leaf makes a dramatic correction. γ is a fee for adding a leaf; a split must improve the objective by more than γ to be made."
+    }
+  ]
+}

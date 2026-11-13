@@ -1,0 +1,391 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A bank's fraud system flags your card payment. The system is \"90% accurate\", so surely there is a 90% chance it is fraud? In a typical setting the real answer is closer to 15%. That gap between what feels right and what is right is why probability matters. Every classifier outputs probabilities, every A/B test is a probability statement, and every risk model prices uncertainty. This chapter builds the rules from scratch, slowly, with pictures and counts instead of jargon.",
+  "sections": [
+    {
+      "heading": "The problem: deciding under uncertainty",
+      "blocks": [
+        {
+          "p": "Business decisions rarely come with certainty. Will this customer churn? Will this machine fail this month? Will the new pricing lift sales? We cannot know for sure, but we can **measure how likely** each outcome is and make decisions that come out ahead on average."
+        },
+        {
+          "p": "Probability is the language for that measurement. Machine learning speaks it everywhere: a logistic regression says \"73% chance of churn\", a spam filter combines word probabilities, and a forecast comes with an interval because tomorrow is uncertain."
+        },
+        {
+          "term": "Experiment",
+          "def": "Any process with an uncertain result: rolling a die, a customer visiting a website, a part coming off a production line."
+        },
+        {
+          "term": "Outcome and sample space",
+          "def": "An outcome is one possible result (the die shows 4). The sample space is the list of all possible outcomes ({1, 2, 3, 4, 5, 6})."
+        },
+        {
+          "term": "Event",
+          "def": "A collection of outcomes you care about, such as \"the die shows an even number\" = {2, 4, 6}, or \"the customer buys something\"."
+        },
+        {
+          "term": "Probability",
+          "def": "A number between 0 and 1 measuring how likely an event is. 0 = impossible, 1 = certain, 0.25 = happens about one time in four in the long run."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: a budget of belief",
+      "blocks": [
+        {
+          "p": "Think of probability as a budget of 100% that you must spread across everything that could happen. You cannot spend more than 100% and you must spend all of it. A fair die gets 1/6 of the budget on each face. A weather forecaster might put 70% on \"rain\" and 30% on \"no rain\"."
+        },
+        {
+          "steps": [
+            "**Count when outcomes are equally likely.** The chance of an even number on a fair die is 3 favourable faces out of 6 = 1/2.",
+            "**Use long-run frequencies otherwise.** If 2 out of every 100 parts are defective over a long period, the probability a new part is defective is about 0.02.",
+            "**Shrink the world for conditional questions.** \"What is the chance of rain, given dark clouds?\" means: look only at days with dark clouds and ask what share of those had rain.",
+            "**Check your total.** All the probabilities for the full set of outcomes must add to exactly 1."
+          ],
+          "title": "Three ways to get a probability, and one check"
+        },
+        {
+          "p": "The most useful trick for beginners is to replace probabilities with **counts of an imaginary crowd**. Instead of \"1% of transactions are fraud\", imagine 10,000 transactions, of which 100 are fraud. Counts are much harder to get wrong than percentages, as the worked examples will show."
+        },
+        {
+          "think": {
+            "q": "A weather app says 30% chance of rain tomorrow. It does not rain. Was the app wrong?",
+            "a": "Not necessarily. A 30% forecast means that on many days like this one, about 3 in 10 have rain. You judge a probability forecast by its long-run calibration: among all the \"30%\" days, did it rain on roughly 30% of them?"
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works: the core rules",
+      "blocks": [
+        {
+          "steps": [
+            "**Complement:** P(not A) = 1 − P(A). If 2% of parts are defective, 98% are fine.",
+            "**\"Or\" (addition rule):** P(A or B) = P(A) + P(B) − P(A and B). Subtract the overlap so you do not count it twice.",
+            "**Conditional:** P(A | B) = P(A and B) / P(B). Restrict to cases where B happened, and ask how many of those also have A.",
+            "**\"And\" (multiplication rule):** P(A and B) = P(B) × P(A | B). If A and B are independent, this becomes P(A) × P(B).",
+            "**Expected value:** add up each outcome × its probability to get the long-run average."
+          ],
+          "title": "Five rules that cover most of practice"
+        },
+        {
+          "term": "Conditional probability",
+          "def": "The probability of A given that B is known to have happened, written P(A | B). The vertical bar reads \"given\"."
+        },
+        {
+          "term": "Independence",
+          "def": "Two events are independent if knowing one happened does not change the probability of the other: P(A | B) = P(A). Two separate coin flips are independent; \"rain\" and \"umbrella sales\" are not."
+        },
+        {
+          "term": "Expected value",
+          "def": "The probability-weighted average of the possible outcomes: what you would get on average if you could repeat the situation many times."
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "10,000 transactions",
+              "children": [
+                {
+                  "label": "Fraud: 100",
+                  "edge": "1%",
+                  "children": [
+                    {
+                      "label": "Flagged: 90",
+                      "edge": "90%"
+                    },
+                    {
+                      "label": "Missed: 10",
+                      "edge": "10%"
+                    }
+                  ]
+                },
+                {
+                  "label": "Legitimate: 9,900",
+                  "edge": "99%",
+                  "children": [
+                    {
+                      "label": "Flagged: 495",
+                      "edge": "5%"
+                    },
+                    {
+                      "label": "Not flagged: 9,405",
+                      "edge": "95%"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "A probability tree turned into counts. Multiply along branches to get joint counts. Of the 90 + 495 = 585 flagged transactions, only 90 are fraud: about 15%."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "P(A) = \\frac{\\text{number of outcomes in } A}{\\text{total number of outcomes}}",
+          "plain": "When all outcomes are equally likely, probability is counting: favourable cases over all cases.",
+          "symbols": [
+            [
+              "P(A)",
+              "probability of event A"
+            ]
+          ]
+        },
+        {
+          "tex": "P(A \\cup B) = P(A) + P(B) - P(A \\cap B)",
+          "plain": "Probability of A or B (or both) = add the two, then subtract the overlap, which would otherwise be counted twice.",
+          "symbols": [
+            [
+              "A \\cup B",
+              "A or B (union)"
+            ],
+            [
+              "A \\cap B",
+              "A and B (intersection)"
+            ]
+          ]
+        },
+        {
+          "tex": "P(A \\mid B) = \\frac{P(A \\cap B)}{P(B)}",
+          "plain": "Given B, the world shrinks to the B cases. Among them, the share where A also happens is the conditional probability.",
+          "symbols": [
+            [
+              "P(A \\mid B)",
+              "probability of A given B"
+            ]
+          ]
+        },
+        {
+          "p": "Turn the conditional formula around and you get **Bayes' theorem**, which lets you flip \"probability of the evidence given the cause\" into \"probability of the cause given the evidence\". This flip is exactly what the fraud question needs: we know P(flag | fraud) and want P(fraud | flag)."
+        },
+        {
+          "tex": "P(A \\mid B) = \\frac{P(B \\mid A)\\, P(A)}{P(B)}",
+          "plain": "Updated belief in A after seeing B = how well A explains B × how common A was to begin with, divided by how common B is overall.",
+          "symbols": [
+            [
+              "P(A)",
+              "prior: belief before the evidence"
+            ],
+            [
+              "P(B \\mid A)",
+              "likelihood: chance of the evidence if A is true"
+            ],
+            [
+              "P(A \\mid B)",
+              "posterior: belief after the evidence"
+            ]
+          ]
+        },
+        {
+          "tex": "E[X] = \\sum_{\\text{outcomes } x} x \\cdot P(x)",
+          "plain": "Expected value: multiply every possible result by its probability and add up.",
+          "symbols": [
+            [
+              "E[X]",
+              "expected value (long-run average) of the quantity X"
+            ]
+          ]
+        },
+        {
+          "callout": "P(A | B) and P(B | A) are different numbers, often wildly different. P(flagged | fraud) = 90%, but P(fraud | flagged) ≈ 15%. Mixing them up is called the base-rate fallacy, and it is one of the most common mistakes in business analytics.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Two dice: sums, \"and\" and \"or\"",
+            "setup": "Roll two fair dice. There are 6 × 6 = 36 equally likely outcomes.",
+            "steps": [
+              "P(sum = 7): the pairs (1,6), (2,5), (3,4), (4,3), (5,2), (6,1) are 6 outcomes, so 6/36 = 1/6 ≈ 0.167. No other sum is as likely.",
+              "P(both show 6): the dice are independent, so 1/6 × 1/6 = 1/36 ≈ 0.028.",
+              "P(at least one 6) by the addition rule: 1/6 + 1/6 − 1/36 = 11/36 ≈ 0.306.",
+              "Check with the complement: P(no 6 at all) = 5/6 × 5/6 = 25/36, so P(at least one 6) = 1 − 25/36 = 11/36."
+            ],
+            "result": "Two routes give the same 11/36. Using the complement (\"1 minus the chance of none\") is often the easiest way to handle \"at least one\" questions."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12"
+            ],
+            "values": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              5,
+              4,
+              3,
+              2,
+              1
+            ],
+            "highlight": 5,
+            "yLabel": "ways out of 36",
+            "caption": "Number of ways to get each sum with two dice. Seven is most likely (6 of 36 ways); 2 and 12 are rarest (1 way each). The bars add up to 36, the full budget."
+          }
+        },
+        {
+          "example": {
+            "title": "Is the fraud alert really fraud? (Bayes, business)",
+            "setup": "Illustrative numbers: 1% of card transactions are fraud. The model flags 90% of fraud and wrongly flags 5% of legitimate transactions. A transaction is flagged. How likely is fraud?",
+            "steps": [
+              "Imagine 10,000 transactions: 100 fraud, 9,900 legitimate.",
+              "Flagged fraud: 90% of 100 = 90. Flagged legitimate: 5% of 9,900 = 495.",
+              "Total flagged = 90 + 495 = 585.",
+              "P(fraud | flagged) = 90 / 585 ≈ 0.154, about 15%.",
+              "Same with Bayes' formula: (0.9 × 0.01) / (0.9 × 0.01 + 0.05 × 0.99) = 0.009 / 0.0585 ≈ 0.154."
+            ],
+            "result": "Roughly 85% of alerts are false alarms, because legitimate transactions vastly outnumber fraud. This is why fraud teams care about precision, and why a blocked card should trigger a quick check rather than an accusation."
+          }
+        },
+        {
+          "example": {
+            "title": "Do tea and biscuits sell together? (independence)",
+            "setup": "Of 1,000 shopping baskets, 400 contain tea, 300 contain biscuits and 180 contain both.",
+            "steps": [
+              "P(tea) = 0.4, P(biscuits) = 0.3, P(both) = 0.18.",
+              "If independent, P(both) would be 0.4 × 0.3 = 0.12. The actual 0.18 is higher, so they are not independent.",
+              "P(biscuits | tea) = 0.18 / 0.4 = 0.45, compared with 0.30 for shoppers overall.",
+              "Lift = 0.45 / 0.30 = 1.5: tea buyers are 1.5 times as likely to buy biscuits."
+            ],
+            "result": "A strong association worth acting on: place biscuits near tea or bundle them. This is market-basket analysis in miniature."
+          }
+        },
+        {
+          "example": {
+            "title": "Is the coupon worth sending? (expected value)",
+            "setup": "Sending a coupon costs ₹50. 20% of customers redeem it and spend an extra ₹400; the rest change nothing.",
+            "steps": [
+              "Expected extra spend = 0.2 × ₹400 + 0.8 × ₹0 = ₹80.",
+              "Expected net = ₹80 − ₹50 = +₹30 per customer."
+            ],
+            "result": "Positive expected value, so send it, provided the 20% redemption estimate is reliable. (Strictly you should compare margin, not spend, against cost.)"
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Probability in machine learning",
+      "blocks": [
+        {
+          "bullets": [
+            "**Classifier outputs:** `predict_proba` in scikit-learn returns P(class | features). A threshold (often 0.5, but it should be chosen for the business cost) turns it into a decision.",
+            "**Naive Bayes:** applies Bayes' theorem with a simplifying independence assumption between features; still strong for text.",
+            "**Calibration:** a model is calibrated if, among cases it scores 0.7, about 70% really are positive. Many models need calibrating before their probabilities can be trusted.",
+            "**Evaluation:** precision is P(actually positive | predicted positive); recall is P(predicted positive | actually positive). They are the two directions of a conditional probability.",
+            "**Expected cost:** choosing a threshold by multiplying error probabilities by their rupee costs is expected value applied to model deployment."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "P(flagged | fraud) = recall",
+              "items": [
+                "Start from the fraud cases",
+                "Ask: how many did we catch?",
+                "90% in the example",
+                "Matters for loss prevention"
+              ]
+            },
+            "right": {
+              "title": "P(fraud | flagged) = precision",
+              "items": [
+                "Start from the alerts",
+                "Ask: how many were real?",
+                "About 15% in the example",
+                "Matters for customer friction and staff time"
+              ]
+            },
+            "caption": "The same two events, conditioned in opposite directions, give two different numbers. Classification metrics are built on this distinction."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Insurance pricing as expected value",
+            "story": "An insurer pricing motor cover estimates, for each type of driver, the probability of a claim in a year and the average claim size. The expected annual cost is roughly probability × severity. If 5% of a segment claim, with an average claim of ₹60,000, the expected cost is ₹3,000 per policy, and the premium adds expenses and margin on top. The numbers here are illustrative, but the logic of pricing risk as an expected value is how insurance has worked for centuries, and modern pricing models are machine-learning estimates of those two probabilities and amounts."
+          }
+        },
+        {
+          "bullets": [
+            "**A/B testing:** \"is the uplift real or chance?\" is answered with probability models of random variation.",
+            "**Predictive maintenance:** P(failure in the next 30 days | sensor readings) drives when to service a machine.",
+            "**Credit risk:** probability of default × loss given default × exposure = expected loss, the core of loan pricing.",
+            "**Demand planning:** stocking to cover demand with 95% probability rather than to the average."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls and limits",
+      "blocks": [
+        {
+          "bullets": [
+            "**Base-rate neglect:** forgetting how rare the event is. Rare events produce many false alarms even with good tests.",
+            "**Assuming independence:** multiplying probabilities of linked events (failures of two parts sharing a power supply) badly underestimates joint risk.",
+            "**Gambler's fallacy:** after five reds, black is not \"due\". Independent events have no memory.",
+            "**Small samples:** 3 defects in 20 parts does not reliably mean a 15% defect rate.",
+            "**Correlation is not causation:** P(sales up | advert shown) being high does not prove the advert caused it; other factors may drive both."
+          ]
+        },
+        {
+          "callout": "When in doubt, convert to counts of an imaginary crowd of 1,000 or 10,000. It turns confusing conditional probabilities into simple division.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between probability and odds?",
+      "a": "Probability is favourable ÷ all; odds are favourable ÷ unfavourable. A probability of 0.2 is odds of 0.2/0.8 = 1 to 4. Logistic regression works with the logarithm of the odds."
+    },
+    {
+      "q": "What is the difference between \"independent\" and \"mutually exclusive\"?",
+      "a": "Mutually exclusive events cannot happen together (a die shows 2 and 5). Independent events can happen together but do not influence each other. In fact, mutually exclusive events with non-zero probability are strongly dependent: if one happens, the other cannot."
+    },
+    {
+      "q": "Where do probabilities come from in practice?",
+      "a": "From symmetry (fair dice), from historical frequencies (defect rates), or from models fitted to data (a classifier's output). Each source has its own risks: biased history, model errors."
+    },
+    {
+      "q": "Can the expected value be an outcome that never happens?",
+      "a": "Yes. The expected value of a die roll is 3.5, which no roll ever gives. It is a long-run average, not a prediction of one result."
+    },
+    {
+      "q": "Why do I need Bayes' theorem if I can just count?",
+      "a": "Counting an imaginary crowd is Bayes' theorem in disguise, and is a great way to do it. The formula becomes necessary when you update repeatedly or with many pieces of evidence, as spam filters and medical decision models do."
+    },
+    {
+      "q": "Is a 0.9 from a model a 90% probability?",
+      "a": "Only if the model is calibrated. Many models (random forests, boosted trees, SVMs) produce scores that rank well but are not accurate probabilities. Check a calibration plot, and calibrate if needed."
+    }
+  ]
+}

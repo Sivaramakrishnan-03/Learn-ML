@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain what a vector and a matrix are in data terms",
+    "Read a dataset as a matrix of rows (samples) and columns (features)",
+    "Compute the length of a vector and the distance between two points"
+  ],
+  "why": "Every ML library stores data as vectors and matrices. When scikit-learn says `X` has shape (1000, 5), it means 1,000 customers described by 5 numbers each. Distances between vectors power k-NN, k-means and recommendation systems.",
+  "explain": [
+    "A **vector** is just an ordered list of numbers. A flat described by (area = 900 sq ft, bedrooms = 2, age = 5 years) is the vector **[900, 2, 5]**. Each position always means the same thing.",
+    "A **matrix** is a table of numbers: a stack of vectors. In ML, each **row is one sample** (a flat, a customer, an email) and each **column is one feature**. That is exactly a spreadsheet without the headers.",
+    "Geometrically, a vector with 2 numbers is an arrow or a point on a 2D plane. With 3 numbers it is a point in 3D space. With 50 features it is a point in 50-dimensional space. You cannot picture it, but the maths works the same way.",
+    "The **length** (norm) of a vector is its distance from zero. The **distance** between two points is the length of their difference. This simple idea lets algorithms decide which customers are \"similar\"."
+  ],
+  "formula": {
+    "tex": "\\lVert a - b \\rVert = \\sqrt{(a_1-b_1)^2 + (a_2-b_2)^2 + \\dots}",
+    "plain": "Distance between two points = square root of the sum of the squared differences in each feature (Pythagoras, extended to many dimensions)."
+  },
+  "example": {
+    "title": "How similar are two customers?",
+    "steps": [
+      "Customer A = [visits 4, basket ₹3k] → [4, 3]",
+      "Customer B = [visits 7, basket ₹7k] → [7, 7]",
+      "Difference = [7−4, 7−3] = [3, 4]",
+      "Distance = √(3² + 4²) = √(9 + 16) = √25 = 5"
+    ],
+    "result": "A and B are 5 units apart. A customer C at [5, 3] is only √(1² + 0²) = 1 unit from A, so C is far more similar to A than B is."
+  },
+  "mistakes": [
+    "Mixing units: if one feature is in rupees (thousands) and another in years (single digits), distances are dominated by rupees. Scale features first.",
+    "Confusing rows and columns: in scikit-learn, rows are always samples."
+  ],
+  "takeaways": [
+    "Vector = list of numbers = one data point",
+    "Matrix = table = whole dataset (rows = samples, columns = features)",
+    "Distance between vectors measures similarity"
+  ],
+  "check": [
+    {
+      "q": "A dataset has shape (500, 8). What does it contain?",
+      "options": [
+        "8 samples with 500 features",
+        "500 samples with 8 features each",
+        "4,000 samples",
+        "500 features and 8 targets"
+      ],
+      "answer": 1,
+      "why": "Rows are samples and columns are features: 500 rows × 8 columns."
+    },
+    {
+      "q": "Distance between [1, 1] and [4, 5]?",
+      "options": [
+        "3",
+        "4",
+        "5",
+        "7"
+      ],
+      "answer": 2,
+      "why": "√(3² + 4²) = √25 = 5."
+    }
+  ],
+  "practice": {
+    "code": "import numpy as np\na, b = np.array([4, 3]), np.array([7, 7])\nprint(np.linalg.norm(a - b))      # 5.0  (Euclidean distance)\nX = np.array([[900, 2, 5], [1200, 3, 2]])\nprint(X.shape)                    # (2, 3) → 2 samples, 3 features"
+  },
+  "chapterMinutes": 17
+}

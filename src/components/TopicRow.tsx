@@ -1,5 +1,5 @@
 import { isAnimated } from '../anim/registry';
-import { minutesOf } from '../lessons/minutes';
+import { minutesOf } from '../content';
 import { Link } from 'react-router-dom';
 import { Topic, TRACKS } from '../data/curriculum';
 import { isUnlocked, progress, useProgress } from '../lib/progress';

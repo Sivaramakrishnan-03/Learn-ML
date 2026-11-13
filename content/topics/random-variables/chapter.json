@@ -1,0 +1,433 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "How many customers will walk into the store tomorrow? How long will the next delivery take? How many defective parts will this batch contain? None of these numbers is known in advance, yet each follows patterns you can describe. A **random variable** is the name for such a number decided by chance. Once you can describe its centre and its spread, you can set safety stock, promise delivery times and design quality limits with confidence instead of guesswork.",
+  "sections": [
+    {
+      "heading": "The problem: planning around numbers you cannot know yet",
+      "blocks": [
+        {
+          "p": "A warehouse manager must decide how much stock to hold. Tomorrow's demand is not a fixed number; it might be 80 units or 140. Holding too little loses sales; holding too much ties up cash. To decide well, she needs more than a single forecast. She needs to know **which values are likely, how likely, and how much they vary**."
+        },
+        {
+          "p": "The previous chapter assigned probabilities to events. This chapter attaches probabilities to **numbers**, so we can calculate averages, spreads and risks. That is the foundation of statistics and of every ML model that predicts a quantity with uncertainty."
+        },
+        {
+          "term": "Random variable",
+          "def": "A number whose value is determined by the outcome of a chance process. Before the die is rolled, \"the number it shows\" is a random variable that can be 1 to 6. Usually written with a capital letter, such as X."
+        },
+        {
+          "term": "Distribution",
+          "def": "The full description of a random variable: which values it can take and how likely each is. It is the random variable's \"profile\"."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the daily-orders diary",
+      "blocks": [
+        {
+          "p": "Picture a small online shop that writes down the number of orders every day for a year. Some days 0, many days 1, some days 2. Tally the diary and you get a frequency table. Divide by 365 and you have probabilities. That table **is** the distribution of the random variable \"orders tomorrow\"."
+        },
+        {
+          "steps": [
+            "**List the possible values:** 0, 1 or 2 orders.",
+            "**Attach a probability to each:** say 0.2, 0.5 and 0.3. They must add to 1.",
+            "**Find the centre:** the long-run average number of orders per day (the mean).",
+            "**Measure the spread:** how far a typical day lands from that average (the variance and standard deviation)."
+          ],
+          "title": "Describing a random variable in four moves"
+        },
+        {
+          "p": "Two shops can have the same average and very different lives. One gets 10 orders every day without fail; another gets 0 most days and 50 on a few. Same mean, completely different risk. The spread is what captures that difference, which is why we never report a mean on its own."
+        },
+        {
+          "term": "Discrete random variable",
+          "def": "One that takes separate, countable values: number of orders, defects or complaints. Its distribution is a list of probabilities, one per value (a probability mass function)."
+        },
+        {
+          "term": "Continuous random variable",
+          "def": "One that can take any value in a range: delivery time, temperature, weight. Individual exact values have zero probability; we ask about ranges instead, using a probability density curve."
+        },
+        {
+          "think": {
+            "q": "Is \"monthly revenue in rupees\" discrete or continuous?",
+            "a": "Strictly discrete (it is counted in paise), but it has so many possible values that analysts treat it as continuous. The distinction is a modelling choice: use whichever description is simpler and accurate enough."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Define** the quantity X (e.g. orders tomorrow)",
+              "**List values** and their probabilities",
+              "**Mean**: probability-weighted average",
+              "**Variance / SD**: probability-weighted spread",
+              "**Use** it: plan stock, set SLAs, price risk"
+            ],
+            "caption": "From an uncertain quantity to numbers you can plan with. The same pipeline works for discrete and continuous variables; only sums become areas under a curve."
+          }
+        },
+        {
+          "steps": [
+            "**Mean (expected value), μ:** multiply each value by its probability and add.",
+            "**Variance, σ²:** for each value, take its distance from the mean, square it, multiply by its probability, and add.",
+            "**Standard deviation, σ:** the square root of the variance, back in the original units (orders, minutes, rupees).",
+            "**Probabilities of ranges:** add the probabilities of the values in the range (discrete) or find the area under the density curve (continuous)."
+          ],
+          "title": "The calculations"
+        },
+        {
+          "term": "Variance",
+          "def": "The average squared distance of a random variable from its mean. Squaring treats overs and unders alike and weights big misses heavily. Its units are squared (orders²), which is awkward to interpret."
+        },
+        {
+          "term": "Standard deviation",
+          "def": "The square root of the variance, written σ (sigma). It is in the same units as the data and roughly describes a \"typical\" distance from the mean."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\mu = E[X] = \\sum_{x} x \\, P(X = x)",
+          "plain": "The mean is the probability-weighted average of the possible values. Values that are more likely pull the mean towards themselves more strongly.",
+          "symbols": [
+            [
+              "\\mu",
+              "the mean (Greek mu)"
+            ],
+            [
+              "E[X]",
+              "expected value of X"
+            ],
+            [
+              "P(X = x)",
+              "probability that X takes the value x"
+            ]
+          ]
+        },
+        {
+          "tex": "\\sigma^2 = \\operatorname{Var}(X) = \\sum_{x} (x - \\mu)^2 \\, P(X = x)",
+          "plain": "Variance: for each value, how far from the mean (squared), weighted by how likely. A large variance means outcomes are often far from the average.",
+          "symbols": [
+            [
+              "\\sigma^2",
+              "variance"
+            ],
+            [
+              "\\sigma",
+              "standard deviation, the square root of the variance"
+            ]
+          ]
+        },
+        {
+          "p": "Why square the distances rather than just averaging them? Because plain distances above and below the mean cancel out exactly and always average to zero. Squaring makes every distance count positively, and it gives tidy algebra, the same reason least squares uses squares."
+        },
+        {
+          "p": "Two rules make random variables easy to work with in business models. If profit is a straight-line function of a random quantity, you can transform the mean and the standard deviation directly, without redoing the whole distribution."
+        },
+        {
+          "tex": "E[aX + b] = a\\,E[X] + b, \\qquad \\operatorname{SD}(aX + b) = |a|\\,\\operatorname{SD}(X)",
+          "plain": "Scaling by a scales the mean and the spread. Adding a fixed amount b shifts the mean but leaves the spread unchanged, because a fixed cost adds no uncertainty.",
+          "symbols": [
+            [
+              "a, b",
+              "fixed numbers, e.g. profit per order and a fixed daily cost"
+            ]
+          ]
+        },
+        {
+          "p": "For continuous variables the sums become areas under a curve. The most famous curve is the **normal distribution**, the bell shape. Whatever its mean and standard deviation, about 68% of outcomes land within one standard deviation of the mean and about 95% within two."
+        },
+        {
+          "tex": "f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} \\, e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}",
+          "plain": "The normal (bell-curve) density. You will never need to compute it by hand; what matters is that μ sets the centre and σ sets the width.",
+          "symbols": [
+            [
+              "f(x)",
+              "probability density at x (height of the curve)"
+            ],
+            [
+              "e",
+              "the constant 2.718…"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Daily orders: mean, variance and SD",
+            "setup": "Orders per day X: 0 with probability 0.2, 1 with 0.5, 2 with 0.3.",
+            "steps": [
+              "Check: 0.2 + 0.5 + 0.3 = 1. A valid distribution.",
+              "Mean μ = 0 × 0.2 + 1 × 0.5 + 2 × 0.3 = 0 + 0.5 + 0.6 = 1.1 orders.",
+              "Variance = (0 − 1.1)² × 0.2 + (1 − 1.1)² × 0.5 + (2 − 1.1)² × 0.3 = 1.21 × 0.2 + 0.01 × 0.5 + 0.81 × 0.3 = 0.242 + 0.005 + 0.243 = 0.49.",
+              "Standard deviation σ = √0.49 = 0.7 orders.",
+              "If each order earns ₹200 and the day has a fixed cost of ₹100, profit = 200X − 100: mean ₹200 × 1.1 − ₹100 = ₹120, SD = ₹200 × 0.7 = ₹140."
+            ],
+            "result": "On average 1.1 orders and ₹120 profit a day, but the SD of ₹140 is larger than the mean profit, so loss-making days are common (every zero-order day loses ₹100)."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "0 orders",
+              "1 order",
+              "2 orders"
+            ],
+            "values": [
+              0.2,
+              0.5,
+              0.3
+            ],
+            "highlight": 1,
+            "yLabel": "probability",
+            "caption": "The distribution of daily orders. The mean, 1.1, is not even a possible value; it is the balance point of these bars."
+          }
+        },
+        {
+          "example": {
+            "title": "Same average, different risk (business)",
+            "setup": "Two suppliers deliver in a random number of days. Supplier A: 4 or 6 days, each with probability 0.5. Supplier B: 2 or 8 days, each with probability 0.5.",
+            "steps": [
+              "Mean A = 0.5 × 4 + 0.5 × 6 = 5 days. Mean B = 0.5 × 2 + 0.5 × 8 = 5 days.",
+              "Variance A = 0.5 × (4 − 5)² + 0.5 × (6 − 5)² = 1, so SD = 1 day.",
+              "Variance B = 0.5 × (2 − 5)² + 0.5 × (8 − 5)² = 9, so SD = 3 days.",
+              "To be covered every time, you need stock for 6 days with A but 8 days with B."
+            ],
+            "result": "Same 5-day average, but Supplier B forces you to hold two extra days of safety stock. Reliability (low variance) has a rupee value."
+          }
+        },
+        {
+          "example": {
+            "title": "Sales calls and the binomial distribution",
+            "setup": "A salesperson makes 10 calls a day, and each independently converts with probability 0.2. X = number of sales. This is a binomial random variable.",
+            "steps": [
+              "Mean = n × p = 10 × 0.2 = 2 sales. Variance = n × p × (1 − p) = 10 × 0.2 × 0.8 = 1.6, so SD ≈ 1.26.",
+              "P(X = 0) = 0.8¹⁰ ≈ 0.107: about one day in nine with no sale at all.",
+              "P(at least one sale) = 1 − 0.107 ≈ 0.893.",
+              "P(X ≤ 2) ≈ 0.107 + 0.268 + 0.302 = 0.678. P(X ≥ 4) ≈ 0.121."
+            ],
+            "result": "A target of \"4 sales a day\" would be hit only about 12% of the time by an average performer. Managers who understand the distribution set fairer targets and do not mistake luck for skill."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6+"
+            ],
+            "values": [
+              0.1074,
+              0.2684,
+              0.302,
+              0.2013,
+              0.0881,
+              0.0264,
+              0.0064
+            ],
+            "highlight": 2,
+            "yLabel": "probability",
+            "caption": "Binomial distribution of daily sales (10 calls, 20% conversion). Two sales is most likely; zero sales happens about 11% of the time; six or more is very rare."
+          }
+        },
+        {
+          "example": {
+            "title": "Delivery times and the normal curve",
+            "setup": "Food delivery times are roughly normal with mean 30 minutes and SD 5 minutes.",
+            "steps": [
+              "Within one SD (25 to 35 minutes): about 68% of deliveries.",
+              "Within two SD (20 to 40 minutes): about 95%.",
+              "Later than 40 minutes (more than two SD above): about 2.3%, roughly 1 delivery in 44."
+            ],
+            "result": "Promising \"within 40 minutes\" would be broken about 2–3% of the time. To promise 35 minutes, expect about 16% of orders to be late."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-((x-30)**2)/50)/(5*Math.sqrt(2*Math.PI))",
+            "xMin": 12,
+            "xMax": 48,
+            "shade": [
+              25,
+              35
+            ],
+            "marks": [
+              {
+                "x": 30,
+                "label": "mean 30"
+              },
+              {
+                "x": 40,
+                "label": "+2 SD"
+              }
+            ],
+            "xLabel": "delivery time (minutes)",
+            "yLabel": "density",
+            "caption": "Normal distribution of delivery times. The shaded band, 25 to 35 minutes, holds about 68% of the area. Only a thin tail, about 2.3%, lies beyond 40 minutes."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "A field guide to common distributions",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Distribution",
+              "Type",
+              "Typical use",
+              "Mean"
+            ],
+            "rows": [
+              [
+                "Bernoulli",
+                "discrete",
+                "one yes/no event: click, churn",
+                "p"
+              ],
+              [
+                "Binomial",
+                "discrete",
+                "successes in n tries: sales from calls",
+                "n·p"
+              ],
+              [
+                "Poisson",
+                "discrete",
+                "counts per period: arrivals, defects",
+                "λ"
+              ],
+              [
+                "Uniform",
+                "continuous",
+                "every value in a range equally likely",
+                "(a + b)/2"
+              ],
+              [
+                "Normal",
+                "continuous",
+                "measurements, errors, averages",
+                "μ"
+              ],
+              [
+                "Exponential",
+                "continuous",
+                "waiting time between events",
+                "1/λ"
+              ]
+            ],
+            "caption": "Six distributions cover a large share of business modelling. Choosing one is a modelling assumption; always check it against data."
+          }
+        },
+        {
+          "callout": "The normal distribution is popular partly because of the central limit theorem: averages and totals of many small independent effects tend to look normal, even when each effect does not. That is why sampling errors and many measurement errors are bell-shaped.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Safety stock in retail replenishment",
+            "story": "Supply-chain teams commonly set safety stock using the spread of demand rather than just its average. A textbook approach: if daily demand has mean 100 units and standard deviation 20, and the restocking lead time is 4 days, then lead-time demand has mean 400 and, assuming independent days, standard deviation 20 × √4 = 40. To cover demand with about 95% probability (one-sided, using a normal approximation), stock is set near 400 + 1.645 × 40 ≈ 466 units. The numbers are illustrative, but this formula, built entirely from means and standard deviations of random variables, underlies many inventory systems."
+          }
+        },
+        {
+          "bullets": [
+            "**Regression with uncertainty:** a regression prediction is the mean of a random variable; prediction intervals use its standard deviation.",
+            "**Quality control:** control charts flag a process when measurements fall more than 3 SD from the mean.",
+            "**Finance:** daily returns are modelled as random variables; volatility is their standard deviation.",
+            "**Call centres:** arrivals per hour are often modelled as Poisson to plan staffing."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Reporting only the mean:** two plans with the same average can carry very different risk. Always report spread too.",
+            "**Treating the mean as the most likely value:** 1.1 orders is not even possible; for skewed variables like income, the mean sits far from the typical value.",
+            "**Assuming normality everywhere:** demand spikes, insurance claims and web traffic have heavy tails, so extreme values are far more common than the bell curve suggests.",
+            "**Assuming independence:** daily demands often move together (weather, festivals), which makes the √(days) rule understate risk.",
+            "**Variance in squared units:** communicate standard deviation to stakeholders, not variance."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Discrete random variable",
+              "items": [
+                "Countable values: 0, 1, 2 …",
+                "Probability for each value",
+                "Sum to get means and ranges",
+                "Examples: orders, defects, clicks"
+              ]
+            },
+            "right": {
+              "title": "Continuous random variable",
+              "items": [
+                "Any value in a range",
+                "Density curve; exact values have probability 0",
+                "Area under the curve for ranges",
+                "Examples: time, weight, temperature"
+              ]
+            },
+            "caption": "Two kinds of random variable, the same ideas of centre and spread. Sums for discrete become areas for continuous."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why is it called a \"variable\" if it is a number?",
+      "a": "Because its value varies from one occasion to the next, decided by chance. Once observed (today's orders were 2), it is a fixed number, called a realisation."
+    },
+    {
+      "q": "What is the difference between a distribution and a dataset?",
+      "a": "A distribution is the theoretical pattern of all possible outcomes and their probabilities. A dataset is a finite sample drawn from it. Statistics uses datasets to estimate distributions."
+    },
+    {
+      "q": "Why can a continuous variable have probability zero for an exact value?",
+      "a": "There are infinitely many possible values in any range, so the chance of hitting exactly 30.000000 minutes is zero. We ask about ranges instead, like 29.5 to 30.5 minutes, which have positive probability."
+    },
+    {
+      "q": "Should I use variance or standard deviation?",
+      "a": "Use variance in calculations (variances of independent variables add) and standard deviation when communicating, because it is in the original units."
+    },
+    {
+      "q": "What is the difference between this mean and the average of my data?",
+      "a": "The expected value μ belongs to the distribution; the sample average belongs to your data. With enough data, the sample average gets close to μ (the law of large numbers)."
+    },
+    {
+      "q": "How do I know which distribution fits my data?",
+      "a": "Start from what the variable is (a count, a time, a yes/no), plot a histogram, and compare with candidate shapes. Checks such as Q–Q plots help, but business sense about the process matters as much as any test."
+    }
+  ]
+}

@@ -1,0 +1,476 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "An e-commerce company turns each of its 50,000 product descriptions into a list of 384 numbers using a language model. Similar products get similar lists, but nobody can look at 384 dimensions. A PCA plot shows one big smudge. A **UMAP** plot of the same data shows tidy islands: phones here, phone cases next to them, sarees far away, a small odd island of products that turn out to be mislabelled. **t-SNE** and **UMAP** are the tools behind such maps, and they are wonderful for exploring, as long as you know how to read them.",
+  "sections": [
+    {
+      "heading": "The problem: seeing data that has hundreds of dimensions",
+      "blocks": [
+        {
+          "p": "People understand data by looking at it, and we can only look in two or three dimensions. PCA (previous chapter) gives a 2-D view by keeping the two directions of greatest spread. That works when the important structure is flat. Often it is not: the groups twist and curl through the high-dimensional space, and a flat shadow piles them on top of each other."
+        },
+        {
+          "term": "Embedding",
+          "def": "A list of numbers (a vector) that represents an item such as a product, a sentence or a customer, produced so that similar items get similar vectors. \"A 384-dimensional embedding\" is a list of 384 numbers."
+        },
+        {
+          "term": "Non-linear dimensionality reduction",
+          "def": "Reducing dimensions by bending and stretching the space, not just rotating and dropping axes as PCA does. It can unroll curved structures but gives up some global accuracy."
+        },
+        {
+          "p": "t-SNE (t-distributed Stochastic Neighbour Embedding, 2008) and UMAP (Uniform Manifold Approximation and Projection, 2018) both follow one principle: **keep neighbours together.** If two points are close in the original space, they should be close on the 2-D map. Distances between far-apart points matter much less."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "map axis 1 (no units)",
+            "yLabel": "map axis 2 (no units)",
+            "caption": "An illustrative UMAP-style map of product embeddings. Each colour is a product category. Notice what is reliable (points within an island are similar products) and what is not (the gaps between islands and the axis values carry little meaning).",
+            "points": [
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                1.5,
+                1.3,
+                0
+              ],
+              [
+                1.2,
+                0.6,
+                0
+              ],
+              [
+                0.7,
+                1.1,
+                0
+              ],
+              [
+                1.6,
+                0.8,
+                0
+              ],
+              [
+                5,
+                1.2,
+                1
+              ],
+              [
+                5.4,
+                1.6,
+                1
+              ],
+              [
+                4.7,
+                1.7,
+                1
+              ],
+              [
+                5.2,
+                0.9,
+                1
+              ],
+              [
+                4.9,
+                1.4,
+                1
+              ],
+              [
+                3,
+                5,
+                2
+              ],
+              [
+                3.4,
+                5.3,
+                2
+              ],
+              [
+                2.7,
+                5.5,
+                2
+              ],
+              [
+                3.2,
+                4.6,
+                2
+              ],
+              [
+                3.6,
+                4.9,
+                2
+              ],
+              [
+                8,
+                5,
+                3
+              ],
+              [
+                8.3,
+                5.4,
+                3
+              ],
+              [
+                7.7,
+                4.7,
+                3
+              ],
+              [
+                8.4,
+                4.6,
+                3
+              ],
+              [
+                6.5,
+                3,
+                4
+              ],
+              [
+                6.6,
+                3.2,
+                4
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: a wedding seating plan",
+      "blocks": [
+        {
+          "p": "You are seating 300 wedding guests in one hall. Each guest knows some others well, some slightly, most not at all. You cannot keep every relationship exactly right on a flat floor, so you decide what matters most: **people who know each other well should sit near each other.** Whether the bride's college friends sit 10 metres or 20 metres from the groom's office colleagues matters much less."
+        },
+        {
+          "steps": [
+            "**List the close friends** of each guest, with a strength for each friendship.",
+            "**Seat everyone at random** to start.",
+            "**Look at the seating.** Close friends sitting far apart? Pull them together. Strangers squeezed next to each other? Push them apart a little.",
+            "**Repeat many small adjustments** until friendship groups sit at their own tables."
+          ],
+          "title": "The seating method"
+        },
+        {
+          "p": "That is the essence of t-SNE and UMAP. They first describe who is near whom in the original space, then arrange points in 2-D, nudging them over and over until the 2-D neighbourhoods match the original ones as well as possible."
+        },
+        {
+          "think": {
+            "q": "After the wedding, a guest notices the \"college friends\" table is twice as far from the \"office\" table as from the \"cousins\" table. Does that prove college friends are closer to cousins than to office colleagues?",
+            "a": "No. The seating method cared about keeping friends together, not about getting distances between tables right. The same is true of t-SNE and UMAP maps: gaps between clusters are not reliable evidence of how different the clusters are."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How the algorithms work, step by step",
+      "blocks": [
+        {
+          "term": "Perplexity (t-SNE)",
+          "def": "A setting that roughly controls how many neighbours each point pays attention to. Typical values are 5 to 50; scikit-learn uses 30 by default. Small values focus on very local detail, larger values on broader structure."
+        },
+        {
+          "term": "n_neighbors and min_dist (UMAP)",
+          "def": "n_neighbors (default 15) plays a role like perplexity: how many neighbours define each point's local area. min_dist (default 0.1) controls how tightly points may be packed together on the map."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "High-dimensional data (often PCA-reduced to ~50)",
+              "Measure **neighbour similarities** for every point",
+              "Place points randomly or from PCA in 2-D",
+              "**Nudge** points so 2-D neighbours match original neighbours",
+              "Read the map: islands = groups of similar items"
+            ],
+            "caption": "The shared recipe of t-SNE and UMAP. They differ mainly in how similarities are defined and in how the nudging is done, which makes UMAP considerably faster on large datasets."
+          }
+        },
+        {
+          "steps": [
+            "**Similarities in the original space.** For each point, turn distances to other points into similarity scores: nearby points score high, distant ones almost zero. Each point gets its own \"neighbourhood size\", tuned so it has about the number of meaningful neighbours set by perplexity (t-SNE) or n_neighbors (UMAP).",
+            "**Initial layout.** Put the points somewhere in 2-D. Modern defaults start from a PCA layout (t-SNE in scikit-learn) or a spectral layout (UMAP), which gives more stable results than pure randomness.",
+            "**Similarities on the map.** Compute similarities between the 2-D positions in the same spirit.",
+            "**Improve the layout.** Move points a little to reduce the mismatch between the two sets of similarities, using gradient descent. Repeat for hundreds of iterations."
+          ]
+        },
+        {
+          "callout": "UMAP learns a reusable mapping, so new points can be placed on an existing map with `transform`. scikit-learn's t-SNE has no `transform`: adding new points means re-running everything.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly (t-SNE)",
+      "blocks": [
+        {
+          "p": "UMAP's maths comes from topology and is heavier, so we follow t-SNE, whose three formulas show the ideas clearly. UMAP follows the same spirit."
+        },
+        {
+          "tex": "p_{j|i} = \\frac{\\exp\\!\\left(-\\lVert x_i - x_j \\rVert^2 / 2\\sigma_i^2\\right)}{\\sum_{k \\ne i} \\exp\\!\\left(-\\lVert x_i - x_k \\rVert^2 / 2\\sigma_i^2\\right)}",
+          "plain": "How much point i \"picks\" point j as a neighbour in the original space. A bell curve centred on i gives high scores to close points and almost zero to far ones; dividing by the total makes the scores add to 1. The width σᵢ is tuned per point to match the perplexity.",
+          "symbols": [
+            [
+              "p_{j|i}",
+              "similarity of j from i's point of view"
+            ],
+            [
+              "x_i",
+              "point i in the original space"
+            ],
+            [
+              "\\sigma_i",
+              "width of i's neighbourhood (set by perplexity)"
+            ]
+          ]
+        },
+        {
+          "tex": "q_{ij} = \\frac{\\left(1 + \\lVert y_i - y_j \\rVert^2\\right)^{-1}}{\\sum_{k \\ne l} \\left(1 + \\lVert y_k - y_l \\rVert^2\\right)^{-1}}",
+          "plain": "Similarity of i and j on the 2-D map. Instead of a bell curve it uses a Student t-curve (this is the \"t\" in t-SNE), which falls off much more slowly at long distances.",
+          "symbols": [
+            [
+              "y_i",
+              "position of point i on the 2-D map"
+            ],
+            [
+              "q_{ij}",
+              "similarity on the map"
+            ]
+          ]
+        },
+        {
+          "term": "KL divergence",
+          "def": "Kullback–Leibler divergence: a measure of how different two sets of probabilities are. It is zero when they match exactly. t-SNE moves points to make it as small as possible."
+        },
+        {
+          "tex": "C = \\sum_{i \\ne j} p_{ij} \\log \\frac{p_{ij}}{q_{ij}}",
+          "plain": "t-SNE's cost. For each pair, compare the original similarity with the map similarity. Pairs that were close originally (large p) but far on the map (small q) are punished heavily; pairs that were far originally barely count. (The original similarities are symmetrised: pᵢⱼ averages p of j given i and p of i given j, divided by the number of points.)",
+          "symbols": [
+            [
+              "C",
+              "cost to minimise"
+            ],
+            [
+              "p_{ij}",
+              "symmetrised original similarity"
+            ]
+          ]
+        },
+        {
+          "p": "Why the heavy-tailed t-curve on the map? There is far less room in 2-D than in 384-D. A point can have dozens of moderately close neighbours in high dimensions but cannot fit them all at moderate distance on a flat page, a difficulty known as the **crowding problem**. The heavy tail lets moderately distant points sit further apart on the map without much penalty, which opens clear gaps between groups."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Turning distances into neighbour scores",
+            "setup": "Point i has three other points at distances 1, 2 and 4 in the original space. Use a neighbourhood width σ = 1.",
+            "steps": [
+              "Bell-curve score = e^(−distance² / 2). Distance 1: e^(−0.5) ≈ 0.607. Distance 2: e^(−2) ≈ 0.135. Distance 4: e^(−8) ≈ 0.0003.",
+              "Total ≈ 0.607 + 0.135 + 0.0003 ≈ 0.743.",
+              "Normalised: 0.607 / 0.743 ≈ 0.817; 0.135 / 0.743 ≈ 0.182; 0.0003 / 0.743 ≈ 0.000."
+            ],
+            "result": "The nearest point gets 82% of i's attention, the second 18%, and the far point effectively nothing. Neighbourhoods, not global distances, are what t-SNE keeps."
+          }
+        },
+        {
+          "example": {
+            "title": "Why the t-curve opens gaps",
+            "setup": "Compare the bell-curve score e^(−d²/2) with the t-curve score 1 / (1 + d²) at several distances d.",
+            "steps": [
+              "d = 1: bell 0.607, t-curve 0.500.",
+              "d = 2: bell 0.135, t-curve 0.200.",
+              "d = 3: bell 0.011, t-curve 0.100, about nine times the bell value.",
+              "d = 5: bell about 0.000004, t-curve 0.038."
+            ],
+            "result": "On the map, the t-curve still gives sizeable similarity at moderate distances. To make the map similarity of two dissimilar points as small as the original, t-SNE must push them much further apart, which creates the well-separated islands people see."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-x*x/2)",
+            "fn2": "1/(1+x*x)",
+            "xMin": 0,
+            "xMax": 5,
+            "marks": [
+              {
+                "x": 3,
+                "label": "d = 3"
+              }
+            ],
+            "xLabel": "distance d",
+            "yLabel": "similarity score",
+            "legend": [
+              "bell curve (original space)",
+              "t-curve (2-D map)"
+            ],
+            "caption": "The bell curve drops to almost zero by distance 3; the t-curve still sits at 0.1. This heavy tail is the trick that lets t-SNE separate groups clearly on a crowded 2-D page."
+          }
+        },
+        {
+          "example": {
+            "title": "Why t-SNE cares more about friends than strangers",
+            "setup": "Two pairs contribute to the cost C = p × log(p / q). Pair 1: close originally (p = 0.5) but far on the map (q = 0.05). Pair 2: far originally (p = 0.05) but close on the map (q = 0.5).",
+            "steps": [
+              "Pair 1: 0.5 × ln(0.5 / 0.05) = 0.5 × ln(10) ≈ 1.15.",
+              "Pair 2: 0.05 × ln(0.05 / 0.5) = 0.05 × ln(0.1) ≈ −0.12."
+            ],
+            "result": "Splitting up true neighbours costs about ten times more (and in the opposite direction) than squeezing strangers together. That is why t-SNE preserves local neighbourhoods faithfully but makes no promise about global layout."
+          }
+        },
+        {
+          "example": {
+            "title": "Checking a map of a product catalogue",
+            "setup": "A retailer wants to know whether a 2-D map is trustworthy before showing it to category managers. For one product, list its 10 nearest neighbours in the original 384-D embedding, then its 10 nearest on each 2-D map (illustrative counts).",
+            "steps": [
+              "UMAP map: 8 of the 10 original neighbours are still among the 10 nearest on the map → 8 / 10 = 80% preserved.",
+              "PCA map: only 4 of 10 remain → 40% preserved.",
+              "Averaging this check over 1,000 random products gives a simple \"neighbour preservation\" score for each map."
+            ],
+            "result": "The UMAP map keeps local similarity far better, so it is the right picture for spotting mislabelled products. The PCA map is still better for statements about overall spread."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading the maps safely",
+      "blocks": [
+        {
+          "p": "These maps are persuasive pictures, and persuasive pictures are easy to over-read. Use these rules every time."
+        },
+        {
+          "bullets": [
+            "**Trust local neighbourhoods.** Points next to each other are probably similar in the original space.",
+            "**Do not trust cluster sizes.** t-SNE in particular tends to expand dense clusters and shrink sparse ones, so a big island does not mean a widely spread group.",
+            "**Do not trust distances between clusters.** Gaps are partly an artefact of the heavy tail and of the settings.",
+            "**Axes have no meaning.** \"Axis 1 = 12\" is not interpretable, and maps can be rotated or mirrored freely.",
+            "**Try several settings and seeds.** Structure that appears under perplexity 15, 30 and 50, and across random seeds, is real. Structure that appears only once is suspect.",
+            "**Random noise can look clustered** at very low perplexity. Always sanity-check by colouring points with known labels."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Setting",
+              "Too small",
+              "Too large"
+            ],
+            "rows": [
+              [
+                "t-SNE perplexity",
+                "Many tiny, fake clusters",
+                "Groups blur together; slower"
+              ],
+              [
+                "UMAP n_neighbors",
+                "Fragmented, very local map",
+                "Smoother, more global, finer detail lost"
+              ],
+              [
+                "UMAP min_dist",
+                "Tight, dense clumps",
+                "Points spread evenly, clusters less distinct"
+              ]
+            ],
+            "caption": "How the main settings change the picture. Defaults (perplexity 30; n_neighbors 15, min_dist 0.1) are sensible starting points, not final answers."
+          }
+        },
+        {
+          "callout": "Do not feed t-SNE coordinates into a predictive model, and be cautious about clustering them: they distort densities and cannot place new data. UMAP output is sometimes used before HDBSCAN for clustering text embeddings, but validate any such clusters in the original space.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "t-SNE and UMAP in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Single-cell biology",
+            "story": "In single-cell RNA sequencing, each of tens of thousands of cells is described by the activity of thousands of genes. t-SNE and later UMAP became standard ways to draw these cells as 2-D maps, where islands correspond to cell types such as different immune cells. Researchers use the maps to spot unexpected groups and then confirm them with statistical tests in the original gene space. The same field has also published cautions that distances and sizes on these maps should not be over-interpreted, which is exactly the reading rule above."
+          }
+        },
+        {
+          "bullets": [
+            "**Language-model embeddings:** map support tickets, product descriptions or survey answers to see themes and outliers.",
+            "**Model debugging:** map the internal features of an image or text classifier, coloured by true label, to see which classes it confuses.",
+            "**Customer behaviour:** map customers described by many behavioural features to give marketing a visual feel for segments before formal clustering.",
+            "**Fraud review:** analysts browse a UMAP map of transactions and inspect small isolated islands."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Slow on very large data:** exact t-SNE does not scale; the Barnes–Hut approximation (scikit-learn's default) helps, and UMAP is usually much faster.",
+            "**Different runs, different pictures:** set `random_state` and compare several runs.",
+            "**Not for features:** use PCA when you need inputs for a model.",
+            "**Distances are distorted:** never quote \"cluster A is twice as far from B as from C\" from these maps.",
+            "**Pre-reduce first:** running PCA to about 50 dimensions before t-SNE or UMAP removes noise and speeds things up."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "t-SNE",
+              "items": [
+                "Excellent local detail",
+                "Slower on large datasets",
+                "No transform for new points (scikit-learn)",
+                "Key setting: perplexity",
+                "Global layout weakly preserved"
+              ]
+            },
+            "right": {
+              "title": "UMAP",
+              "items": [
+                "Similar local quality",
+                "Faster; scales to millions of points",
+                "Can transform new points",
+                "Key settings: n_neighbors, min_dist",
+                "Often keeps more global structure (still not exact)"
+              ]
+            },
+            "caption": "UMAP is usually the practical default today; t-SNE remains a strong choice for detailed views of moderate-sized data. Both are for looking, not for measuring."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use PCA, t-SNE or UMAP?",
+      "a": "PCA for model inputs, compression and faithful global structure. UMAP (or t-SNE) for 2-D pictures that reveal local groups. Often you use PCA first, then UMAP on the PCA output."
+    },
+    {
+      "q": "Why does my t-SNE plot change every time?",
+      "a": "The optimisation starts from a random or PCA layout and settles in one of many good arrangements. Fix `random_state` for reproducibility and check that the main structure is stable across seeds."
+    },
+    {
+      "q": "What perplexity should I use?",
+      "a": "Start with 30, then try values such as 5, 15 and 50. Perplexity must be smaller than the number of points. Trust structure that holds across several values."
+    },
+    {
+      "q": "Can I say two clusters are very different because they are far apart on the map?",
+      "a": "Not reliably. Check the difference in the original space, for example by comparing average feature values or distances between cluster centres there."
+    },
+    {
+      "q": "Is UMAP in scikit-learn?",
+      "a": "No. Install the separate `umap-learn` package; its interface follows scikit-learn (`fit`, `transform`, `fit_transform`)."
+    },
+    {
+      "q": "Do these methods find clusters?",
+      "a": "They draw maps on which clusters may become visible. Formal cluster labels still come from a clustering algorithm, ideally checked in the original space."
+    }
+  ]
+}

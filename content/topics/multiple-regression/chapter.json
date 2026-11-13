@@ -1,0 +1,476 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "A buyer notices that 3-bedroom flats in Chennai sell for about ₹12 lakh more per extra bedroom than smaller ones and concludes that adding a bedroom is a great investment. A builder notices the same number and wonders whether to squeeze a third bedroom into the same 1,000 sq ft. Both are about to be misled. Flats with more bedrooms are also **bigger**, so the ₹12 lakh mixes two effects together. **Multiple regression** is the tool that pulls them apart.",
+  "sections": [
+    {
+      "heading": "The problem: many things drive one number",
+      "blocks": [
+        {
+          "p": "In the previous chapter one feature (area) predicted one target (price). Real prices depend on many things at once: area, age, floor, locality, distance to the metro, parking. Using only one of them leaves useful information on the table and, worse, can give a misleading answer about the one you did use."
+        },
+        {
+          "p": "Multiple regression keeps the simple idea of a straight-line model but lets it use **several features together**. Each feature gets its own number, called a coefficient, that says how much the prediction moves when that feature changes."
+        },
+        {
+          "term": "Coefficient",
+          "def": "The number multiplying a feature in the model. In multiple regression it is the expected change in the target for a one-unit increase in that feature, with all the other features held at the same values."
+        },
+        {
+          "p": "That last phrase, \"with all the other features held at the same values\", is the whole point. It lets us ask questions that a simple chart cannot answer, such as: **how much more does a flat near the metro cost than an identical flat of the same size and age far from it?**"
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Flat",
+              "Area (100 sq ft)",
+              "Bedrooms",
+              "Age (yrs)",
+              "Near metro",
+              "Price (₹ L)"
+            ],
+            "rows": [
+              [
+                "A",
+                "6",
+                "1",
+                "4",
+                "0",
+                "27.5"
+              ],
+              [
+                "B",
+                "8",
+                "2",
+                "15",
+                "1",
+                "37.1"
+              ],
+              [
+                "C",
+                "9",
+                "2",
+                "6",
+                "0",
+                "38.3"
+              ],
+              [
+                "D",
+                "10",
+                "2",
+                "3",
+                "1",
+                "51.0"
+              ],
+              [
+                "E",
+                "11",
+                "3",
+                "18",
+                "0",
+                "40.4"
+              ],
+              [
+                "F",
+                "12",
+                "3",
+                "9",
+                "1",
+                "56.7"
+              ],
+              [
+                "G",
+                "14",
+                "3",
+                "12",
+                "0",
+                "54.4"
+              ],
+              [
+                "H",
+                "15",
+                "4",
+                "7",
+                "1",
+                "69.6"
+              ]
+            ],
+            "caption": "Eight flats described by four features. Notice flat E: bigger than D but cheaper, because it is 18 years old and far from the metro. Only a model that looks at all columns together can make sense of that."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: comparing like with like",
+      "blocks": [
+        {
+          "p": "Think of how an experienced broker values a flat. She does not just say \"1,000 sq ft, so ₹45 lakh\". She starts from a base price for the size, then adjusts: \"knock off a bit because it is 15 years old, add a premium because the metro station is a five-minute walk\". Each adjustment is made **as if everything else were the same**."
+        },
+        {
+          "steps": [
+            "**Start with a base value** for a flat of a given size.",
+            "**Adjust for age**: so many lakh less per year, comparing flats of the same size and location.",
+            "**Adjust for location**: a fixed premium for being near the metro, comparing flats of the same size and age.",
+            "**Add up the adjustments** to get the final estimate."
+          ],
+          "title": "How the broker reasons"
+        },
+        {
+          "p": "Multiple regression learns those adjustments from data. It finds the set of coefficients that, used together, make the predictions as close as possible to the real prices, using exactly the same least-squares rule as before."
+        },
+        {
+          "term": "Holding other features constant",
+          "def": "Comparing cases that differ in only one feature. A coefficient in multiple regression estimates the effect of that one feature after the model has accounted for the others it can see."
+        },
+        {
+          "think": {
+            "q": "In the hook, why was \"₹12 lakh per bedroom\" misleading?",
+            "a": "Because bedrooms and area travel together: flats with more bedrooms are usually bigger. The ₹12 lakh includes the value of the extra space. Once the model also sees area, it can ask what an extra bedroom is worth in a flat of the same size, and the answer is much smaller."
+          }
+        },
+        {
+          "callout": "A coefficient only \"holds constant\" the features that are in the model. If something important is left out (say, sea view), its effect leaks into whichever included features are correlated with it.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Choose features** that plausibly drive the target",
+              "**Encode** categories as 0/1 columns",
+              "**Fit** all coefficients together by least squares",
+              "**Diagnose**: adjusted R², residuals, VIF",
+              "**Interpret** each coefficient \"holding others fixed\""
+            ],
+            "caption": "The multiple-regression workflow. Fitting is one line of code; choosing features and diagnosing problems take the time."
+          }
+        },
+        {
+          "p": "**Step 1: Choose features.** Use business knowledge. Each feature should have a plausible reason to affect the target and be known at the time you want to predict (do not use the final negotiated discount to predict the listed price)."
+        },
+        {
+          "p": "**Step 2: Encode categories.** A column such as \"near metro: yes / no\" becomes 1 or 0. A column with several categories (locality: Adyar, Velachery, Tambaram) becomes several 0/1 columns, leaving one category out as the reference."
+        },
+        {
+          "term": "Dummy variable",
+          "def": "A 0/1 column that represents a category, such as near_metro = 1 for yes and 0 for no. Its coefficient is the average difference between the two groups, holding the other features fixed."
+        },
+        {
+          "p": "**Step 3: Fit.** The computer solves for all coefficients at once. Fitting them one at a time would give different, wrong answers, because each feature’s effect depends on what the others are already explaining."
+        },
+        {
+          "p": "**Step 4: Diagnose.** Check the fit on new data, look at residual plots and check whether any features are so strongly related to each other that their coefficients cannot be trusted (multicollinearity, below)."
+        },
+        {
+          "p": "**Step 5: Interpret.** Read each coefficient in business units with the phrase \"holding the other features fixed\"."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\hat{y} = b_0 + b_1 x_1 + b_2 x_2 + \\dots + b_p x_p",
+          "plain": "The prediction is a starting value plus a weighted sum of the features. With two features this is a flat sheet (a plane) through a 3-D cloud of points instead of a line through a 2-D cloud.",
+          "symbols": [
+            [
+              "x_1, \\dots, x_p",
+              "the p features (area, age, near_metro …)"
+            ],
+            [
+              "b_1, \\dots, b_p",
+              "their coefficients"
+            ],
+            [
+              "b_0",
+              "intercept: the prediction when every feature is 0"
+            ],
+            [
+              "p",
+              "number of features"
+            ]
+          ]
+        },
+        {
+          "p": "The fitting rule is unchanged: choose all the b’s together so that the sum of squared residuals is as small as possible. With many features, writing this out term by term gets messy, so statisticians pack the data into a table of numbers called a matrix."
+        },
+        {
+          "tex": "\\hat{b} = (X^{\\top} X)^{-1} X^{\\top} y",
+          "plain": "This compact formula gives all the least-squares coefficients in one go. X is the table of features (one row per flat, plus a column of 1s for the intercept), and y is the column of prices. You will never compute it by hand; the software does.",
+          "symbols": [
+            [
+              "X",
+              "the feature matrix, n rows by (p + 1) columns"
+            ],
+            [
+              "y",
+              "the column of actual targets"
+            ],
+            [
+              "X^{\\top}",
+              "X flipped so rows become columns (the transpose)"
+            ],
+            [
+              "(\\cdot)^{-1}",
+              "matrix inverse, the matrix version of dividing"
+            ]
+          ]
+        },
+        {
+          "p": "One warning sign hides inside that formula. If two features carry almost the same information (area and number of bedrooms), the matrix X⊤X is close to impossible to invert, and the coefficients become wildly sensitive to tiny changes in the data. That is **multicollinearity**."
+        },
+        {
+          "term": "Multicollinearity",
+          "def": "When two or more features are strongly related to each other, so the model cannot tell which one deserves the credit. Predictions can still be fine, but individual coefficients become unstable and hard to interpret."
+        },
+        {
+          "tex": "\\text{VIF}_j = \\frac{1}{1 - R_j^2}",
+          "plain": "To measure multicollinearity for feature j, predict it from all the other features and record that R². If the others explain feature j almost perfectly (R² near 1), the VIF explodes. A VIF above about 5 to 10 is a warning.",
+          "symbols": [
+            [
+              "\\text{VIF}_j",
+              "variance inflation factor of feature j"
+            ],
+            [
+              "R_j^2",
+              "R² from predicting feature j using the other features"
+            ]
+          ]
+        },
+        {
+          "p": "Finally, plain R² has a flaw here: adding any feature, even random noise, can only raise it on training data. **Adjusted R²** charges a small fee for each feature, so it rises only if the new feature helps more than chance would."
+        },
+        {
+          "tex": "R^2_{adj} = 1 - (1 - R^2)\\,\\frac{n-1}{n-p-1}",
+          "plain": "Take the unexplained share (1 − R²) and inflate it a little for every feature used. More features with the same R² means a lower adjusted R².",
+          "symbols": [
+            [
+              "n",
+              "number of rows"
+            ],
+            [
+              "p",
+              "number of features"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Pricing a flat with three features",
+            "setup": "Fitting price on area, age and near_metro for the eight flats in the table gives: price = 5.5 + 3.97 × area − 0.51 × age + 7.72 × near_metro (price in ₹ lakh, area in hundreds of sq ft). Price a 1,000 sq ft flat, 8 years old, near the metro.",
+            "steps": [
+              "Start: 5.5.",
+              "Area: 3.97 × 10 = 39.7 → running total 45.2.",
+              "Age: −0.51 × 8 = −4.08 → running total 41.12.",
+              "Metro: 7.72 × 1 = 7.72 → total 48.84."
+            ],
+            "result": "About ₹48.8 lakh. Reading the coefficients: each extra 100 sq ft adds about ₹4 lakh, each year of age takes off about ₹51,000, and being near the metro is worth about ₹7.7 lakh, each holding the other two fixed."
+          }
+        },
+        {
+          "example": {
+            "title": "The bedroom illusion, in numbers",
+            "setup": "Same eight flats. Compare the bedroom coefficient with and without area in the model.",
+            "steps": [
+              "Price on bedrooms alone: about ₹12.6 lakh per extra bedroom.",
+              "Correlation between bedrooms and area in this data: 0.94. Bigger flats have more bedrooms.",
+              "Price on area, bedrooms, age and metro together: the bedroom coefficient drops to about ₹1.6 lakh.",
+              "VIFs: area ≈ 13.6 and bedrooms ≈ 16.2, both above 10. The model struggles to separate them."
+            ],
+            "result": "Most of the \"bedroom premium\" was really a size premium. And because area and bedrooms are so collinear, even the ₹1.6 lakh is unreliable: a couple of different flats in the data could change it a lot. The practical choice is to keep area and drop bedrooms, or use regularisation (see the ridge and lasso chapter)."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Bedrooms alone",
+              "With area, age, metro"
+            ],
+            "values": [
+              12.6,
+              1.6
+            ],
+            "highlight": 1,
+            "yLabel": "₹ lakh per extra bedroom",
+            "caption": "The same data gives very different answers to \"what is a bedroom worth?\" depending on what else the model can see. The right-hand bar compares flats of the same size, age and location."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: does a new feature earn its place?",
+            "setup": "A retail chain models weekly store sales with 50 weeks of data. With 4 features (footfall, promotions, rainfall, a festival flag) R² = 0.800. Adding a fifth feature, the local cricket score, lifts R² to 0.801.",
+            "steps": [
+              "Adjusted R² with 4 features: 1 − 0.200 × 49 / 45 = 1 − 0.2178 ≈ 0.782.",
+              "Adjusted R² with 5 features: 1 − 0.199 × 49 / 44 = 1 − 0.2216 ≈ 0.778.",
+              "Plain R² went up; adjusted R² went down."
+            ],
+            "result": "The cricket score did not add enough to justify itself. In practice, compare models by cross-validated error, but adjusted R² is a quick first filter."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Interpreting coefficients well",
+      "blocks": [
+        {
+          "p": "Coefficients are what make multiple regression valuable to a business, and also where most mistakes happen. A few rules keep you safe."
+        },
+        {
+          "bullets": [
+            "**Always say the units.** \"−0.51\" means nothing; \"about ₹51,000 less per year of age\" is a business fact.",
+            "**Always add \"holding the others fixed\".** The metro premium is for flats of the same area and age.",
+            "**Do not compare raw sizes across features.** A coefficient of 7.7 for a 0/1 metro flag and 4 for area per 100 sq ft are in different units. To rank importance, standardise the features first (convert each to \"standard deviations from its average\").",
+            "**Watch the signs.** A coefficient with a sign that contradicts common sense (older flats cost more?) often signals multicollinearity or a missing feature.",
+            "**Association, not causation.** The metro premium may partly reflect other things near metro stations, such as shops and schools, that the model cannot see."
+          ]
+        },
+        {
+          "term": "Omitted variable bias",
+          "def": "When an important feature is left out of the model, and it is correlated with included features, their coefficients absorb part of its effect and become misleading."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "area (hundreds of sq ft)",
+            "yLabel": "bedrooms",
+            "caption": "Area against bedrooms for the eight flats. They rise together almost in lock-step (correlation 0.94). When two features move like this, the model cannot tell which one deserves credit for higher prices: classic multicollinearity.",
+            "points": [
+              [
+                6,
+                1
+              ],
+              [
+                8,
+                2
+              ],
+              [
+                9,
+                2
+              ],
+              [
+                10,
+                2
+              ],
+              [
+                11,
+                3
+              ],
+              [
+                12,
+                3
+              ],
+              [
+                14,
+                3
+              ],
+              [
+                15,
+                4
+              ]
+            ]
+          }
+        },
+        {
+          "callout": "If the goal is only prediction, multicollinearity is often harmless: the combined effect is estimated well. It matters when you want to explain or act on individual coefficients.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Marketing mix modelling (illustrative)",
+            "story": "A consumer-goods company wants to know what its TV, digital and in-store promotions each contribute to weekly sales. Analysts build a multiple regression of sales on spend in each channel, price, seasonality dummies and a festival flag (Diwali, Pongal). The coefficient on digital spend estimates the extra sales per extra ₹1 lakh of digital spend, holding TV, price and season fixed. TV and digital budgets often rise together before festivals, so the team checks VIFs and uses ridge regression when they are high. The results guide next year’s budget split, and the team validates them with controlled experiments in a few cities rather than trusting the coefficients alone."
+          }
+        },
+        {
+          "bullets": [
+            "**Real estate:** hedonic pricing models value each attribute of a property (area, age, floor, amenities).",
+            "**Human resources:** pay-equity reviews compare salaries holding role, grade and experience fixed.",
+            "**Automotive:** estimating how weight, engine size and aerodynamics each affect fuel economy.",
+            "**Energy:** predicting electricity demand from temperature, hour of day and day of week."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Too many features for the rows:** with 40 features and 50 rows the model memorises noise. Keep at least 10 to 20 rows per feature, or use ridge / lasso.",
+            "**Collinear features:** unstable, sign-flipping coefficients. Drop or combine features, or regularise.",
+            "**Hidden curves and interactions:** the metro premium might be larger for big flats. Add an interaction term (area × near_metro) or a polynomial term.",
+            "**Leakage:** a feature that secretly contains the answer (the final sale price in another currency) gives a perfect but useless model."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Multiple regression is right when…",
+              "items": [
+                "Several features plausibly affect a numeric target",
+                "Effects are roughly additive and straight-line",
+                "You need explainable, per-feature effects",
+                "Features are not strongly collinear",
+                "Rows comfortably outnumber features"
+              ]
+            },
+            "right": {
+              "title": "Consider instead…",
+              "items": [
+                "Strong collinearity or many features → **ridge / lasso**",
+                "Curved effects → **polynomial terms** or splines",
+                "Complex interactions → **random forest / gradient boosting**",
+                "Count target → **Poisson regression**",
+                "Yes/no target → **logistic regression**"
+              ]
+            },
+            "caption": "Multiple regression is the workhorse for explaining drivers. Its limits point directly to the next chapters."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between simple and multiple regression?",
+      "a": "Simple regression uses one feature; multiple regression uses several at once. The fitting rule (least squares) is the same. The big gain is that each coefficient becomes an effect \"holding the others fixed\"."
+    },
+    {
+      "q": "How do I include a category with many levels, like locality?",
+      "a": "Create one 0/1 column per locality and leave one out as the reference (pandas `get_dummies(drop_first=True)` does this). Each coefficient is then the price difference from the reference locality."
+    },
+    {
+      "q": "Should I remove features with high VIF?",
+      "a": "If you care about interpreting coefficients, yes: drop one of the collinear pair or combine them. If you only care about prediction, you can keep them, ideally with ridge regression to stabilise the coefficients."
+    },
+    {
+      "q": "Do I need to scale features for multiple regression?",
+      "a": "Not for plain least squares: predictions are identical either way. Scale when you want to compare coefficient sizes, and always scale before ridge or lasso."
+    },
+    {
+      "q": "Why does R² go up when I add a useless feature?",
+      "a": "Because least squares can always use an extra column to fit the training data a tiny bit better, even if the column is noise. Adjusted R² and cross-validation correct for this."
+    },
+    {
+      "q": "Can I say that being near the metro causes a ₹7.7 lakh premium?",
+      "a": "Not from this model alone. It shows the premium among flats of the same size and age in this data. Other things near metro stations could be responsible. Causal claims need experiments or careful causal-inference methods."
+    }
+  ]
+}

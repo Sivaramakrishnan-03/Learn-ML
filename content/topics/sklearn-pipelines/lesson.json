@@ -1,0 +1,63 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Chain preprocessing and a model in one Pipeline",
+    "Use ColumnTransformer for mixed numeric/categorical data",
+    "Explain how pipelines prevent leakage"
+  ],
+  "why": "Pipelines are how professional teams make models reproducible and leak-free: the same steps run identically in CV, testing and production.",
+  "explain": [
+    "A **Pipeline** is an assembly line: impute → scale → encode → model. Calling `.fit()` runs every step on the training data; `.predict()` applies the same fitted steps to new data.",
+    "Inside cross-validation, each fold refits the scaler and imputer on that fold's training part only. That removes a whole class of subtle **leakage** bugs.",
+    "**ColumnTransformer** applies different steps to different columns: scale the numeric ones, one-hot encode the categorical ones.",
+    "You save one object (`joblib.dump(pipe)`) and production gets exactly the same preprocessing. No more \"it worked in the notebook\"."
+  ],
+  "example": {
+    "title": "Loan model pipeline",
+    "steps": [
+      "Numeric [income, age] → SimpleImputer(median) → StandardScaler",
+      "Categorical [city] → OneHotEncoder(handle_unknown=\"ignore\")",
+      "Model → LogisticRegression",
+      "cross_val_score(pipe, X, y, cv=5) runs all of it correctly per fold"
+    ],
+    "result": "One object, no leakage, deployable as a single file."
+  },
+  "mistakes": [
+    "Scaling the whole dataset before CV.",
+    "Forgetting handle_unknown=\"ignore\" and crashing on a new category in production."
+  ],
+  "takeaways": [
+    "Pipeline = preprocessing + model as one object",
+    "ColumnTransformer for mixed column types",
+    "Fit once, deploy the same object"
+  ],
+  "practice": {
+    "code": "import pandas as pd, numpy as np\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.compose import make_column_transformer\nfrom sklearn.preprocessing import StandardScaler, OneHotEncoder\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.linear_model import LogisticRegression\nX = pd.DataFrame({\"income\": [10, 20, np.nan, 15], \"city\": [\"Pune\", \"Chennai\", \"Pune\", \"Delhi\"]}); y = [0, 1, 0, 1]\npre = make_column_transformer((make_pipeline(SimpleImputer(strategy=\"median\"), StandardScaler()), [\"income\"]),\n                              (OneHotEncoder(handle_unknown=\"ignore\"), [\"city\"]))\npipe = make_pipeline(pre, LogisticRegression()).fit(X, y)\nprint(pipe.predict(pd.DataFrame({\"income\": [18], \"city\": [\"Mumbai\"]})))"
+  },
+  "check": [
+    {
+      "q": "Main benefit of putting the scaler inside a Pipeline during CV?",
+      "options": [
+        "Faster training",
+        "Each fold's scaler is fitted on its training part only (no leakage)",
+        "Better plots",
+        "Fewer features"
+      ],
+      "answer": 1,
+      "why": "The pipeline refits preprocessing per fold."
+    },
+    {
+      "q": "Which tool applies different preprocessing to different columns?",
+      "options": [
+        "GridSearchCV",
+        "ColumnTransformer",
+        "KFold",
+        "LabelEncoder"
+      ],
+      "answer": 1,
+      "why": "ColumnTransformer routes columns to their own transformers."
+    }
+  ],
+  "chapterMinutes": 15
+}

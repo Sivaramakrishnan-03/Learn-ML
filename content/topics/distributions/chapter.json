@@ -1,0 +1,502 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 19,
+  "hook": "A bank’s call-centre manager knows that, on average, 3 customers call every minute. So she staffs for 3 calls a minute, and the phone lines are jammed several times an hour. The average was right; the plan was wrong. What she needed was not the average but the **whole shape of the randomness**: how often 5, 7 or 9 calls arrive in the same minute. Different processes produce different shapes, and this chapter is a field guide to the six you will meet most.",
+  "sections": [
+    {
+      "heading": "The problem: one bell curve does not fit everything",
+      "blocks": [
+        {
+          "p": "The normal distribution is a beautiful model for heights and bolt diameters. But try using it for “number of customers who call in a minute” and it breaks: calls come in whole numbers, can never be negative, and with a small average the shape is lopsided. Try it for “minutes until the next customer walks in” and it breaks again: short waits are most common, long waits are rare but possible."
+        },
+        {
+          "term": "Discrete vs continuous",
+          "def": "A **discrete** quantity takes separate, countable values: 0, 1, 2, 3 calls. A **continuous** quantity can take any value in a range: 2.37 minutes, 10.004 mm. Discrete distributions give a probability to each value; continuous ones use areas under a curve."
+        },
+        {
+          "p": "Statisticians have built a small toolkit of standard shapes, each matching a particular kind of process. Picking the right one is like a doctor picking the right test: it turns a vague worry (“will we be overwhelmed?”) into a number (“3.4% of minutes”)."
+        },
+        {
+          "term": "Parameter",
+          "def": "A number that pins down the exact version of a distribution. The normal has two (mean and SD). The Poisson has one (the average rate λ). Change the parameter and you change the shape, but the family stays the same."
+        },
+        {
+          "term": "Probability mass function (PMF)",
+          "def": "For a discrete distribution, the rule giving the probability of each exact value, such as P(exactly 2 calls). All the probabilities add up to 1. It is the counting cousin of the density curve."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: every distribution tells a story",
+      "blocks": [
+        {
+          "p": "The secret to choosing a distribution is to stop thinking about formulas and start thinking about **the story of how the numbers were produced**. Each standard distribution is the answer to a short story."
+        },
+        {
+          "steps": [
+            "**Binomial: “Count the yeses.”** You make a fixed number of independent tries, each with the same chance of success, and count the successes. Twenty sales calls, each with a 10% chance of closing: how many deals?",
+            "**Poisson: “Count the arrivals.”** Events happen one at a time, independently, at a steady average rate, and you count how many land in a fixed window. Calls per minute, defects per metre of cable, claims per day.",
+            "**Exponential: “Wait for the next one.”** Same story as Poisson, but instead of counting events you measure the gap between them. Minutes until the next customer.",
+            "**Uniform: “No favourites.”** Every value in a range is equally likely. You arrive at a bus stop at a random moment; buses come every 20 minutes; your wait is anything from 0 to 20 minutes.",
+            "**t: “The bell, when you are unsure of the spread.”** The distribution of a standardised average when the SD itself had to be estimated from a small sample.",
+            "**Chi-square: “Add up squared surprises.”** The distribution of a sum of squared standard-normal values, used to judge whether observed counts differ from expected counts."
+          ],
+          "title": "Six stories, six shapes"
+        },
+        {
+          "think": {
+            "q": "A factory checks 50 bottles from each batch and counts how many are underfilled. A website counts how many sign-ups it gets per hour. Which story fits each?",
+            "a": "The bottles are binomial: a fixed number of tries (50) and a yes/no outcome for each. The sign-ups are Poisson: no fixed number of tries, just arrivals at an average rate in a time window."
+          }
+        },
+        {
+          "callout": "The first question to ask is: am I counting out of a fixed total (binomial), counting arrivals with no upper limit (Poisson), or measuring a time or amount (continuous)?",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How to choose a distribution, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "What are you modelling?",
+              "children": [
+                {
+                  "label": "A count",
+                  "edge": "whole numbers",
+                  "children": [
+                    {
+                      "label": "**Binomial**",
+                      "edge": "successes out of a fixed n"
+                    },
+                    {
+                      "label": "**Poisson**",
+                      "edge": "events in a time or space window"
+                    }
+                  ]
+                },
+                {
+                  "label": "A measurement",
+                  "edge": "any value in a range",
+                  "children": [
+                    {
+                      "label": "**Exponential**",
+                      "edge": "waiting time between events"
+                    },
+                    {
+                      "label": "**Uniform**",
+                      "edge": "all values equally likely"
+                    },
+                    {
+                      "label": "**Normal**",
+                      "edge": "many small effects added up"
+                    }
+                  ]
+                },
+                {
+                  "label": "A test statistic",
+                  "edge": "used in inference",
+                  "children": [
+                    {
+                      "label": "**t**",
+                      "edge": "small-sample mean"
+                    },
+                    {
+                      "label": "**Chi-square**",
+                      "edge": "counts vs expected, variances"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "A decision tree for picking a distribution. Start from the story of how the data were produced, not from which curve looks prettiest."
+          }
+        },
+        {
+          "steps": [
+            "**Describe the process in one sentence.** “Each of 200 invoices is either paid late or not.”",
+            "**Decide discrete or continuous.** Counts are discrete; times, weights and money are treated as continuous.",
+            "**Match the story** using the tree above.",
+            "**Estimate the parameters** from data: p = share of successes, λ = average count per window, mean waiting time, and so on.",
+            "**Check the fit.** Compare the model’s predicted frequencies with what you actually observed. For Poisson, check that the variance is close to the mean.",
+            "**Use it** to answer the business question: probabilities of extremes, staffing levels, safety stock."
+          ],
+          "title": "The procedure"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "**Binomial.** n independent tries, each succeeding with probability p. The chance of exactly k successes is:"
+        },
+        {
+          "tex": "P(X = k) = \\binom{n}{k} \\, p^{k} (1-p)^{\\,n-k}",
+          "plain": "p to the power k is the chance of k particular successes; (1 − p) to the power n − k is the chance the rest fail; the binomial coefficient counts how many different orders those successes could come in.",
+          "symbols": [
+            [
+              "n",
+              "number of tries"
+            ],
+            [
+              "p",
+              "chance of success on each try"
+            ],
+            [
+              "k",
+              "number of successes we ask about"
+            ],
+            [
+              "\\binom{n}{k}",
+              "“n choose k”: the number of ways to pick which k tries succeed"
+            ]
+          ]
+        },
+        {
+          "p": "Its mean is n × p and its SD is √(n × p × (1 − p)). Twenty calls at 10% gives a mean of 2 deals and an SD of about 1.34."
+        },
+        {
+          "p": "**Poisson.** Events arrive independently at an average rate λ per window. The chance of exactly k events is:"
+        },
+        {
+          "tex": "P(X = k) = \\frac{\\lambda^{k} e^{-\\lambda}}{k!}",
+          "plain": "λ to the power k grows with more events, k! (k factorial) shrinks it because there are many orderings, and e to the minus λ makes all the probabilities add up to 1.",
+          "symbols": [
+            [
+              "\\lambda",
+              "average number of events per window (also its variance)"
+            ],
+            [
+              "k!",
+              "k factorial: k × (k − 1) × … × 1"
+            ],
+            [
+              "e",
+              "the constant 2.718…"
+            ]
+          ]
+        },
+        {
+          "callout": "A Poisson distribution has **mean = variance = λ**. If your counts have a variance much larger than their mean, the data is “over-dispersed” and a negative binomial model will fit better.",
+          "tone": "tip"
+        },
+        {
+          "p": "**Exponential.** If events follow a Poisson process, the waiting time T until the next event has an exponential distribution. Its key formula is the chance you are still waiting after time t:"
+        },
+        {
+          "tex": "P(T > t) = e^{-t/\\beta}",
+          "plain": "The chance of still waiting falls off exponentially. If the average gap is β minutes, the chance of waiting more than t minutes is e raised to minus t over β.",
+          "symbols": [
+            [
+              "\\beta",
+              "mean waiting time (equal to 1/λ)"
+            ],
+            [
+              "t",
+              "how long you have already waited"
+            ]
+          ]
+        },
+        {
+          "term": "Memoryless property",
+          "def": "For an exponential wait, the time you have already waited tells you nothing about how much longer you will wait. If no customer has arrived in the last 5 minutes, the next one is not “due”. This is true for random arrivals, but not for things that wear out, such as tyres."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Binomial: how lucky is a good week in sales?",
+            "setup": "A salesperson closes 10% of qualified leads. This week she has 20 leads. What is the chance of exactly 2 deals, of zero deals, and of 4 or more?",
+            "steps": [
+              "Story: fixed number of tries (20), yes/no outcome, same p = 0.1 each time, so binomial.",
+              "P(0 deals) = 0.9²⁰ = 0.1216. About one week in eight she closes nothing, purely by chance.",
+              "P(exactly 2) = (20 choose 2) × 0.1² × 0.9¹⁸ = 190 × 0.01 × 0.1501 = 0.2852.",
+              "P(0, 1, 2 or 3) = 0.1216 + 0.2702 + 0.2852 + 0.1901 = 0.8670 (computed precisely: 0.8670).",
+              "P(4 or more) = 1 − 0.8670 = 0.1330."
+            ],
+            "result": "Even an average performer has a “great week” of 4+ deals about 13% of the time and a zero week about 12% of the time. Judging people on one week of results mostly rewards and punishes luck."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "values": [
+              0.1216,
+              0.2702,
+              0.2852,
+              0.1901,
+              0.0898,
+              0.0319,
+              0.0089,
+              0.002,
+              0.0004
+            ],
+            "highlight": 2,
+            "yLabel": "probability",
+            "caption": "Binomial distribution of deals from 20 leads at a 10% close rate. The most likely result is 2 deals, but 0 or 4+ are far from rare. Note the shape is lopsided because p is small."
+          }
+        },
+        {
+          "example": {
+            "title": "Poisson: staffing the bank call centre",
+            "setup": "Calls arrive at an average of λ = 3 per minute. The team can handle 6 calls in a minute. How often are they overwhelmed, and what capacity would keep it under 1% of minutes?",
+            "steps": [
+              "Story: arrivals in a fixed time window, independently, at a steady rate, so Poisson with λ = 3.",
+              "P(0 calls) = e⁻³ = 0.0498. P(exactly 2) = 3² × e⁻³ / 2! = 9 × 0.0498 / 2 = 0.2240.",
+              "P(6 or fewer) = 0.9665, so P(more than 6) = 0.0335.",
+              "Over a 60-minute hour that is about 60 × 0.0335 ≈ 2 overloaded minutes per hour.",
+              "Capacity 7: P(more than 7) = 0.0119, still just over 1%. Capacity 8: P(more than 8) = 0.0038."
+            ],
+            "result": "To keep overloads under 1% of minutes, plan for 8 calls a minute, well over double the average of 3. Planning for the average guarantees trouble."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10"
+            ],
+            "values": [
+              0.0498,
+              0.1494,
+              0.224,
+              0.224,
+              0.168,
+              0.1008,
+              0.0504,
+              0.0216,
+              0.0081,
+              0.0027,
+              0.0008
+            ],
+            "highlight": 7,
+            "yLabel": "probability",
+            "caption": "Poisson distribution with λ = 3 calls per minute. The bars to the right of 6 (starting with the highlighted 7) add up to 3.4%: about two minutes every hour when a 6-call team is swamped."
+          }
+        },
+        {
+          "example": {
+            "title": "Exponential: the fuel-station forecourt",
+            "setup": "Cars arrive at a highway fuel station as a Poisson process with an average gap of 2 minutes. What is the chance the attendant waits more than 3 minutes for the next car? What is the typical (median) wait?",
+            "steps": [
+              "Story: waiting time between random arrivals, so exponential with mean β = 2 minutes.",
+              "P(wait > 3) = e^(−3/2) = e^(−1.5) = 0.2231.",
+              "P(wait under 1 minute) = 1 − e^(−0.5) = 0.3935.",
+              "Median wait: solve e^(−t/2) = 0.5, giving t = 2 × ln 2 ≈ 1.39 minutes.",
+              "Memoryless: if no car has come for 5 minutes, the chance of waiting 3 more minutes is still 0.2231."
+            ],
+            "result": "Most gaps are short (median about 1.4 minutes, below the mean of 2) but about 1 gap in 4.5 exceeds 3 minutes. The mean is pulled up by occasional long lulls, the same right skew we saw with salaries."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "x>=0 ? 0.5*Math.exp(-x/2) : 0",
+            "xMin": 0,
+            "xMax": 12,
+            "shade": [
+              3,
+              12
+            ],
+            "marks": [
+              {
+                "x": 1.39,
+                "label": "median 1.39"
+              },
+              {
+                "x": 2,
+                "label": "mean 2"
+              }
+            ],
+            "xLabel": "minutes until the next car",
+            "yLabel": "density",
+            "caption": "Exponential waiting times with a mean of 2 minutes. The curve is highest at zero (very short gaps are most common) and the shaded tail beyond 3 minutes holds 22% of the area."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Uniform, t and chi-square: three more shapes you will meet",
+      "blocks": [
+        {
+          "p": "**Uniform.** If a bus comes every 20 minutes and you arrive at a random moment, your wait is equally likely to be anything from 0 to 20 minutes. The average wait is 10 minutes and the chance of waiting more than 15 minutes is 5 / 20 = 0.25. Uniform distributions also power random number generators and simulations."
+        },
+        {
+          "p": "**t-distribution.** When we standardise a sample mean using an SD that was itself estimated from a small sample, we add extra uncertainty. The result is bell-shaped but with **fatter tails** than the normal. How fat depends on the **degrees of freedom**, roughly the sample size minus one."
+        },
+        {
+          "term": "Degrees of freedom",
+          "def": "The number of independent pieces of information left for estimating variability. For a sample of n values used to estimate one mean, it is n − 1. More degrees of freedom means more information and a distribution closer to the normal."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)",
+            "fn2": "0.36755*Math.pow(1+x*x/3,-2)",
+            "xMin": -5,
+            "xMax": 5,
+            "marks": [
+              {
+                "x": -2,
+                "label": "−2"
+              },
+              {
+                "x": 2,
+                "label": "+2"
+              }
+            ],
+            "xLabel": "standardised value",
+            "yLabel": "density",
+            "legend": [
+              "standard normal",
+              "t with 3 degrees of freedom"
+            ],
+            "caption": "The t-distribution with 3 degrees of freedom is lower in the middle and fatter in the tails. Beyond ±2, the normal has 4.6% of its area; this t has 13.9%. With small samples, extreme-looking values happen more often by chance."
+          }
+        },
+        {
+          "p": "**Chi-square.** Take several standard-normal values, square each one and add them up. The total follows a chi-square distribution, with degrees of freedom equal to the number of squares. It is always positive and right-skewed. Its main job is in the chi-square test, which asks whether observed counts (customers per plan, defects per shift) differ from what we expected."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "x>0 ? 0.13298*Math.pow(x,1.5)*Math.exp(-x/2) : 0",
+            "xMin": 0,
+            "xMax": 20,
+            "shade": [
+              11.07,
+              20
+            ],
+            "marks": [
+              {
+                "x": 5,
+                "label": "mean 5"
+              },
+              {
+                "x": 11.07,
+                "label": "11.07"
+              }
+            ],
+            "xLabel": "chi-square value",
+            "yLabel": "density",
+            "caption": "Chi-square distribution with 5 degrees of freedom. Its mean equals its degrees of freedom (5). Only 5% of the area lies beyond 11.07, so a test statistic above that is surprising if nothing unusual is going on."
+          }
+        },
+        {
+          "callout": "You will rarely use t and chi-square to model raw business data. They are the reference shapes for test statistics in confidence intervals and hypothesis tests, which is why they appear in later chapters.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Distributions in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Erlang and the telephone exchange",
+            "story": "In the early 1900s the Danish engineer Agner Krarup Erlang, working for the Copenhagen Telephone Company, studied how many lines and operators an exchange needed. He modelled call arrivals as a Poisson process and call durations with exponential distributions, and derived formulas for the chance that a caller finds every line busy. His work founded queueing theory, and the unit of telephone traffic is named the erlang after him. Call centres, hospital emergency departments and cloud servers are still sized with descendants of his formulas."
+          }
+        },
+        {
+          "bullets": [
+            "**Quality control:** binomial models for the number of defective items in a sample of 50; acceptance sampling plans are built on them.",
+            "**Insurance:** Poisson (or negative binomial) for the number of claims per policy per year; heavy-tailed distributions for claim sizes.",
+            "**Reliability:** exponential for random electronic failures; Weibull when the failure rate rises with age, as with bearings and tyres.",
+            "**Retail:** Poisson demand models for slow-moving spare parts, where most days sell zero units.",
+            "**Experiments:** t for comparing average order values in an A/B test; chi-square for comparing conversion counts."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Ignoring dependence.** Binomial and Poisson assume independent events. Calls after a TV advert or a service outage arrive in bursts, so a plain Poisson model underestimates peaks.",
+            "**Changing rates.** λ at 10 a.m. is not λ at 3 a.m. Model each hour separately rather than using one daily average.",
+            "**Over-dispersion.** Real counts often vary more than Poisson allows (variance much bigger than mean). Use a negative binomial.",
+            "**Exponential for wear-out.** Machines that age do not have memoryless lifetimes. Use Weibull or gamma distributions.",
+            "**Using the normal for small counts.** With an average of 2 defects, a normal model gives probability to negative defects. Use the Poisson or binomial directly."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Binomial",
+              "items": [
+                "Fixed number of tries n",
+                "Each try: yes or no",
+                "Counts cannot exceed n",
+                "Parameters: n and p",
+                "Mean n·p, variance n·p·(1 − p)"
+              ]
+            },
+            "right": {
+              "title": "Poisson",
+              "items": [
+                "No fixed number of tries",
+                "Events arrive in a time or space window",
+                "Counts have no upper limit",
+                "Parameter: rate λ",
+                "Mean and variance both equal λ"
+              ]
+            },
+            "caption": "The two count distributions side by side. When n is large and p is small, they nearly agree: 1,000 items with a 0.2% defect rate gives P(0 defects) = 0.1351 under binomial and 0.1353 under Poisson with λ = 2."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I know which distribution my data follows?",
+      "a": "Start with the story of how the data were generated, then check: plot a histogram, compare it with the model’s predicted frequencies, and for counts compare the mean with the variance. Real data rarely fits perfectly; you need a model that is good enough for the decision."
+    },
+    {
+      "q": "What is the difference between a PMF and a PDF?",
+      "a": "A PMF (probability mass function) gives actual probabilities for each exact value of a discrete variable. A PDF (probability density function) gives the height of a curve for a continuous variable; probabilities are areas under it."
+    },
+    {
+      "q": "Can I use the normal distribution instead of binomial for large samples?",
+      "a": "Often, yes. When n × p and n × (1 − p) are both at least about 10, the binomial is close to a normal with mean n·p and SD √(n·p·(1 − p)). For small counts, use the binomial directly; software makes this easy."
+    },
+    {
+      "q": "Why is the t-distribution named “t”?",
+      "a": "It was published in 1908 by William Sealy Gosset, a chemist at the Guinness brewery, under the pen name “Student”. The letter t was popularised later, which is why it is often called Student’s t."
+    },
+    {
+      "q": "How do I compute these in Python?",
+      "a": "Everything is in `scipy.stats`: `binom.pmf(k, n, p)`, `poisson.pmf(k, lam)`, `expon.sf(t, scale=mean)`, `uniform`, `t` and `chi2`. Each has `.pmf` or `.pdf`, `.cdf`, `.sf` (the right tail) and `.ppf` (percentiles)."
+    }
+  ]
+}

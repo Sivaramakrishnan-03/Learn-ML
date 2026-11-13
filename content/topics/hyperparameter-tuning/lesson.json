@@ -1,0 +1,64 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Distinguish parameters from hyperparameters",
+    "Use grid search and random search with cross-validation",
+    "Avoid overfitting the validation process"
+  ],
+  "why": "Default settings are rarely optimal. Sensible tuning of, say, tree depth or learning rate is often a cheap accuracy gain, and a badly tuned model can look worse than it is.",
+  "explain": [
+    "**Parameters** are learned from data (regression coefficients, split thresholds). **Hyperparameters** are chosen by you before training (max_depth, k in k-NN, learning rate).",
+    "**Grid search** tries every combination from a list. It is thorough but explodes combinatorially: 5 values × 5 values × 5 values = 125 models × 5 folds.",
+    "**Random search** samples combinations at random. With the same budget it usually finds equally good settings, because only a few hyperparameters really matter.",
+    "**Bayesian optimisation** (Optuna, Hyperopt) learns from previous trials which regions look promising. It is the standard for expensive models like XGBoost."
+  ],
+  "example": {
+    "title": "Tuning a random forest",
+    "steps": [
+      "Grid: n_estimators {100, 300} × max_depth {5, 10, None} = 6 combinations",
+      "5-fold CV → 30 fits",
+      "Best: 300 trees, depth 10, CV F1 = 0.81",
+      "Retrain on the full training set, report test F1 once = 0.80"
+    ],
+    "result": "Test ≈ CV confirms the tuning did not overfit the validation folds."
+  },
+  "mistakes": [
+    "Tuning on the test set.",
+    "Huge grids over hyperparameters that barely matter.",
+    "Forgetting to fix random seeds when comparing."
+  ],
+  "takeaways": [
+    "Hyperparameters are set by you; parameters are learned",
+    "Random search before grid search",
+    "Always tune with cross-validation, and test once"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import RandomizedSearchCV\nfrom sklearn.ensemble import RandomForestClassifier\nX, y = load_breast_cancer(return_X_y=True)\nsearch = RandomizedSearchCV(RandomForestClassifier(random_state=0),\n    {\"n_estimators\": [100, 200, 400], \"max_depth\": [3, 5, 10, None], \"min_samples_leaf\": [1, 3, 5]},\n    n_iter=8, cv=5, scoring=\"f1\", random_state=0).fit(X, y)\nprint(search.best_params_, round(search.best_score_, 3))"
+  },
+  "check": [
+    {
+      "q": "Which is a hyperparameter?",
+      "options": [
+        "A regression coefficient",
+        "max_depth of a tree",
+        "A learned split threshold",
+        "A neural network weight"
+      ],
+      "answer": 1,
+      "why": "Set before training; the others are learned."
+    },
+    {
+      "q": "With a fixed budget, random search often beats grid search because…",
+      "options": [
+        "It is exhaustive",
+        "It explores more distinct values of the hyperparameters that matter",
+        "It needs no CV",
+        "It never overfits"
+      ],
+      "answer": 1,
+      "why": "Grids waste trials repeating values of unimportant hyperparameters."
+    }
+  ],
+  "chapterMinutes": 15
+}

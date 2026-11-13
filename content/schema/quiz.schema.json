@@ -1,0 +1,68 @@
+{
+  "$ref": "#/definitions/QuizBank",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "QuizBank": {
+      "additionalProperties": false,
+      "properties": {
+        "questions": {
+          "items": {
+            "$ref": "#/definitions/QuizQuestion"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "questions"
+      ],
+      "type": "object"
+    },
+    "QuizQuestion": {
+      "additionalProperties": false,
+      "description": "Topic quiz bank (content/quizzes/<id>.json).",
+      "properties": {
+        "answer": {
+          "type": "number"
+        },
+        "kind": {
+          "enum": [
+            "concept",
+            "calculation",
+            "interpretation",
+            "interview"
+          ],
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "type": "number"
+        },
+        "options": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "q": {
+          "type": "string"
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer",
+        "kind",
+        "level",
+        "options",
+        "q",
+        "why"
+      ],
+      "type": "object"
+    }
+  }
+}

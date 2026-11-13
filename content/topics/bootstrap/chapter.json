@@ -1,0 +1,363 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 14,
+  "hook": "Your delivery team has timed 12 orders and the median is 34 minutes. The operations head asks a reasonable question: \"How sure are you? Could the true median be 30? Or 45?\" For an average there is a textbook formula. For a median, a ratio or a model's accuracy, there often is not. In 1979 the statistician Bradley Efron proposed a startlingly simple answer: **reuse the data you already have, thousands of times**. He called it the bootstrap.",
+  "sections": [
+    {
+      "heading": "The problem: how uncertain is my number?",
+      "blocks": [
+        {
+          "p": "Every number computed from a sample is a little bit wrong. If you had timed a different 12 orders, the median would have come out slightly different. A responsible analyst reports not just the number but **how much it could plausibly move**."
+        },
+        {
+          "term": "Sampling variability",
+          "def": "The natural wobble in a statistic caused by which items happened to land in your sample. A different sample from the same population gives a different answer."
+        },
+        {
+          "term": "Confidence interval",
+          "def": "A range around your estimate that is built to capture the true value most of the time. A 95% interval method captures the true value in about 95 out of 100 repeated studies."
+        },
+        {
+          "p": "For a mean, statistics offers a neat formula: mean ± about 2 standard errors. But many business metrics have no simple formula: the median delivery time, the 90th percentile of wait time, revenue per visit, the ratio of returns to sales, the accuracy of a churn model. Deriving a formula for each would need a mathematician and a week."
+        },
+        {
+          "p": "The bootstrap replaces the formula with computing power. It works for almost any statistic you can calculate, which is why it is one of the most practical tools in an analyst's kit."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Statistic",
+              "Simple formula for its uncertainty?",
+              "Bootstrap works?"
+            ],
+            "rows": [
+              [
+                "Mean",
+                "Yes (standard error)",
+                "Yes"
+              ],
+              [
+                "Proportion",
+                "Yes",
+                "Yes"
+              ],
+              [
+                "Median",
+                "Not a simple one",
+                "Yes"
+              ],
+              [
+                "90th percentile",
+                "Not a simple one",
+                "Yes (with care)"
+              ],
+              [
+                "Ratio, e.g. returns ÷ sales",
+                "Messy",
+                "Yes"
+              ],
+              [
+                "Model accuracy or AUC",
+                "Messy",
+                "Yes"
+              ]
+            ],
+            "caption": "Formulas cover only the simplest statistics. The bootstrap uses one recipe for all of them."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the photocopied jar",
+      "blocks": [
+        {
+          "p": "Imagine a giant jar holding millions of marbles, each with a delivery time written on it. That jar is the **population**. You were allowed to pull out only 12 marbles: your **sample**. If you could go back to the giant jar again and again, drawing new samples of 12, you would see directly how much the median wobbles. But you cannot; the jar is locked."
+        },
+        {
+          "steps": [
+            "**Build a small replica jar** from your 12 marbles. Your sample is your best picture of what the big jar contains.",
+            "**Draw 12 marbles from the replica, putting each one back after you read it.** Some marbles get drawn twice, some not at all.",
+            "**Compute the median of this new handful.** It will differ a bit from 34.",
+            "**Repeat thousands of times.** You get thousands of medians.",
+            "**Look at how spread out those medians are.** That spread imitates how much the real median would wobble across real samples."
+          ],
+          "title": "The bootstrap as a thought experiment"
+        },
+        {
+          "term": "Resampling with replacement",
+          "def": "Drawing items one at a time from your data and putting each back before the next draw, so the same item can be chosen more than once. A resample is the same size as the original data."
+        },
+        {
+          "think": {
+            "q": "Why must you put each marble back? What would happen if you drew all 12 without replacement?",
+            "a": "Without replacement you would get exactly the same 12 marbles every time, just in a different order, so the median would never change and you would learn nothing about uncertainty. Replacement is what creates variety between resamples."
+          }
+        },
+        {
+          "callout": "The name comes from the phrase \"pulling yourself up by your own bootstraps\": the method seems to get something from nothing by reusing the same data. It works because your sample is a reasonable stand-in for the population.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How the bootstrap works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Original sample** of size n",
+              "**Resample** n items with replacement",
+              "**Compute the statistic** on the resample",
+              "**Repeat** B times (e.g. 10,000)",
+              "**Use the spread**: SE and percentile interval"
+            ],
+            "caption": "The bootstrap loop. It needs no formula, only a way to compute your statistic and a computer to repeat it."
+          }
+        },
+        {
+          "steps": [
+            "Compute your statistic on the original data (for example, median = 34).",
+            "Draw a bootstrap sample: n random picks from the data, with replacement.",
+            "Compute the same statistic on that bootstrap sample and store it.",
+            "Repeat steps 2 and 3 B times. 1,000 is enough for a standard error; 10,000 is a good default for intervals.",
+            "The standard deviation of the B stored values is the **bootstrap standard error**.",
+            "The 2.5th and 97.5th percentiles of the stored values form a **95% percentile interval**."
+          ]
+        },
+        {
+          "term": "Standard error",
+          "def": "The standard deviation of a statistic across repeated samples: a measure of how much the statistic itself wobbles, as opposed to how much individual data points vary."
+        },
+        {
+          "term": "Percentile",
+          "def": "The value below which a given percentage of observations fall. The 2.5th percentile has 2.5% of values below it."
+        },
+        {
+          "p": "In Python, `scipy.stats.bootstrap((data,), np.median, method=\"percentile\")` does all of this. Its default method, **BCa** (bias-corrected and accelerated), adjusts the percentiles for skew and bias and is usually a little more accurate."
+        }
+      ]
+    },
+    {
+      "heading": "Under the hood: why reusing data works",
+      "blocks": [
+        {
+          "p": "The bootstrap rests on one substitution. We want the distribution of a statistic across samples from the true population F. We cannot sample from F, so we sample from the **empirical distribution** of our data, which gives each of the n observed values probability 1/n."
+        },
+        {
+          "term": "Empirical distribution",
+          "def": "The distribution that treats your sample as the whole population: each observed value is equally likely, with probability 1/n."
+        },
+        {
+          "tex": "\\hat{\\theta}^{*}_{b} = s(x^{*}_{b}), \\quad b = 1, \\dots, B",
+          "plain": "Each bootstrap sample x* gives a bootstrap version of the statistic, θ̂*. We collect B of them.",
+          "symbols": [
+            [
+              "s(\\cdot)",
+              "the recipe for your statistic, e.g. the median"
+            ],
+            [
+              "x^{*}_{b}",
+              "the b-th bootstrap sample"
+            ],
+            [
+              "B",
+              "number of bootstrap repetitions"
+            ]
+          ]
+        },
+        {
+          "tex": "\\widehat{SE} = \\sqrt{\\frac{1}{B-1} \\sum_{b=1}^{B} \\left(\\hat{\\theta}^{*}_{b} - \\bar{\\theta}^{*}\\right)^2}",
+          "plain": "The bootstrap standard error is just the ordinary standard deviation of the B bootstrap statistics.",
+          "symbols": [
+            [
+              "\\bar{\\theta}^{*}",
+              "the average of the bootstrap statistics"
+            ]
+          ]
+        },
+        {
+          "tex": "1 - \\left(1 - \\tfrac{1}{n}\\right)^{n} \\approx 1 - e^{-1} \\approx 0.632",
+          "plain": "The chance that a given observation appears at least once in a bootstrap sample. For large n, each resample contains about 63% of the distinct original rows; the remaining 37% are \"out of bag\"."
+        },
+        {
+          "p": "That 63% figure reappears in machine learning: random forests train each tree on a bootstrap sample and use the left-out 37% (the **out-of-bag** rows) as a free test set."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Three bootstrap samples by hand",
+            "setup": "A tiny dataset of three call durations: 3, 5 and 8 minutes. Mean = 5.33.",
+            "steps": [
+              "Draw 3 with replacement: 3, 3, 8 → mean 4.67.",
+              "Draw again: 5, 8, 8 → mean 7.00.",
+              "Draw again: 3, 5, 5 → mean 4.33.",
+              "There are 3³ = 27 possible ordered draws; a computer would sample thousands at random."
+            ],
+            "result": "Even three resamples show the mean could plausibly sit anywhere from about 4 to 7. With n = 3 this is far too little data to trust, but the mechanics are exactly the same for 3 or 3 million rows."
+          }
+        },
+        {
+          "example": {
+            "title": "Median delivery time (business case, illustrative)",
+            "setup": "A quick-commerce startup times 12 deliveries (minutes): 22, 25, 28, 30, 31, 33, 35, 36, 38, 41, 52, 75. Median = 34; mean = 37.2.",
+            "steps": [
+              "Draw 10,000 bootstrap samples of size 12 and compute each median.",
+              "Bootstrap standard error of the median ≈ 2.9 minutes.",
+              "2.5th percentile of the 10,000 medians = 29; 97.5th percentile = 39.5.",
+              "For comparison, a bootstrap 95% interval for the mean is about 30.5 to 46.0, and the textbook t-interval is 28.1 to 46.2."
+            ],
+            "result": "95% bootstrap interval for the median: about 29 to 39.5 minutes. The mean's interval is wider and lopsided upwards because of the 75-minute outlier; the bootstrap captures that skew automatically. Exact numbers vary slightly with the random seed."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "<29",
+              "29–31",
+              "31–33",
+              "33–35",
+              "35–37",
+              "37–39",
+              "39–41",
+              "41+"
+            ],
+            "values": [
+              169,
+              1173,
+              1837,
+              2749,
+              2663,
+              1029,
+              203,
+              177
+            ],
+            "highlight": 3,
+            "yLabel": "number of bootstrap medians",
+            "caption": "Ten thousand bootstrap medians of the delivery data. Most fall between 29 and 39 minutes, and the middle 95% gives the interval. This histogram is the bootstrap's picture of sampling uncertainty."
+          }
+        },
+        {
+          "example": {
+            "title": "How sure is the model's accuracy?",
+            "setup": "A churn model gets 172 of 200 test customers right: accuracy 86%.",
+            "steps": [
+              "Resample the 200 test predictions with replacement 10,000 times and recompute accuracy each time.",
+              "95% percentile interval ≈ 81.0% to 90.5%.",
+              "The normal-approximation formula gives 81.2% to 90.8%: nearly identical, as it should be for a simple proportion."
+            ],
+            "result": "Report \"86% (95% CI 81–91%)\", not just \"86%\". If a rival model scores 88% on the same 200 customers, that gap sits well inside the uncertainty, so you would need a paired comparison (or more test data) before declaring a winner."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Variants and when to use them",
+      "blocks": [
+        {
+          "bullets": [
+            "**Percentile interval:** simplest; take the 2.5th and 97.5th percentiles. Good for roughly symmetric statistics.",
+            "**BCa interval:** corrects for bias and skew; the default in `scipy.stats.bootstrap` and a sensible choice for most work.",
+            "**Paired bootstrap:** to compare two models on the same test set, resample rows and recompute the difference in accuracy each time.",
+            "**Two-sample bootstrap:** to compare groups (as in an A/B test on revenue), resample each group separately and recompute the difference in medians or means.",
+            "**Block bootstrap:** for time series, resample consecutive blocks (such as whole weeks) so that day-to-day dependence is preserved."
+          ]
+        },
+        {
+          "callout": "Always resample the unit that was independently sampled. If you sampled stores and measured many transactions per store, resample stores, not transactions. Otherwise your interval will be far too narrow.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "The bootstrap in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Bagging and random forests",
+            "story": "Leo Breiman's **bagging** (bootstrap aggregating) trains many models, each on a different bootstrap sample, and averages their predictions. Averaging many slightly different models cancels out much of their individual noise. Random forests, still among the most used models on tabular business data, are bagging applied to decision trees with an extra twist of random feature selection. In scikit-learn, `RandomForestClassifier(bootstrap=True, oob_score=True)` even reports accuracy on the out-of-bag rows without a separate test set."
+          }
+        },
+        {
+          "bullets": [
+            "**A/B testing on skewed metrics:** revenue per user is dominated by a few big spenders; bootstrapping the difference gives honest intervals.",
+            "**Model evaluation:** confidence intervals for accuracy, AUC or RMSE on a test set.",
+            "**Finance:** resampling historical returns to estimate the uncertainty of risk measures such as Value at Risk.",
+            "**Operations:** intervals for percentile service levels (for example, 90th-percentile delivery time) that contracts often specify."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Tiny samples.** With fewer than about 20 observations, your sample is a poor replica of the population and the intervals are unreliable.",
+            "**Extremes.** The bootstrap cannot invent values it has never seen. It works poorly for the maximum, minimum or very extreme percentiles.",
+            "**Dependent data.** Ordinary resampling destroys time order and clustering. Use block or cluster bootstrap.",
+            "**Biased samples.** If your sample came only from metro customers, the bootstrap faithfully reproduces that bias. It quantifies random error, not bad sampling."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Formula-based intervals",
+              "items": [
+                "Instant to compute",
+                "Exact under their assumptions",
+                "Available only for simple statistics",
+                "Can mislead when data are skewed",
+                "Easy to explain in a report"
+              ]
+            },
+            "right": {
+              "title": "Bootstrap intervals",
+              "items": [
+                "Needs thousands of recomputations",
+                "Few assumptions about the data's shape",
+                "Works for medians, ratios, model scores",
+                "Captures skew automatically",
+                "Weak for tiny samples and extremes"
+              ]
+            },
+            "caption": "Use a formula when one exists and its assumptions hold; reach for the bootstrap otherwise."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How many bootstrap samples do I need?",
+      "a": "About 1,000 for a standard error and 10,000 for a 95% interval. Computing is cheap, so more is fine; the answer stops changing once B is large."
+    },
+    {
+      "q": "Does the bootstrap give me more data?",
+      "a": "No. It creates no new information. It only uses your existing data to estimate how much your statistic would vary across samples."
+    },
+    {
+      "q": "Why is the resample the same size as the original?",
+      "a": "Because the uncertainty of a statistic depends on sample size. To imitate the wobble of a median of 12 observations, each resample must also have 12."
+    },
+    {
+      "q": "Can I bootstrap with only 10 data points?",
+      "a": "You can run it, but the interval will usually be too narrow and unreliable. Collect more data or use methods designed for small samples."
+    },
+    {
+      "q": "What is the link to random forests?",
+      "a": "Each tree in a random forest is trained on a bootstrap sample of the training rows. Averaging the trees is called bagging, short for bootstrap aggregating."
+    },
+    {
+      "q": "Will I get the same interval every time?",
+      "a": "Not exactly, because resampling is random. Fix the random seed (`random_state` in scipy) for reproducible results; with 10,000 resamples the differences are small."
+    }
+  ]
+}

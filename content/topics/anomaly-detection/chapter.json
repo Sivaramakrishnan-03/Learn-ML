@@ -1,0 +1,458 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A customer in Chennai usually spends ₹800 to ₹2,000 per card transaction, in the daytime, at local shops. At 3 a.m. a ₹48,000 charge arrives from an overseas website. No rule says \"₹48,000 is fraud\", and the bank has very few confirmed fraud cases to learn from. Yet anyone looking at her history can see this one does not fit. **Anomaly detection** turns \"this does not fit\" into a number a computer can calculate for millions of transactions a second.",
+  "sections": [
+    {
+      "heading": "The problem: finding the rare and the strange",
+      "blocks": [
+        {
+          "p": "Many of the most valuable events in business are rare: fraudulent payments, a machine about to fail, a cyber intrusion, a data-entry error that corrupts a monthly report. They are rare, so there are few labelled examples to learn from, and new kinds keep appearing. Supervised learning, which needs many labelled examples of each class, struggles here."
+        },
+        {
+          "term": "Anomaly (outlier)",
+          "def": "A data point that differs markedly from the bulk of the data, enough to suspect it was produced by a different process: fraud instead of normal spending, a fault instead of normal operation."
+        },
+        {
+          "term": "Anomaly score",
+          "def": "A number given to each point saying how unusual it is. Higher usually means more unusual. A threshold on the score turns it into a yes/no alert."
+        },
+        {
+          "p": "Anomaly detection flips the problem around. Instead of learning what fraud looks like, it learns **what normal looks like** and flags whatever departs from it. Anomalies come in three flavours:"
+        },
+        {
+          "bullets": [
+            "**Point anomalies:** one value is extreme on its own (a ₹48,000 charge from a ₹1,000-a-day customer).",
+            "**Contextual anomalies:** a value is normal in one context but not another (high electricity use is normal in May in Chennai, odd in January).",
+            "**Collective anomalies:** each point looks normal, but a group together is odd (fifty small transfers to the same new account in an hour)."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "transaction amount (₹ thousand)",
+            "yLabel": "hour of day",
+            "caption": "Normal transactions (blue) form a dense cloud of small daytime amounts. The orange points sit far from that cloud: a huge night-time charge, a large daytime one and a small 3 a.m. one. The last is not extreme in amount, only in combination, which is why methods that look at several features together matter.",
+            "points": [
+              [
+                1.2,
+                11,
+                0
+              ],
+              [
+                0.8,
+                13,
+                0
+              ],
+              [
+                1.5,
+                15,
+                0
+              ],
+              [
+                2,
+                18,
+                0
+              ],
+              [
+                0.9,
+                10,
+                0
+              ],
+              [
+                1.1,
+                12,
+                0
+              ],
+              [
+                1.7,
+                19,
+                0
+              ],
+              [
+                1.3,
+                14,
+                0
+              ],
+              [
+                0.95,
+                16,
+                0
+              ],
+              [
+                1.4,
+                17,
+                0
+              ],
+              [
+                1.6,
+                12,
+                0
+              ],
+              [
+                1,
+                20,
+                0
+              ],
+              [
+                48,
+                3,
+                1
+              ],
+              [
+                25,
+                14,
+                1
+              ],
+              [
+                1.2,
+                3,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the game of twenty questions",
+      "blocks": [
+        {
+          "p": "Imagine a game in which you must single out one person from a crowd of 200 office workers by asking yes/no questions such as \"Is the person taller than 1.7 m?\" or \"Is the person wearing a tie?\"."
+        },
+        {
+          "steps": [
+            "For an ordinary person (average height, office clothes, usual age) you need many questions, because many others share each answer.",
+            "For the one person in a full astronaut suit, a single question (\"wearing a helmet?\") isolates them immediately.",
+            "Play the game many times with random questions and average the number of questions needed for each person.",
+            "People who are consistently isolated in very few questions are the unusual ones."
+          ],
+          "title": "Isolating people with random questions"
+        },
+        {
+          "p": "This is exactly the idea behind **Isolation Forest**, one of the most popular anomaly detectors. Other methods use different intuitions: \"how many standard deviations from average is this?\" (z-scores) or \"is this point in a much emptier neighbourhood than its neighbours are?\" (Local Outlier Factor). All of them try to put a number on \"does not fit\"."
+        },
+        {
+          "think": {
+            "q": "Why does the twenty-questions idea not need any labelled examples of anomalies?",
+            "a": "Because it only uses how easy each point is to separate from the rest. Being \"few and different\" is enough to be isolated quickly. Nobody has to say in advance what the astronaut looks like."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How anomaly detection works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Define **normal** and choose features (amount, time, location…)",
+              "Fit a detector on mostly normal data",
+              "Score every new point",
+              "Apply a **threshold**: alert or not",
+              "Experts review alerts; feedback improves features and threshold"
+            ],
+            "caption": "The anomaly-detection loop. The algorithm is only one box; choosing features and closing the feedback loop usually matter more."
+          }
+        },
+        {
+          "steps": [
+            "**Decide what \"normal\" means.** Normal for this customer? For this machine type? For this hour of the week? Context often lives in the features.",
+            "**Engineer features** that expose oddness: amount relative to the customer's usual amount, distance from home, time since the last transaction.",
+            "**Fit a detector** on historical data that is mostly normal. A small amount of hidden contamination is acceptable for most methods.",
+            "**Score** each new point with the anomaly score.",
+            "**Set a threshold** based on capacity and cost: how many alerts can the review team handle per day?",
+            "**Review and learn.** Confirmed cases become labels, which can later train a supervised model."
+          ]
+        },
+        {
+          "term": "Contamination",
+          "def": "In scikit-learn's detectors, your estimate of the share of anomalies in the training data. It sets the threshold so that roughly that share of points is flagged. It does not change how the scores are calculated."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "**Statistical rules for one number at a time.** The simplest detector asks how many standard deviations a value lies from the mean."
+        },
+        {
+          "tex": "z = \\frac{x - \\bar{x}}{s}",
+          "plain": "The z-score: distance from the average, measured in standard deviations. A common rule flags |z| > 3, i.e. more than three standard deviations away.",
+          "symbols": [
+            [
+              "x",
+              "the value being checked"
+            ],
+            [
+              "\\bar{x}",
+              "mean of the normal history"
+            ],
+            [
+              "s",
+              "standard deviation of the history"
+            ]
+          ]
+        },
+        {
+          "tex": "z_{\\text{robust}} = \\frac{x - \\text{median}}{1.4826 \\times \\text{MAD}}",
+          "plain": "A robust z-score uses the median and the median absolute deviation (MAD), which extreme values cannot drag around. The factor 1.4826 makes it comparable to an ordinary z-score for bell-shaped data.",
+          "symbols": [
+            [
+              "\\text{MAD}",
+              "median of the absolute distances from the median"
+            ]
+          ]
+        },
+        {
+          "tex": "\\text{flag if } x < Q_1 - 1.5\\,\\text{IQR} \\;\\text{ or }\\; x > Q_3 + 1.5\\,\\text{IQR}",
+          "plain": "The IQR rule (the whiskers of a box plot). Q1 and Q3 are the 25th and 75th percentiles; the interquartile range IQR = Q3 − Q1 is the width of the middle half of the data.",
+          "symbols": [
+            [
+              "Q_1, Q_3",
+              "first and third quartiles"
+            ],
+            [
+              "\\text{IQR}",
+              "interquartile range, Q_3 − Q_1"
+            ]
+          ]
+        },
+        {
+          "p": "**Isolation Forest for many features.** It builds many random trees. Each tree repeatedly picks a random feature and a random split value until every point sits alone. The number of splits needed to isolate a point is its path length. Short average path length means easy to isolate, which means anomalous."
+        },
+        {
+          "term": "Path length",
+          "def": "In an Isolation Forest, the number of random splits needed to separate a point from all the others in a tree. Averaged over many trees, it is the basis of the anomaly score."
+        },
+        {
+          "tex": "s(x) = 2^{-\\,E[h(x)] / c(n)}",
+          "plain": "The Isolation Forest score from the original paper. E[h(x)] is the average path length over the trees; c(n) is the average path length you would expect for a typical point in a sample of n points, used to normalise. Scores near 1 mean anomalies, around 0.5 or below mean normal.",
+          "symbols": [
+            [
+              "E[h(x)]",
+              "average path length of x across trees"
+            ],
+            [
+              "c(n)",
+              "expected path length for a sample of size n (about 10.24 for n = 256)"
+            ]
+          ]
+        },
+        {
+          "p": "**Local Outlier Factor (LOF)** compares the density around a point with the density around its neighbours. A LOF near 1 means \"as crowded as my neighbours\"; well above 1 means \"much emptier than my neighbours\", which catches points that are odd for their local area even if they would look ordinary somewhere else in the data."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "z-scores and the IQR rule on card spend",
+            "setup": "A customer's last ten transactions (₹): 1,200; 800; 1,500; 2,000; 950; 1,100; 1,700; 1,300; 900; 1,400. Check new transactions of ₹48,000 and ₹2,600.",
+            "steps": [
+              "Mean = 12,850 / 10 = ₹1,285. Sample standard deviation ≈ ₹377.",
+              "₹48,000: z = (48,000 − 1,285) / 377 ≈ 124. Wildly unusual.",
+              "₹2,600: z = (2,600 − 1,285) / 377 ≈ 3.5. Just over the |z| > 3 rule.",
+              "IQR rule (quartiles by the standard interpolation method): Q1 = 987.5, Q3 = 1,475, IQR = 487.5. Upper fence = 1,475 + 1.5 × 487.5 = 2,206.25.",
+              "Both ₹48,000 and ₹2,600 are above the upper fence of about ₹2,206."
+            ],
+            "result": "Both rules flag both amounts. But ₹2,600 for a festival gift is hardly suspicious, so a bank would combine the amount score with other features such as time, merchant and location instead of blocking on amount alone."
+          }
+        },
+        {
+          "example": {
+            "title": "Masking: when the outlier hides itself",
+            "setup": "Now suppose the ₹48,000 transaction is accidentally included in the history used to compute the mean and standard deviation (11 values).",
+            "steps": [
+              "New mean ≈ ₹5,532. New standard deviation ≈ ₹14,090. The single outlier has inflated both.",
+              "z of ₹48,000 = (48,000 − 5,532) / 14,090 ≈ 3.01. It barely passes the rule. (With 11 values, no z-score can exceed about 3.02, whatever the amount.)",
+              "Robust version: median = ₹1,300, MAD = ₹350. Robust z = (48,000 − 1,300) / (1.4826 × 350) ≈ 90."
+            ],
+            "result": "Ordinary z-scores can be \"masked\" by the very outliers they are meant to find. The median and MAD are not fooled. Use robust statistics, or compute baselines only from data known to be clean."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.pow(2, -x/10.24)",
+            "xMin": 1,
+            "xMax": 20,
+            "marks": [
+              {
+                "x": 3,
+                "label": "h = 3"
+              },
+              {
+                "x": 11,
+                "label": "h = 11"
+              }
+            ],
+            "xLabel": "average path length h",
+            "yLabel": "anomaly score s",
+            "caption": "The Isolation Forest score for samples of 256 points. A point isolated in 3 splits on average scores about 0.82; a typical point needing about 10 to 11 splits scores around 0.5 or a little below."
+          }
+        },
+        {
+          "example": {
+            "title": "Isolation Forest scores and alert quality at a bank",
+            "setup": "An Isolation Forest is trained with sub-samples of 256 transactions (the default), so c(256) ≈ 10.24. Transaction X has an average path length of 3; transaction Y has 11. The bank then reviews the 100 highest-scoring transactions of the day; 23 turn out to be confirmed fraud (illustrative). The overall fraud rate is about 0.1%.",
+            "steps": [
+              "Score of X = 2^(−3 / 10.24) ≈ 0.82 → strongly anomalous.",
+              "Score of Y = 2^(−11 / 10.24) ≈ 0.48 → normal.",
+              "Precision at top 100 = 23 / 100 = 23%.",
+              "If 100 transactions were picked at random, about 100 × 0.001 = 0.1 would be fraud. The detector's queue is about 230 times richer in fraud than random checking."
+            ],
+            "result": "X goes to the review queue (or triggers an OTP challenge); Y passes. Precision at the top of the list, not overall accuracy, is the number that tells the bank whether its analysts' time is well spent."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing a method and judging it",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Method",
+              "Good for",
+              "Watch out for"
+            ],
+            "rows": [
+              [
+                "z-score / IQR",
+                "One metric at a time; dashboards",
+                "Masking; skewed data; ignores context"
+              ],
+              [
+                "Robust z (median, MAD)",
+                "One metric with existing outliers",
+                "Still one feature at a time"
+              ],
+              [
+                "Isolation Forest",
+                "Many features, large data, fast",
+                "Needs a threshold; weak on local oddities"
+              ],
+              [
+                "Local Outlier Factor",
+                "Points odd for their neighbourhood",
+                "Slower; sensitive to scaling and n_neighbors"
+              ],
+              [
+                "DBSCAN noise / GMM low likelihood",
+                "When you are clustering anyway",
+                "Parameter-sensitive"
+              ]
+            ],
+            "caption": "A short menu of detectors. In practice teams often start with robust statistics on key metrics plus an Isolation Forest on the full feature set."
+          }
+        },
+        {
+          "p": "**How do you know if it works?** Accuracy is useless: if 0.1% of transactions are fraud, a model that never raises an alert is 99.9% accurate. Use measures that reflect the work of reviewing alerts."
+        },
+        {
+          "bullets": [
+            "**Precision at k:** of the top k alerts, how many were real? Choose k to match the team's daily capacity.",
+            "**Recall on known cases:** of the past incidents you do know about, how many would the detector have caught?",
+            "**Expert review:** domain experts label a sample of alerts; their feedback is the ground truth you are missing.",
+            "**Cost view:** an alert costs analyst time (say ₹150 per review); a missed fraud costs the loss. Choose the threshold that balances the two."
+          ]
+        },
+        {
+          "callout": "Seasonality creates false alarms. Sales spikes during Diwali or the end of a financial year are expected, not anomalous. Include calendar features, or compare each value with the same period last year.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Anomaly detection in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Predictive maintenance on a press line (illustrative)",
+            "story": "An automotive supplier records vibration, motor current and temperature from 40 stamping presses every second. Failures are rare and varied, so there are almost no labelled examples. The data team builds features per minute (average and peak vibration, current relative to the press's own normal, temperature trend) and trains an Isolation Forest per press type. Alerts with a score above a threshold go to maintenance planners, who log what they found. Over the first months the planners confirm several early-stage bearing problems that were fixed in planned downtime instead of causing an unplanned stoppage. Their feedback is used to retire features that caused false alarms, and the confirmed cases begin to form a labelled dataset for a supervised model."
+          }
+        },
+        {
+          "bullets": [
+            "**Finance:** card fraud, insider trading surveillance, unusual journal entries in audits.",
+            "**Cyber security:** unusual logins, data transfers or process behaviour on servers.",
+            "**Data quality:** catching broken pipelines, unit mistakes (lakh entered as crore) or duplicated loads before reports go out.",
+            "**Operations:** sudden drops in website conversion, call-centre volume spikes, supply delays."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Unusual is not the same as bad.** A big wedding purchase is unusual but legitimate. Anomaly scores need business context and human review.",
+            "**Guessing contamination.** Setting `contamination=0.05` when the true rate is 0.1% floods the team with false alerts. Prefer thresholds chosen from review capacity.",
+            "**Unscaled features** distort distance-based methods such as LOF.",
+            "**Drifting normal.** Customer behaviour changes over months; retrain regularly or normal behaviour will start to look anomalous.",
+            "**Adversaries adapt.** Fraudsters learn to look normal; combine anomaly scores with rules, supervised models and network analysis."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Unsupervised anomaly detection",
+              "items": [
+                "Few or no labels needed",
+                "Can catch new, never-seen patterns",
+                "Flags \"unusual\", which is not always \"bad\"",
+                "Threshold set by capacity and cost",
+                "Best at the start of a programme"
+              ]
+            },
+            "right": {
+              "title": "Supervised classification",
+              "items": [
+                "Needs many labelled cases",
+                "Excellent on known patterns",
+                "Learns what \"bad\" looks like directly",
+                "Threshold tuned with precision and recall",
+                "Best once confirmed cases accumulate"
+              ]
+            },
+            "caption": "Mature fraud and maintenance systems usually run both: an unsupervised detector for novel patterns and a supervised model for known ones."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between an outlier and an anomaly?",
+      "a": "They are often used interchangeably. Some people use \"outlier\" for any extreme value and \"anomaly\" for one that signals a real event of interest such as fraud or a fault."
+    },
+    {
+      "q": "Which detector should I try first?",
+      "a": "For a single metric, a robust z-score or the IQR rule. For many features, Isolation Forest: it is fast, needs little tuning and handles large data."
+    },
+    {
+      "q": "Do I need labels at all?",
+      "a": "Not to train most detectors, but you need at least a few known cases or expert reviews to judge whether the alerts are useful and to set the threshold."
+    },
+    {
+      "q": "What does the `contamination` parameter do?",
+      "a": "It sets the score threshold so that roughly that fraction of training points is flagged. It does not change the scores themselves."
+    },
+    {
+      "q": "Why does scikit-learn's Isolation Forest give negative scores?",
+      "a": "Its `score_samples` returns the negative of the paper's score, so lower means more abnormal, and `decision_function` shifts it so that negative values are outliers. The ranking of points is the same."
+    },
+    {
+      "q": "How do I handle seasonality?",
+      "a": "Add calendar features (day of week, month, festival flags), detect anomalies on residuals after removing the seasonal pattern, or compare each value with the same period in previous years."
+    }
+  ]
+}

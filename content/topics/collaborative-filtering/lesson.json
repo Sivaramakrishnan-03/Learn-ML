@@ -1,0 +1,70 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Explain user-based and item-based collaborative filtering",
+    "Describe matrix factorisation",
+    "Handle cold start and evaluation"
+  ],
+  "why": "Recommenders drive a large share of viewing on Netflix and of sales on Amazon. They are among the highest-ROI ML systems in business.",
+  "explain": [
+    "Build a **user × item matrix** of ratings or interactions. Most cells are empty: nobody has seen everything.",
+    "**User-based**: find users with similar tastes and recommend what they liked. **Item-based**: \"people who liked this item also liked…\" (more stable, and Amazon's classic approach).",
+    "**Matrix factorisation** learns a short vector of hidden \"taste factors\" for each user and item (for example \"action-ness\", \"romance-ness\"). The predicted rating is their dot product. This won the Netflix Prize.",
+    "**Cold start**: new users or items have no history, so blend with content features or popularity. Evaluate with **ranking metrics** (precision@k, NDCG) on a time-based hold-out, and confirm with A/B tests."
+  ],
+  "example": {
+    "title": "Predict a rating with factors",
+    "steps": [
+      "User Priya: [action 0.9, romance 0.2]",
+      "Movie \"Fast Chase\": [action 0.95, romance 0.1]",
+      "Predicted affinity = 0.9×0.95 + 0.2×0.1 = 0.875 (high)",
+      "Movie \"Love Letters\": [0.1, 0.9] → 0.09 + 0.18 = 0.27 (low)"
+    ],
+    "result": "Recommend \"Fast Chase\". The factors were learned purely from viewing behaviour."
+  },
+  "mistakes": [
+    "Evaluating with random splits instead of time-based ones (leaks the future).",
+    "Optimising RMSE on ratings when the business cares about the ranking of the top 10.",
+    "Ignoring popularity bias and feedback loops."
+  ],
+  "takeaways": [
+    "Learn from the behaviour of similar users or items",
+    "Matrix factorisation = latent taste vectors",
+    "Plan for cold start; evaluate the ranking"
+  ],
+  "use": [
+    "Many users and items with interaction history"
+  ],
+  "avoid": [
+    "Brand-new catalogues with no interactions (content-based first)"
+  ],
+  "practice": {
+    "code": "import numpy as np\nR = np.array([[5, 4, 0, 1], [4, 5, 1, 0], [1, 0, 5, 4], [0, 1, 4, 5]], float)   # users × items, 0 = unknown\nU, s, Vt = np.linalg.svd(R, full_matrices=False)\nk = 2; approx = U[:, :k] @ np.diag(s[:k]) @ Vt[:k]\nprint(approx.round(1))     # filled-in scores for unseen items\n# Production: implicit, LightFM, or two-tower neural models"
+  },
+  "check": [
+    {
+      "q": "\"Customers who bought this also bought…\" is…",
+      "options": [
+        "User-based CF",
+        "Item-based CF",
+        "k-means",
+        "Regression"
+      ],
+      "answer": 1,
+      "why": "It relates items through co-interaction."
+    },
+    {
+      "q": "The cold-start problem refers to…",
+      "options": [
+        "Slow servers",
+        "New users or items without interaction history",
+        "Too many ratings",
+        "Overfitting"
+      ],
+      "answer": 1,
+      "why": "Collaborative signals need history."
+    }
+  ],
+  "chapterMinutes": 16
+}

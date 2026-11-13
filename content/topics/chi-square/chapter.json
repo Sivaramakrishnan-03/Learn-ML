@@ -1,0 +1,413 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 18,
+  "hook": "A telecom company notices that customers on its cheapest plan seem to leave more often. A plant manager suspects the night shift produces more defective parts. A board-game shop owner thinks one of her dice lands on six too often. All three are asking the same kind of question: **are these counts what we would expect by chance, or is something real going on?** The chi-square test (pronounced \"kai-square\") is the standard tool for answering it.",
+  "sections": [
+    {
+      "heading": "The problem: questions about counts, not averages",
+      "blocks": [
+        {
+          "p": "Much of statistics is about averages: average salary, average delivery time, average sales. But a huge amount of business data is not measured on a scale at all. It is sorted into **boxes**: plan type (Basic, Standard, Premium), churned or stayed, shift (morning, evening, night), defective or fine, region, product colour, survey answer."
+        },
+        {
+          "term": "Categorical variable",
+          "def": "A variable whose values are labels or groups rather than measurements, such as city, plan type or yes/no. You can count how many items fall in each group, but you cannot take a meaningful average of the labels."
+        },
+        {
+          "p": "With categorical data the only thing you can do is **count**: 60 Basic customers churned, 240 Standard customers stayed, 33 night-shift parts were defective. The natural question is whether those counts are surprising. Night shift has more defects than morning shift, but is the gap big enough to act on, or would a gap like that turn up by luck anyway?"
+        },
+        {
+          "p": "You cannot answer that with a t-test, because there are no averages to compare. You need a test built for counts. The chi-square test does exactly one thing: it measures how far the counts you **observed** are from the counts you would **expect** if nothing interesting were happening, and tells you how unusual that distance is."
+        },
+        {
+          "term": "Observed and expected counts",
+          "def": "Observed counts are what actually happened in your data. Expected counts are what you would see, on average, if the \"nothing is going on\" assumption were true (a fair die, or churn unrelated to plan)."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Face 1",
+              "Face 2",
+              "Face 3",
+              "Face 4",
+              "Face 5",
+              "Face 6"
+            ],
+            "values": [
+              5,
+              8,
+              9,
+              8,
+              10,
+              20
+            ],
+            "highlight": 5,
+            "yLabel": "times rolled (out of 60)",
+            "caption": "Sixty rolls of a suspect die. A fair die should give about 10 of each face. Faces 1 to 5 wobble around 10 as you would expect, but face 6 came up 20 times. The chi-square test turns \"that looks odd\" into a number."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the sweet-jar inspector",
+      "blocks": [
+        {
+          "p": "Imagine a sweet factory that promises each jar contains equal numbers of red, green and yellow sweets. You are the inspector. You open a jar of 30 sweets and count: 12 red, 10 green, 8 yellow. Is the factory cheating?"
+        },
+        {
+          "steps": [
+            "**Write down what a fair jar would look like.** Equal colours means 10, 10, 10. These are your expected counts.",
+            "**Look at the gaps.** Red is 2 over, green is spot on, yellow is 2 under.",
+            "**Remember that random jars are never perfect.** Even an honest machine will rarely give exactly 10, 10, 10. Small gaps are normal.",
+            "**Ask how big the gaps are compared with what luck usually produces.** Gaps of 2 in a jar of 30 are very ordinary. Gaps of 15 would be alarming.",
+            "**Only accuse the factory if the gaps are bigger than luck can comfortably explain.**"
+          ],
+          "title": "How a sensible inspector thinks"
+        },
+        {
+          "p": "That is the whole idea of chi-square. It adds up all the gaps into one \"surprise score\". A small score says \"this is what luck looks like\". A large score says \"luck rarely does this; something is probably going on\"."
+        },
+        {
+          "think": {
+            "q": "Why does the inspector care about the size of a gap relative to the expected count, and not just the raw gap?",
+            "a": "A gap of 5 is huge if you expected 10 (half as much again), but trivial if you expected 1,000. So the test divides each squared gap by the expected count. That puts gaps from big and small boxes on a fair footing."
+          }
+        },
+        {
+          "callout": "Chi-square starts by assuming nothing is going on (a fair die, no link between plan and churn). That starting assumption is called the **null hypothesis**. The test then asks how embarrassing the data is for that assumption.",
+          "tone": "key"
+        },
+        {
+          "term": "Null hypothesis",
+          "def": "The \"boring\" default assumption that there is no effect or no relationship. A test tries to find evidence against it. If the evidence is strong, we reject the null."
+        }
+      ]
+    },
+    {
+      "heading": "How the test works, step by step",
+      "blocks": [
+        {
+          "p": "There are two flavours of chi-square test. They use the same formula and differ only in how you work out the expected counts."
+        },
+        {
+          "bullets": [
+            "**Goodness of fit**: one categorical variable compared against a claimed pattern. Is the die fair? Do website visits split across weekdays the way the marketing team assumed?",
+            "**Test of independence**: two categorical variables in a table. Is churn related to plan type? Are defects related to shift?"
+          ]
+        },
+        {
+          "term": "Contingency table",
+          "def": "A table of counts with one categorical variable down the rows and another across the columns, for example plan type by churned/stayed. Each cell counts the items that have both labels."
+        },
+        {
+          "term": "Independent",
+          "def": "Two variables are independent if knowing one tells you nothing about the other. If churn is independent of plan, every plan has the same churn rate."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**State the null**: no relationship / claimed pattern holds",
+              "**Compute expected counts** for every cell",
+              "**Add up** (O − E)² ÷ E across all cells",
+              "**Find df** and look up the p-value",
+              "**Decide** and measure the size of the effect"
+            ],
+            "caption": "The chi-square procedure. Steps 2 and 3 are the heart of it; step 5 reminds you that \"significant\" is not the same as \"important\"."
+          }
+        },
+        {
+          "p": "**Expected counts for independence.** If plan and churn were unrelated, every plan would churn at the overall rate. So the expected count for a cell is its row total times its column total, divided by the grand total. This is just \"overall rate × group size\" written compactly."
+        },
+        {
+          "p": "**Degrees of freedom** tell the test which reference curve to use. For goodness of fit with k categories, df = k − 1. For a table with r rows and c columns, df = (r − 1) × (c − 1)."
+        },
+        {
+          "term": "Degrees of freedom (df)",
+          "def": "The number of counts that are free to vary once the totals are fixed. If six die faces must add up to 60, you can choose five freely and the sixth is forced, so df = 5."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\chi^2 = \\sum_{\\text{cells}} \\frac{(O - E)^2}{E}",
+          "plain": "For every cell, take the gap between observed and expected, square it, divide by the expected count, then add all cells together.",
+          "symbols": [
+            [
+              "\\chi^2",
+              "the chi-square statistic, our surprise score"
+            ],
+            [
+              "O",
+              "observed count in a cell"
+            ],
+            [
+              "E",
+              "expected count in that cell if the null were true"
+            ]
+          ]
+        },
+        {
+          "p": "Why each piece is there: the **gap** (O − E) measures surprise. **Squaring** stops positive and negative gaps from cancelling out (too many sixes and too few ones are both evidence of a loaded die). **Dividing by E** scales each gap by what was expected, so a gap of 10 counts for more in a small cell than in a big one."
+        },
+        {
+          "tex": "E_{ij} = \\frac{(\\text{row } i \\text{ total}) \\times (\\text{column } j \\text{ total})}{\\text{grand total}}",
+          "plain": "The expected count in row i and column j, assuming the two variables are unrelated."
+        },
+        {
+          "p": "If the null is true, the χ² score follows a known shape called the **chi-square distribution**. Its shape depends only on the degrees of freedom. The p-value is the area of that curve beyond your score: the probability of a score at least this big if nothing were going on."
+        },
+        {
+          "term": "p-value",
+          "def": "If the null hypothesis were true, the probability of getting data at least as surprising as yours. A small p-value (commonly below 0.05) means your data would be rare under the null, so you doubt the null."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.pow(x,1.5)*Math.exp(-x/2)/7.5199",
+            "xMin": 0,
+            "xMax": 20,
+            "shade": [
+              11.07,
+              20
+            ],
+            "marks": [
+              {
+                "x": 11.07,
+                "label": "5% cut-off 11.07"
+              },
+              {
+                "x": 13.4,
+                "label": "die: 13.4"
+              }
+            ],
+            "xLabel": "χ² value (df = 5)",
+            "yLabel": "density",
+            "caption": "The chi-square curve for 5 degrees of freedom. Most fair dice give scores between about 1 and 10. Only 5% of fair dice score above 11.07 (shaded). Our die scored 13.4, inside the rare zone."
+          }
+        },
+        {
+          "tex": "V = \\sqrt{\\frac{\\chi^2}{n\\,(\\min(r, c) - 1)}}",
+          "plain": "Cramér's V rescales χ² to lie between 0 (no association) and 1 (perfect association), so you can judge how strong a relationship is, not just whether it exists.",
+          "symbols": [
+            [
+              "n",
+              "total number of items"
+            ],
+            [
+              "r, c",
+              "number of rows and columns"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Is the die loaded? (goodness of fit)",
+            "setup": "60 rolls. Observed counts for faces 1 to 6: 5, 8, 9, 8, 10, 20. Null: the die is fair, so each face is expected 60 ÷ 6 = 10 times.",
+            "steps": [
+              "Gaps (O − E): −5, −2, −1, −2, 0, +10.",
+              "Squared gaps: 25, 4, 1, 4, 0, 100.",
+              "Divide each by E = 10: 2.5, 0.4, 0.1, 0.4, 0, 10.0.",
+              "Add them: χ² = 2.5 + 0.4 + 0.1 + 0.4 + 0 + 10.0 = 13.4.",
+              "Degrees of freedom = 6 − 1 = 5. The 5% cut-off for df = 5 is 11.07. 13.4 is beyond it.",
+              "Exact p-value (from `scipy.stats.chisquare`) = 0.020."
+            ],
+            "result": "Reject \"fair die\" at the 5% level. Notice that face 6 alone contributes 10.0 of the 13.4: the test result is driven almost entirely by the sixes."
+          }
+        },
+        {
+          "example": {
+            "title": "Is churn related to plan type? (independence, business case, illustrative)",
+            "setup": "A telecom provider follows 600 new customers for a year. Basic: 200 customers, 60 churned. Standard: 300 customers, 60 churned. Premium: 100 customers, 10 churned. Churn rates: 30%, 20%, 10%.",
+            "steps": [
+              "Overall churn = 130 ÷ 600 = 21.67%. Under the null, every plan churns at 21.67%.",
+              "Expected churners: Basic 200 × 130 ÷ 600 = 43.33; Standard 300 × 130 ÷ 600 = 65.00; Premium 100 × 130 ÷ 600 = 21.67. Expected stayers are the group sizes minus these: 156.67, 235.00, 78.33.",
+              "Contributions (O − E)² ÷ E: Basic churned (60 − 43.33)² ÷ 43.33 = 6.41; Basic stayed 1.77; Standard churned 0.38; Standard stayed 0.11; Premium churned 6.28; Premium stayed 1.74.",
+              "χ² = 6.41 + 1.77 + 0.38 + 0.11 + 6.28 + 1.74 = 16.69.",
+              "df = (3 − 1) × (2 − 1) = 2. The 5% cut-off for df = 2 is 5.99. p = 0.00024.",
+              "Cramér's V = √(16.69 ÷ (600 × 1)) = 0.17, a modest but real association."
+            ],
+            "result": "Churn clearly depends on plan. The biggest contributions come from Basic (too many churners) and Premium (too few), which tells the retention team where to look."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Plan",
+              "Churned (O)",
+              "Churned (E)",
+              "Stayed (O)",
+              "Stayed (E)",
+              "Contribution"
+            ],
+            "rows": [
+              [
+                "Basic",
+                "60",
+                "43.33",
+                "140",
+                "156.67",
+                "8.18"
+              ],
+              [
+                "Standard",
+                "60",
+                "65.00",
+                "240",
+                "235.00",
+                "0.49"
+              ],
+              [
+                "Premium",
+                "10",
+                "21.67",
+                "90",
+                "78.33",
+                "8.02"
+              ],
+              [
+                "Total",
+                "130",
+                "130",
+                "470",
+                "470",
+                "χ² = 16.69"
+              ]
+            ],
+            "caption": "Observed versus expected for the churn example. Standard behaves almost exactly as expected; the surprise lives in the Basic and Premium rows."
+          }
+        },
+        {
+          "example": {
+            "title": "Defects by shift in a component plant (illustrative)",
+            "setup": "An automotive supplier inspects 400 brake brackets from each shift. Defective: morning 12, evening 15, night 33. Total defects 60 out of 1,200 (5%).",
+            "steps": [
+              "Expected defects per shift = 400 × 60 ÷ 1,200 = 20. Expected good parts = 380.",
+              "Defect cells: morning (12 − 20)² ÷ 20 = 3.20; evening (15 − 20)² ÷ 20 = 1.25; night (33 − 20)² ÷ 20 = 8.45.",
+              "Good-part cells: 64 ÷ 380 = 0.17; 25 ÷ 380 = 0.07; 169 ÷ 380 = 0.44.",
+              "χ² = 3.20 + 1.25 + 8.45 + 0.17 + 0.07 + 0.44 = 13.58. df = 2, p = 0.0011."
+            ],
+            "result": "Defect rates differ by shift, and the night shift is the main source of the difference. The next step is a root-cause visit (lighting, fatigue, a worn tool), not more statistics."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Assumptions and how to check them",
+      "blocks": [
+        {
+          "bullets": [
+            "**Use raw counts, never percentages.** \"30% vs 20%\" could be 3 of 10 vs 2 of 10 or 3,000 of 10,000 vs 2,000 of 10,000. The test needs the counts to know how much evidence you have.",
+            "**Each item counted once.** A customer cannot appear in two cells. Repeated measurements of the same person break the test (use McNemar's test for before/after pairs).",
+            "**Expected counts at least 5** in (almost) every cell. With smaller expected counts the chi-square curve is a poor approximation. Merge sparse categories or use **Fisher's exact test**.",
+            "**Independent observations.** Items should not influence each other. Parts from the same faulty batch are not independent."
+          ]
+        },
+        {
+          "callout": "For 2 × 2 tables, `scipy.stats.chi2_contingency` applies **Yates' continuity correction** by default, which makes the test slightly more cautious. Pass `correction=False` if you want the textbook formula you computed by hand.",
+          "tone": "tip"
+        },
+        {
+          "think": {
+            "q": "A colleague reports χ² = 9.9, p = 0.002 comparing click rates of 10.3% and 10.0% with 200,000 users per group. Should the marketing team celebrate?",
+            "a": "Probably not. The result is statistically significant because the sample is enormous, but Cramér's V is about 0.005, almost zero. A 0.3-point difference may or may not matter commercially; that is a business question. Always report the size of the effect next to the p-value."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Chi-square in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Survey analysis at a consumer brand (illustrative)",
+            "story": "A consumer-goods company surveys 2,000 shoppers across four regions on whether they prefer a new pack design. Region-by-preference counts go into a 4 × 2 contingency table. The chi-square test gives p < 0.001, and the cell contributions show the South region prefers the old design far more than expected. Instead of one national launch, the brand team runs a regional test in the South first. The statistic did not make the decision; it pointed the team at the cell that deserved attention."
+          }
+        },
+        {
+          "bullets": [
+            "**Quality control:** defects by machine, shift, supplier or raw-material batch.",
+            "**Marketing:** response rate by channel, or conversion by device type.",
+            "**HR analytics:** attrition by department, or promotion rate by office.",
+            "**Feature screening in ML:** `sklearn.feature_selection.chi2` ranks categorical (or count) features by how strongly they relate to the target.",
+            "**Checking randomisation in A/B tests:** a goodness-of-fit test confirms that a planned 50/50 split really came out close to 50/50."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Significant does not mean strong.** With large samples, trivial associations become significant. Report Cramér's V or the actual rate differences.",
+            "**It does not say which cells differ.** Look at the cell contributions or standardised residuals to find where the surprise is.",
+            "**Association is not causation.** Basic customers may churn more because they are price-sensitive people, not because of the plan itself.",
+            "**Ordered categories lose information.** If categories have a natural order (low, medium, high), a trend test or ordinal model uses that order; chi-square ignores it."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Use chi-square when…",
+              "items": [
+                "Both variables are categorical",
+                "You have raw counts",
+                "Expected counts are 5 or more",
+                "Each item appears in exactly one cell",
+                "You want a quick test of \"is there any relationship?\""
+              ]
+            },
+            "right": {
+              "title": "Use something else when…",
+              "items": [
+                "Expected counts are tiny → **Fisher's exact test**",
+                "Same people measured twice → **McNemar's test**",
+                "Outcome is a measurement → **t-test or ANOVA**",
+                "You want effects of several factors at once → **logistic regression**",
+                "Categories are ordered → **trend test / ordinal regression**"
+              ]
+            },
+            "caption": "Chi-square is the workhorse for count tables, but each limitation has a well-known replacement."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between goodness of fit and the test of independence?",
+      "a": "Goodness of fit compares one variable with a claimed pattern (a fair die). Independence compares two variables in a table (plan type versus churn). The formula is the same; only the expected counts are calculated differently."
+    },
+    {
+      "q": "Can I use percentages in a chi-square test?",
+      "a": "No. Always use raw counts. Percentages hide how many items you observed, and the amount of evidence depends on that."
+    },
+    {
+      "q": "My table has some expected counts below 5. What now?",
+      "a": "Merge small categories if that makes business sense, or use Fisher's exact test, which does not rely on the approximation. `scipy.stats.fisher_exact` handles 2 × 2 tables."
+    },
+    {
+      "q": "Does a significant result tell me which group is different?",
+      "a": "No. It says the table as a whole departs from \"no relationship\". Look at the individual (O − E)² ÷ E contributions, or standardised residuals, to see which cells drive it."
+    },
+    {
+      "q": "Is chi-square a one-tailed or two-tailed test?",
+      "a": "The statistic only grows with any departure from the null, so you always look at the upper tail of the curve. It detects differences in any direction."
+    },
+    {
+      "q": "How do I run it in Python?",
+      "a": "For goodness of fit, `scipy.stats.chisquare(observed, expected)`. For a table, `chi2, p, dof, expected = scipy.stats.chi2_contingency(table)`. In pandas, `pd.crosstab(df.plan, df.churned)` builds the table for you."
+    }
+  ]
+}

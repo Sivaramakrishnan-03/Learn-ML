@@ -1,0 +1,76 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Recognise when the target is a count",
+    "Fit a Poisson regression and interpret coefficients as rate ratios",
+    "Know the GLM family idea"
+  ],
+  "why": "Insurance claim counts, website visits, defects and footfall are counts. OLS can predict negative counts and gets the variance wrong; Poisson regression handles both.",
+  "explain": [
+    "Counts are whole numbers ≥ 0 and their variance usually grows with the mean. A **Poisson regression** models the **log of the expected count** as a linear function of the features.",
+    "Because of the log, coefficients are **multiplicative**: e^β is a **rate ratio**. β = 0.2 → e^0.2 ≈ 1.22 → a 22% higher expected count per unit increase.",
+    "It belongs to the **GLM** (generalised linear model) family: pick a distribution (normal, binomial, Poisson, gamma) and a link function (identity, logit, log). Logistic regression is the binomial GLM.",
+    "If the variance is much larger than the mean (**over-dispersion**), use negative binomial regression. Use an **exposure/offset** when the observation windows differ (claims per policy-year)."
+  ],
+  "formula": {
+    "tex": "\\log E[y] = \\beta_0 + \\beta_1 x_1 + \\dots",
+    "plain": "The log of the expected count is a weighted sum of the features."
+  },
+  "example": {
+    "title": "Car insurance claims",
+    "steps": [
+      "Model: log(expected claims per year) = −2.3 + 0.4 × young_driver + 0.1 × (km driven / 10,000)",
+      "Base rate: e^−2.3 ≈ 0.10 claims per year",
+      "Young driver: × e^0.4 ≈ 1.49 → 49% more claims",
+      "A young driver doing 20,000 km: 0.10 × 1.49 × e^0.2 ≈ 0.18 claims per year"
+    ],
+    "result": "Actuaries price premiums directly from such rate ratios."
+  },
+  "mistakes": [
+    "Using OLS for small counts.",
+    "Ignoring over-dispersion.",
+    "Forgetting the exposure offset."
+  ],
+  "takeaways": [
+    "Count target → Poisson / negative binomial",
+    "e^β = rate ratio",
+    "GLM = distribution + link function"
+  ],
+  "use": [
+    "Non-negative count targets",
+    "Rates per exposure (claims per policy-year)"
+  ],
+  "avoid": [
+    "Variance ≫ mean (use negative binomial)",
+    "Many structural zeros (use zero-inflated models)"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom sklearn.linear_model import PoissonRegressor\nrng = np.random.default_rng(0)\nyoung = rng.integers(0, 2, 2000); km = rng.uniform(0.5, 3, 2000)\nclaims = rng.poisson(np.exp(-2.3 + 0.4 * young + 0.1 * km))\nm = PoissonRegressor(alpha=0).fit(np.c_[young, km], claims)\nprint(np.exp(m.coef_).round(2))      # rate ratios ≈ [1.49, 1.11]"
+  },
+  "check": [
+    {
+      "q": "Poisson coefficient β = 0.7. The rate ratio is about…",
+      "options": [
+        "0.7",
+        "2.0",
+        "1.07",
+        "0.5"
+      ],
+      "answer": 1,
+      "why": "e^0.7 ≈ 2.01, so the count roughly doubles."
+    },
+    {
+      "q": "Logistic regression is a GLM with which distribution?",
+      "options": [
+        "Poisson",
+        "Binomial",
+        "Gamma",
+        "Normal"
+      ],
+      "answer": 1,
+      "why": "Binomial with a logit link."
+    }
+  ],
+  "chapterMinutes": 17
+}

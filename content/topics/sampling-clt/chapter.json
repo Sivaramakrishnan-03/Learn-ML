@@ -1,0 +1,407 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 18,
+  "hook": "Before an Indian general election, a polling agency interviews a few thousand people and predicts how roughly 900 million voters will behave. A carmaker crash-tests a handful of cars, not every car off the line. A retailer surveys 400 customers and changes its pricing for millions. How can a small sample possibly speak for a huge population? The answer is one of the most important results in all of statistics: the **Central Limit Theorem**.",
+  "sections": [
+    {
+      "heading": "The problem: we can almost never measure everyone",
+      "blocks": [
+        {
+          "p": "Measuring everything is usually impossible, too slow or too expensive. You cannot interview every customer, test every battery to destruction, or wait a year to see every transaction. So we measure a subset and use it to say something about the whole."
+        },
+        {
+          "term": "Population and sample",
+          "def": "The **population** is the entire group you care about: all customers, all bolts made this month, all voters. A **sample** is the subset you actually measure. The goal is to learn about the population from the sample."
+        },
+        {
+          "term": "Parameter and statistic",
+          "def": "A **parameter** is a number describing the population, usually unknown (the true average basket size of all customers, written μ). A **statistic** is the matching number calculated from a sample (the average basket of the 400 customers you surveyed, written x̄). We use statistics to estimate parameters."
+        },
+        {
+          "p": "Here is the catch. Survey 400 different customers and you will get a slightly different average. Every sample gives a different answer. So the real question is not “what did my sample say?” but **“how much could my sample’s answer differ from the truth, just by the luck of who got picked?”**"
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Population** (true mean μ, unknown)",
+              "Draw a **random sample** of n",
+              "Compute the **sample mean** x̄",
+              "Imagine repeating many times: the x̄ values form a **sampling distribution**",
+              "Its spread (the **standard error**) tells us how far x̄ can stray from μ"
+            ],
+            "caption": "The logic of sampling. We only ever see one sample, but statistics reasons about all the samples we could have drawn."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: averaging dice",
+      "blocks": [
+        {
+          "p": "Take one ordinary die. Each face 1 to 6 is equally likely, so a bar chart of outcomes is perfectly flat. Nothing bell-shaped about it."
+        },
+        {
+          "steps": [
+            "**Roll two dice and average them.** Now an average of 1 needs both dice to show 1 (one way out of 36). An average of 3.5 can happen six ways (1+6, 2+5, 3+4 and their reverses). The middle becomes more likely than the edges, and the shape becomes a triangle.",
+            "**Roll five dice and average them.** To get an average near 1 or 6, all five must cooperate. Very unlikely. Most averages land between 2.5 and 4.5. The triangle has rounded into a hump.",
+            "**Roll thirty dice and average them.** The averages cluster tightly around 3.5 and form an almost perfect bell curve."
+          ],
+          "title": "From flat to bell"
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "1",
+              "1.5",
+              "2",
+              "2.5",
+              "3",
+              "3.5",
+              "4",
+              "4.5",
+              "5",
+              "5.5",
+              "6"
+            ],
+            "values": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              5,
+              4,
+              3,
+              2,
+              1
+            ],
+            "highlight": 5,
+            "yLabel": "ways out of 36",
+            "caption": "Average of two dice. A single die is flat, but averaging just two already makes the middle value (3.5) six times as likely as the extremes. Average more dice and the triangle becomes a bell."
+          }
+        },
+        {
+          "p": "Two things happened at once. The **shape** turned into a bell, even though one die is flat. And the bell got **narrower** as we averaged more dice: extremes cancel out. These two facts, stated precisely, are the Central Limit Theorem."
+        },
+        {
+          "think": {
+            "q": "Individual customer spends at a café are very skewed: most people buy a ₹150 coffee, a few spend ₹2,000 on a catering order. Will the average spend of 50 random customers also be skewed?",
+            "a": "Much less. The occasional big order gets diluted by 49 ordinary ones, and different samples get different numbers of big orders, which smooths things out. The distribution of 50-customer averages will be close to a bell, centred on the true average spend. That is the Central Limit Theorem at work."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How the Central Limit Theorem works, step by step",
+      "blocks": [
+        {
+          "term": "Sampling distribution",
+          "def": "The distribution of a statistic (such as the sample mean) over all the different samples you could have drawn. You never see it directly, but theory tells you its shape and spread."
+        },
+        {
+          "term": "Central Limit Theorem (CLT)",
+          "def": "If you take random samples of size n from almost any population and compute each sample’s mean, those means follow approximately a normal distribution centred on the true population mean, and the approximation gets better as n grows."
+        },
+        {
+          "steps": [
+            "**Start with any population**, skewed, flat or lumpy, as long as its spread is finite. Call its mean μ and SD σ.",
+            "**Draw a random sample of n items** and compute the sample mean.",
+            "**The sample mean is centred on the truth.** On average, across all possible samples, x̄ equals μ. It has no systematic tendency to be too high or too low.",
+            "**Its spread shrinks with n.** The SD of the sample means is σ / √n, called the standard error.",
+            "**Its shape becomes normal.** For moderately skewed data, n of about 30 is often enough. For very skewed data (insurance claims, viral social media posts) you may need hundreds.",
+            "**So you can use normal-curve tools** (z-scores, the 95% ±1.96 rule) on averages even when the raw data is not normal at all."
+          ],
+          "title": "What the CLT promises"
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "x>=0 ? Math.exp(-x/500)/500 : 0",
+            "fn2": "Math.exp(-Math.pow((x-500)/91.29,2)/2)/(91.29*Math.sqrt(2*Math.PI))",
+            "xMin": 0,
+            "xMax": 1500,
+            "marks": [
+              {
+                "x": 500,
+                "label": "true mean ₹500"
+              }
+            ],
+            "xLabel": "basket value (₹)",
+            "yLabel": "density",
+            "legend": [
+              "individual baskets (very skewed)",
+              "averages of 30 baskets (≈ normal)"
+            ],
+            "caption": "Individual basket values follow a steeply skewed curve (most are small, a few are large). Averages of 30 baskets form a narrow, nearly symmetric bell centred on the same ₹500, with a standard error of 500 / √30 ≈ ₹91."
+          }
+        },
+        {
+          "callout": "The CLT is about the **distribution of averages**, not about the raw data. Collecting more data does not make individual salaries normal; it makes your estimate of the average salary more precise and more predictable.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "The CLT can be written in one line."
+        },
+        {
+          "tex": "\\bar X ;\\approx; \\mathcal{N}\\!\\left(\\mu,; \\frac{\\sigma^2}{n}\\right)",
+          "plain": "The sample mean is approximately normally distributed, centred on the population mean μ, with variance σ² / n (so its SD is σ / √n).",
+          "symbols": [
+            [
+              "\\bar X",
+              "the sample mean, thought of as a random quantity that changes from sample to sample"
+            ],
+            [
+              "\\mathcal{N}(a, b)",
+              "a normal distribution with mean a and variance b"
+            ],
+            [
+              "\\sigma^2",
+              "variance of the individual values in the population"
+            ],
+            [
+              "n",
+              "sample size"
+            ]
+          ]
+        },
+        {
+          "term": "Standard error (SE)",
+          "def": "The standard deviation of a statistic across repeated samples. For a mean it is σ / √n. Think of it as the typical size of the error in your estimate due to random sampling alone. In practice σ is unknown, so we plug in the sample SD s."
+        },
+        {
+          "tex": "SE(\\bar x) = \\frac{\\sigma}{\\sqrt{n}} ;\\approx; \\frac{s}{\\sqrt{n}}",
+          "plain": "Divide the spread of individual values by the square root of the sample size.",
+          "symbols": [
+            [
+              "s",
+              "sample standard deviation, used in place of the unknown σ"
+            ]
+          ]
+        },
+        {
+          "p": "Why the **square root** of n and not n itself? Because errors partly cancel. If you average 100 values, some are too high and some too low, and they cancel out a lot, but not perfectly. Variances of independent values add up, so the variance of a sum of n values is n × σ², and dividing the sum by n to get an average divides the variance by n². That leaves σ² / n, whose square root is σ / √n."
+        },
+        {
+          "p": "The practical consequence is a law every survey and experiment budget obeys: **to halve your uncertainty, you need four times as much data.** To cut it to a tenth, you need a hundred times as much."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Sample size n",
+              "√n",
+              "Standard error (σ = ₹300)",
+              "Cost of the sample"
+            ],
+            "rows": [
+              [
+                "1",
+                "1",
+                "₹300",
+                "1×"
+              ],
+              [
+                "4",
+                "2",
+                "₹150",
+                "4×"
+              ],
+              [
+                "25",
+                "5",
+                "₹60",
+                "25×"
+              ],
+              [
+                "100",
+                "10",
+                "₹30",
+                "100×"
+              ],
+              [
+                "400",
+                "20",
+                "₹15",
+                "400×"
+              ],
+              [
+                "2,500",
+                "50",
+                "₹6",
+                "2,500×"
+              ]
+            ],
+            "caption": "Precision grows only with the square root of the sample size. Going from 100 to 400 customers halves the standard error from ₹30 to ₹15, but quadruples the cost. Diminishing returns are built into sampling."
+          }
+        },
+        {
+          "callout": "For a **proportion** (share of customers who would recommend you), the same logic gives SE = √(p(1 − p) / n). With p = 0.5 and n = 1,000, SE ≈ 0.0158, which is where the famous “±3 percentage points” margin of polls comes from (1.96 × 0.0158 ≈ 0.031).",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "How precise is a 100-customer basket survey?",
+            "setup": "A supermarket’s individual basket values have mean ₹500 and SD ₹300 (heavily skewed). A manager samples 100 random receipts. How far is the sample mean likely to be from ₹500?",
+            "steps": [
+              "SE = σ / √n = 300 / √100 = 300 / 10 = ₹30.",
+              "By the CLT, sample means are approximately normal with mean ₹500 and SD ₹30.",
+              "About 95% of sample means fall within 500 ± 1.96 × 30 = 500 ± 58.8, i.e. ₹441.2 to ₹558.8.",
+              "With n = 400: SE = 300 / 20 = ₹15, and the 95% range shrinks to about ₹470.6 to ₹529.4."
+            ],
+            "result": "A 100-receipt sample will usually land within about ₹60 of the truth. Quadrupling the effort to 400 receipts halves that to about ₹30. Whether that is worth it is a business decision, not a statistical one."
+          }
+        },
+        {
+          "example": {
+            "title": "The average of 30 dice",
+            "setup": "A die has mean 3.5 and SD 1.708. You roll 30 dice and average them. What is the chance the average exceeds 4?",
+            "steps": [
+              "SE = 1.708 / √30 = 1.708 / 5.477 = 0.312.",
+              "z = (4 − 3.5) / 0.312 = 1.60.",
+              "Normal approximation: P(z > 1.60) = 0.054.",
+              "The exact answer, by counting all outcomes of 30 dice with a computer, is 0.049. The CLT approximation is close."
+            ],
+            "result": "An average above 4 happens only about one time in twenty, even though a single die exceeds 4 one time in three. Averages are far more stable than individual outcomes."
+          }
+        },
+        {
+          "example": {
+            "title": "Sizing a customer-satisfaction survey",
+            "setup": "A telecom company wants to estimate the share of customers who would recommend it, to within about ±3 percentage points with 95% confidence. How many responses are needed? What about 250 responses?",
+            "steps": [
+              "The worst case (largest SE) is when the true share is 50%, so plan with p = 0.5.",
+              "n = 1,000: SE = √(0.5 × 0.5 / 1,000) = 0.0158; margin = 1.96 × 0.0158 = 0.031, about ±3.1 points.",
+              "n = 250: SE = √(0.25 / 250) = 0.0316; margin = 1.96 × 0.0316 = 0.062, about ±6.2 points.",
+              "n = 4,000: margin ≈ ±1.5 points."
+            ],
+            "result": "About 1,000 random responses give ±3 points, whether the customer base is 1 lakh or 10 crore. Precision depends on the sample size, not on the population size (as long as the population is much bigger than the sample)."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Random sampling and bias: what the CLT cannot fix",
+      "blocks": [
+        {
+          "p": "Every promise above depends on one word: **random**. The CLT tells you how far a random sample’s average can stray by luck. It says nothing about a sample that is systematically unrepresentative."
+        },
+        {
+          "term": "Simple random sample",
+          "def": "A sample chosen so that every member of the population has the same chance of being picked, independently of the others. Drawing names from a well-shuffled hat is the classic picture."
+        },
+        {
+          "term": "Sampling bias",
+          "def": "A systematic difference between the sample and the population caused by how the sample was collected, for example only surveying customers who visit the app, or only testing cars from the morning shift. More data does not reduce it."
+        },
+        {
+          "case": {
+            "title": "The 1936 Literary Digest poll",
+            "story": "Before the 1936 US presidential election, the Literary Digest magazine mailed questionnaires to millions of people drawn largely from its own subscribers, telephone directories and car registrations, and received over two million replies. It predicted a clear win for Alf Landon. Franklin Roosevelt won in a landslide. In the Depression, people with phones and cars were wealthier than average, and those who chose to reply differed from those who did not. George Gallup, using a far smaller but more carefully chosen sample, called the result correctly. A huge biased sample lost to a small representative one."
+          }
+        },
+        {
+          "bullets": [
+            "**Self-selection:** online reviews come mostly from the delighted and the furious.",
+            "**Survivorship:** studying only companies that still exist hides the strategies that led others to fail.",
+            "**Convenience:** surveying shoppers at a single mall in Bengaluru tells you about that mall, not about India.",
+            "**Non-response:** if busy customers ignore your survey, your results describe customers with free time."
+          ]
+        },
+        {
+          "callout": "Standard error measures random error only. Bias does not shrink with n. A biased sample of a million is still wrong, just very precisely wrong.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Sampling in the real world",
+      "blocks": [
+        {
+          "bullets": [
+            "**Quality control:** test a random sample of 50 parts per batch; the CLT tells you how precisely the batch average is known and when a shift is real.",
+            "**Audit:** auditors sample invoices rather than checking every one, and size the sample to hit a required precision.",
+            "**A/B testing:** the difference between two groups’ average order values is approximately normal by the CLT, which makes the standard tests valid even for skewed revenue data with enough users.",
+            "**Opinion polling and market research:** margins of error are standard errors in disguise.",
+            "**Machine learning:** cross-validation scores are averages over folds, and bootstrap methods resample the data to estimate standard errors when formulas are hard."
+          ]
+        },
+        {
+          "term": "Bootstrap",
+          "def": "A computer method for estimating a standard error: repeatedly resample your own data with replacement, recompute the statistic each time, and look at how much it varies. Useful when no simple formula exists, for example for a median."
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Thinking the CLT makes raw data normal.** It is about averages (and sums). Individual values keep their original shape.",
+            "**Using n = 30 as a magic number.** For heavily skewed or heavy-tailed data (claim sizes, revenue per user in a game where a few “whales” spend lakhs) the sample mean can need hundreds or thousands of observations to behave.",
+            "**Ignoring dependence.** The σ / √n formula assumes independent observations. Daily sales in consecutive days, or customers from the same household, are correlated, and the true SE is larger.",
+            "**Confusing SD and SE.** SD describes how much individual values vary; SE describes how much your estimate of the average would vary. Reporting an SE as if it were an SD makes data look far less variable than it is."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Standard deviation (SD)",
+              "items": [
+                "Describes individual values",
+                "Does not shrink with more data",
+                "Answers: how different are customers from each other?",
+                "Used for tolerances, ranges, outlier checks"
+              ]
+            },
+            "right": {
+              "title": "Standard error (SE)",
+              "items": [
+                "Describes an estimate (e.g. the mean)",
+                "Shrinks as σ / √n",
+                "Answers: how precisely do we know the average?",
+                "Used for confidence intervals and tests"
+              ]
+            },
+            "caption": "The most common confusion in applied statistics. With 10,000 customers the SE of the mean basket can be tiny while the SD of baskets stays large."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does the CLT work for any population?",
+      "a": "For almost any population with a finite variance. Extremely heavy-tailed distributions (where the variance is infinite) break it, and very skewed ones need large samples before the approximation is good."
+    },
+    {
+      "q": "Why does the population size not matter for the margin of error?",
+      "a": "Because the SE depends on the spread of values and the sample size, not on how many people exist in total. A spoonful of well-stirred soup tells you its saltiness whether the pot holds 2 litres or 200. (A small correction applies only when the sample is a sizeable fraction, say over 5 to 10%, of the population.)"
+    },
+    {
+      "q": "Is 30 really enough?",
+      "a": "It is a rough rule for moderately skewed data. Simulate if in doubt: draw many samples of your size from data shaped like yours and look at the histogram of their means."
+    },
+    {
+      "q": "What is the difference between the standard error and the margin of error?",
+      "a": "The margin of error is the standard error multiplied by a critical value, usually 1.96 for 95% confidence. With SE = 1.58 points, the margin of error is about ±3.1 points."
+    },
+    {
+      "q": "Does the CLT apply to medians and other statistics?",
+      "a": "Versions of it apply to many statistics, including proportions (which are means of 0/1 values), but the formulas differ. For awkward statistics like medians or percentiles, the bootstrap is the practical tool."
+    }
+  ]
+}

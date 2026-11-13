@@ -1,0 +1,426 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "A telecom operator segments its mobile customers by monthly spend. Most budget users spend around ₹200 and most premium users around ₹600, but a customer spending ₹400 sits right between them. K-means must call her \"budget\" or \"premium\", full stop. A **Gaussian Mixture Model** says something more realistic: \"about 43% budget-like, 57% premium-like.\" That one change, from hard labels to probabilities, makes many marketing and risk decisions better.",
+  "sections": [
+    {
+      "heading": "The problem: groups that overlap",
+      "blocks": [
+        {
+          "p": "In the k-means chapter every point belonged to exactly one cluster. That is fine when groups are well separated. When groups overlap, a hard label throws away useful information: the customer on the boundary is treated exactly like the customer at the heart of the segment."
+        },
+        {
+          "term": "Soft clustering",
+          "def": "Clustering in which each item gets a probability of belonging to each cluster (for example 70% A, 30% B) instead of a single label."
+        },
+        {
+          "term": "Gaussian (normal) distribution",
+          "def": "The familiar bell curve. It is described by a centre (the mean) and a spread (the standard deviation, or in several dimensions the covariance). Most values sit near the centre; very far values are rare."
+        },
+        {
+          "p": "A Gaussian Mixture Model (GMM) assumes the data was produced by **several bell curves added together**, each representing one hidden group. Each bell has its own centre, its own width and its own share of the population. Fitting a GMM means working out those centres, widths and shares from the data alone."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "0.6*Math.exp(-(x-2)*(x-2)/2)/Math.sqrt(2*Math.PI)",
+            "fn2": "0.4*Math.exp(-(x-6)*(x-6)/4.5)/(1.5*Math.sqrt(2*Math.PI))",
+            "xMin": -1,
+            "xMax": 11,
+            "marks": [
+              {
+                "x": 4,
+                "label": "₹400"
+              }
+            ],
+            "xLabel": "monthly spend (₹ hundred)",
+            "yLabel": "density",
+            "legend": [
+              "budget: 60% share, centre ₹200",
+              "premium: 40% share, centre ₹600"
+            ],
+            "caption": "Two overlapping bell curves. The budget group is larger and narrower; the premium group is smaller and wider. At ₹400 both curves have some height, so a customer there could plausibly belong to either group."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: two orchards, one truck",
+      "blocks": [
+        {
+          "p": "A fruit trader receives one truck of mangoes mixed from two orchards. Orchard A grows smaller mangoes, orchard B larger ones, but sizes overlap. Nobody labelled the fruit. Can she work out the typical size from each orchard, and the share from each, just by weighing mangoes?"
+        },
+        {
+          "steps": [
+            "**Make a rough guess.** \"Orchard A mangoes weigh about 200 g, orchard B about 350 g, and the truck is half and half.\"",
+            "**Give each mango partial credit.** A 210 g mango is very likely from A, so give it, say, 95% to A and 5% to B. A 280 g mango is ambiguous: perhaps 50/50.",
+            "**Update the guesses using the partial credit.** The new typical size for A is the average weight of all mangoes, weighted by how much each one was credited to A. The share of A is the total credit A received divided by the number of mangoes.",
+            "**Repeat.** With better orchard descriptions, the partial credits improve, which improves the descriptions again.",
+            "**Stop when nothing changes much.**"
+          ],
+          "title": "Guess, credit, update, repeat"
+        },
+        {
+          "p": "This loop is called **Expectation–Maximisation (EM)**. If it reminds you of k-means, it should: k-means is the same loop with \"full credit to the nearest centre only\" instead of partial credit."
+        },
+        {
+          "think": {
+            "q": "In k-means, a point on the border between two clusters pulls one centroid fully towards it. What does it do in a GMM?",
+            "a": "It pulls both centres a little, in proportion to its partial credit. A 50/50 point contributes half its weight to each group. Ambiguous points therefore have less influence on any single group, which makes the estimates smoother and more stable."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How the algorithm works, step by step",
+      "blocks": [
+        {
+          "term": "Responsibility",
+          "def": "The partial credit: the probability that a given point came from a given component, according to the current model. Each point's responsibilities add up to 1."
+        },
+        {
+          "term": "Covariance",
+          "def": "In several dimensions, the description of a bell's shape: how wide it is along each feature and whether it is tilted (features rising together). It lets GMM clusters be stretched ellipses rather than circles."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Initialise** K components (often from a k-means run)",
+              "**E-step:** compute each point's responsibilities",
+              "**M-step:** update shares, means and covariances using the responsibilities",
+              "Did the log-likelihood stop improving? **No → repeat**",
+              "**Yes → stop.** Report probabilities and parameters"
+            ],
+            "caption": "The EM loop for a Gaussian Mixture Model. \"E\" (expectation) assigns partial credit; \"M\" (maximisation) refits the bells to that credit."
+          }
+        },
+        {
+          "p": "**Step 1: Initialise.** Choose the number of components K and starting values. scikit-learn's `GaussianMixture` starts from a k-means result by default, which is usually a good starting point."
+        },
+        {
+          "p": "**Step 2: E-step.** For every point and every component, ask: \"How likely is this point under this bell, times this bell's share?\" Then divide by the total across bells so the answers add to 1. These are the responsibilities."
+        },
+        {
+          "p": "**Step 3: M-step.** Refit each bell as if the responsibilities were fractional memberships: new share = average responsibility; new mean = responsibility-weighted average; new spread = responsibility-weighted spread around the new mean."
+        },
+        {
+          "p": "**Step 4: Check.** Compute the log-likelihood, a single score of how well the whole mixture explains the data. EM is guaranteed never to make it worse. When the improvement becomes tiny, stop."
+        },
+        {
+          "term": "Log-likelihood",
+          "def": "A score for how probable the observed data is under the model, on a logarithmic scale. Higher (less negative) means the model explains the data better. Logarithms turn long products of small probabilities into manageable sums."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "We will stay in one dimension (one feature) so the formulas are readable. The many-feature version replaces the variance with a covariance matrix but keeps exactly the same structure."
+        },
+        {
+          "tex": "p(x) = \\sum_{k=1}^{K} \\pi_k \\, \\mathcal{N}(x \\mid \\mu_k, \\sigma_k^2)",
+          "plain": "The chance of seeing value x is a weighted sum of K bell curves. Each bell is weighted by its share of the population.",
+          "symbols": [
+            [
+              "\\pi_k",
+              "share (weight) of component k; the shares add to 1"
+            ],
+            [
+              "\\mathcal{N}(x \\mid \\mu_k, \\sigma_k^2)",
+              "height of bell k at x"
+            ],
+            [
+              "\\mu_k",
+              "centre of bell k"
+            ],
+            [
+              "\\sigma_k",
+              "standard deviation (width) of bell k"
+            ]
+          ]
+        },
+        {
+          "tex": "\\mathcal{N}(x \\mid \\mu, \\sigma^2) = \\frac{1}{\\sigma\\sqrt{2\\pi}} \\, e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}",
+          "plain": "The bell-curve formula. The further x is from the centre, measured in units of the width, the smaller the height. Dividing by σ keeps the area under every bell equal to 1, so wide bells are lower."
+        },
+        {
+          "tex": "r_{ik} = \\frac{\\pi_k \\, \\mathcal{N}(x_i \\mid \\mu_k, \\sigma_k^2)}{\\sum_{j=1}^{K} \\pi_j \\, \\mathcal{N}(x_i \\mid \\mu_j, \\sigma_j^2)}",
+          "plain": "E-step. The responsibility of component k for point i is that component's weighted height at the point, divided by the total weighted height of all components. This is Bayes' rule: share is the prior, bell height is the evidence.",
+          "symbols": [
+            [
+              "r_{ik}",
+              "responsibility of component k for point i"
+            ],
+            [
+              "x_i",
+              "the i-th data point"
+            ]
+          ]
+        },
+        {
+          "tex": "N_k = \\sum_i r_{ik}, \\quad \\pi_k = \\frac{N_k}{n}, \\quad \\mu_k = \\frac{1}{N_k}\\sum_i r_{ik}\\, x_i, \\quad \\sigma_k^2 = \\frac{1}{N_k}\\sum_i r_{ik}\\,(x_i - \\mu_k)^2",
+          "plain": "M-step. N_k is the \"effective number of points\" in component k (the sum of its partial credits). The share is that number divided by the total; the mean and variance are ordinary averages, but every point is weighted by its responsibility.",
+          "symbols": [
+            [
+              "N_k",
+              "effective count of points in component k"
+            ],
+            [
+              "n",
+              "total number of points"
+            ]
+          ]
+        },
+        {
+          "p": "Why does this work? Directly maximising the likelihood of a mixture is hard because we do not know which bell each point came from. EM breaks the problem into two easy halves: if we knew the memberships, fitting bells is just weighted averaging; if we knew the bells, memberships follow from Bayes' rule. Alternating between the halves climbs steadily uphill."
+        },
+        {
+          "callout": "Like k-means, EM climbs to a local optimum, not necessarily the best one. Use several starts (`n_init` in scikit-learn) and keep the run with the highest likelihood.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "E-step: the ₹400 customer",
+            "setup": "Two components for monthly spend in ₹ hundred. Budget: share 0.6, mean 2, SD 1. Premium: share 0.4, mean 6, SD 1.5. Compute responsibilities for a customer at x = 4 (₹400).",
+            "steps": [
+              "Budget bell height at 4: the point is 2 SDs from the mean, so height = e^(−2) / √(2π) ≈ 0.0540.",
+              "Premium bell height at 4: the point is 2 / 1.5 ≈ 1.33 SDs away, height ≈ 0.1093 (lower peak because the bell is wider, but the point is relatively closer).",
+              "Weighted heights: budget 0.6 × 0.0540 ≈ 0.0324; premium 0.4 × 0.1093 ≈ 0.0437. Total ≈ 0.0761.",
+              "Responsibilities: budget = 0.0324 / 0.0761 ≈ 0.43; premium = 0.0437 / 0.0761 ≈ 0.57."
+            ],
+            "result": "Although ₹400 is exactly halfway between the centres and the budget group is bigger, the customer is 57% premium. The premium bell is wider, so ₹400 is less unusual for it. K-means, which only looks at distance to centres, would call this a coin toss."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Spend (₹)",
+              "Budget weighted height",
+              "Premium weighted height",
+              "P(budget)",
+              "P(premium)"
+            ],
+            "rows": [
+              [
+                "250",
+                "0.2112",
+                "0.0070",
+                "0.97",
+                "0.03"
+              ],
+              [
+                "300",
+                "0.1452",
+                "0.0144",
+                "0.91",
+                "0.09"
+              ],
+              [
+                "400",
+                "0.0324",
+                "0.0437",
+                "0.43",
+                "0.57"
+              ],
+              [
+                "500",
+                "0.0027",
+                "0.0852",
+                "0.03",
+                "0.97"
+              ]
+            ],
+            "caption": "Responsibilities change smoothly as spend rises. Only customers near the overlap (around ₹350–₹450) get truly mixed probabilities; the rest are almost certainly in one group."
+          }
+        },
+        {
+          "example": {
+            "title": "M-step: refitting from partial credit",
+            "setup": "Four customers spend 1, 2, 5 and 6 (₹ hundred). After an E-step their responsibilities for the budget component are 0.95, 0.80, 0.15 and 0.05 (so 0.05, 0.20, 0.85 and 0.95 for premium).",
+            "steps": [
+              "Effective count, budget: 0.95 + 0.80 + 0.15 + 0.05 = 1.95. Premium: 4 − 1.95 = 2.05.",
+              "New shares: budget 1.95 / 4 ≈ 0.49, premium 2.05 / 4 ≈ 0.51.",
+              "New budget mean: (0.95×1 + 0.80×2 + 0.15×5 + 0.05×6) / 1.95 = 3.60 / 1.95 ≈ 1.85.",
+              "New premium mean: (0.05×1 + 0.20×2 + 0.85×5 + 0.95×6) / 2.05 = 10.40 / 2.05 ≈ 5.07.",
+              "New SDs (responsibility-weighted spread around each new mean): budget ≈ 1.25, premium ≈ 1.31."
+            ],
+            "result": "Every customer contributed to both components in proportion to its credit. The next E-step uses these new values, and the loop continues until the numbers stop moving."
+          }
+        },
+        {
+          "example": {
+            "title": "Choosing the number of components with BIC",
+            "setup": "A GMM is fitted to 1,000 customers' spend (one feature) with K = 1 to 4 components. A 1-D mixture with K components has 3K − 1 free parameters (K means, K variances, K − 1 independent shares). Illustrative log-likelihoods: −2,100, −1,980, −1,972, −1,968.",
+            "steps": [
+              "BIC = (number of parameters) × ln(n) − 2 × log-likelihood, with ln(1000) ≈ 6.91.",
+              "K = 1: 2 × 6.91 + 4,200 ≈ 4,213.8.",
+              "K = 2: 5 × 6.91 + 3,960 ≈ 3,994.5.",
+              "K = 3: 8 × 6.91 + 3,944 ≈ 3,999.3.",
+              "K = 4: 11 × 6.91 + 3,936 ≈ 4,012.0."
+            ],
+            "result": "Lowest BIC is at K = 2. Going from 2 to 3 components improves the fit by only 8 log-likelihood units, not enough to pay for 3 extra parameters."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing K and the shape of the clusters",
+      "blocks": [
+        {
+          "term": "BIC (Bayesian Information Criterion)",
+          "def": "A score that rewards fitting the data well but charges a penalty for every extra parameter. Lower is better. It helps choose how many components a model should have without overfitting."
+        },
+        {
+          "tex": "\\text{BIC} = p \\ln(n) - 2 \\ln \\hat{L}",
+          "plain": "BIC adds a complexity penalty (number of parameters times the log of the sample size) to a misfit term (minus twice the log-likelihood). Adding components always improves the likelihood, so the penalty is what stops you adding components forever.",
+          "symbols": [
+            [
+              "p",
+              "number of free parameters"
+            ],
+            [
+              "n",
+              "number of data points"
+            ],
+            [
+              "\\hat{L}",
+              "maximised likelihood"
+            ]
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "K=1",
+              "K=2",
+              "K=3",
+              "K=4"
+            ],
+            "values": [
+              4213.8,
+              3994.5,
+              3999.3,
+              4012
+            ],
+            "highlight": 1,
+            "yLabel": "BIC (lower is better)",
+            "caption": "BIC from the worked example. It falls sharply from one to two components, then rises again as extra components add parameters faster than they improve the fit."
+          }
+        },
+        {
+          "p": "In more than one dimension you also choose how flexible each bell's shape may be. scikit-learn offers four `covariance_type` options:"
+        },
+        {
+          "bullets": [
+            "**full:** each component can be any tilted ellipse. Most flexible, most parameters.",
+            "**tied:** all components share the same ellipse shape.",
+            "**diag:** ellipses aligned with the feature axes (no tilt).",
+            "**spherical:** circles, each with its own size. This is closest to k-means."
+          ]
+        },
+        {
+          "callout": "K-means is a limiting case of a GMM: give every component the same tiny circular spread and the responsibilities become all-or-nothing, which is exactly hard assignment to the nearest centre.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Gaussian mixtures in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Persona-weighted offers at a telecom operator (illustrative)",
+            "story": "A telecom operator describes each customer by monthly spend, data usage and international calling minutes. After standardising, a full-covariance GMM with four components (chosen by BIC) finds personas the team names \"light users\", \"data streamers\", \"family plans\" and \"international callers\". Instead of one label per customer, the CRM stores all four probabilities. Customers who are clearly one persona get that persona's offer. Customers split between \"data streamers\" and \"family plans\" get a combined pack. Customers whose overall likelihood under the model is very low are flagged as unusual accounts for a separate review. Results are measured by an A/B test of offer take-up against the previous hard-segment approach."
+          }
+        },
+        {
+          "bullets": [
+            "**Speech technology:** GMMs were for many years the standard way to model the sound patterns of individual speakers in speaker-recognition systems.",
+            "**Video:** classic background-subtraction methods (such as OpenCV's MOG2) model each pixel's colour over time as a mixture of Gaussians to separate moving objects from the background.",
+            "**Anomaly detection:** points with very low probability under the fitted mixture are unusual.",
+            "**Density estimation:** a GMM gives a smooth estimate of the full distribution, useful for simulation and synthetic data."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Bell-shaped assumption:** clusters shaped like crescents or rings are not mixtures of a few Gaussians. DBSCAN suits those better.",
+            "**Too many parameters:** a full covariance with 50 features needs 1,275 numbers per component. With few rows this is unstable; use diag or tied covariance, or reduce dimensions first.",
+            "**Collapsing components:** a component can shrink onto one or two points and its variance heads to zero. scikit-learn adds a small `reg_covar` to prevent this.",
+            "**Local optima:** different starts can give different answers; use `n_init` greater than 1.",
+            "**Scaling:** with diag or spherical covariances, unscaled features still distort the result, so standardise as usual."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Gaussian Mixture Model",
+              "items": [
+                "Soft: probabilities of membership",
+                "Elliptical clusters of different sizes and tilts",
+                "Gives a full probability model of the data",
+                "Choose K with BIC",
+                "Slower; more parameters"
+              ]
+            },
+            "right": {
+              "title": "K-means",
+              "items": [
+                "Hard: one label per point",
+                "Round clusters with straight boundaries",
+                "No probability model",
+                "Choose k with elbow or silhouette",
+                "Very fast and simple"
+              ]
+            },
+            "caption": "Use a GMM when overlap matters or you need probabilities; start with k-means when you just need fast, simple segments."
+          }
+        },
+        {
+          "callout": "A probability of 0.57 is only as trustworthy as the model behind it. If the real groups are not bell-shaped, the probabilities can be confidently wrong. Check the fit, for example by comparing the fitted mixture to a histogram of each feature.",
+          "tone": "warn"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is a GMM just a better k-means?",
+      "a": "It is a more flexible relative. It gives probabilities and elliptical clusters, but it has more parameters, needs more data and runs more slowly. On large, well-separated data, k-means is often good enough."
+    },
+    {
+      "q": "What does `predict_proba` return?",
+      "a": "For each row, the responsibilities: one probability per component, adding up to 1. `predict` simply returns the component with the highest probability."
+    },
+    {
+      "q": "What do E and M stand for?",
+      "a": "Expectation (compute the expected memberships, i.e. the responsibilities, under the current model) and Maximisation (choose parameters that maximise the likelihood given those memberships)."
+    },
+    {
+      "q": "How do I choose the number of components?",
+      "a": "Fit several values of K and compare BIC (lower is better). Then check that the components make business sense."
+    },
+    {
+      "q": "Does my data have to be normally distributed?",
+      "a": "Each cluster is modelled as a bell curve, so the closer the true groups are to bell shapes, the better. Skewed features (like income) often benefit from a log transform first."
+    },
+    {
+      "q": "Can a GMM detect outliers?",
+      "a": "Yes. `score_samples` gives each point's log-probability under the model; the lowest-scoring points are candidates for anomalies."
+    }
+  ]
+}

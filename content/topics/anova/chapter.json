@@ -1,0 +1,459 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A sales director is testing three new call scripts with her team, and the averages come back as 20, 23 and 29 sales a week. Is script C really better, or did it happen to land the best agents? With two scripts she could run a t-test. With three, four or ten options she needs a referee who can judge the whole tournament at once without being fooled by luck. That referee is **ANOVA**, the analysis of variance.",
+  "sections": [
+    {
+      "heading": "The problem: comparing more than two groups",
+      "blocks": [
+        {
+          "p": "Businesses constantly compare several options: three suppliers, four ad creatives, five machine settings, six store layouts. The question is always the same: **do the averages really differ, or are the differences just noise?**"
+        },
+        {
+          "p": "The obvious approach is to run a t-test on every pair. With 3 groups that is 3 tests; with 5 groups, 10 tests; with 10 groups, 45 tests. The trouble is that every test has a small chance of a false alarm, and those chances pile up."
+        },
+        {
+          "term": "False positive (Type I error)",
+          "def": "Declaring a difference when none really exists. With the usual 5% threshold, each test has a 5% chance of this when the groups are truly identical."
+        },
+        {
+          "p": "If each of 10 tests has a 5% false-alarm rate, the chance that at least one of them fires by luck is 1 − 0.95¹⁰ ≈ 40%. With 45 tests it is about 90%. Run enough pairwise tests and you will almost certainly \"discover\" a winner that does not exist."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "3 groups (3 tests)",
+              "5 groups (10 tests)",
+              "10 groups (45 tests)"
+            ],
+            "values": [
+              14,
+              40,
+              90
+            ],
+            "highlight": 2,
+            "yLabel": "chance of ≥1 false alarm (%)",
+            "caption": "The risk of at least one false positive when every pair is tested at 5% and all groups are actually identical. It climbs from 14% to 90%. ANOVA asks one question first and keeps the risk at 5%."
+          }
+        },
+        {
+          "term": "ANOVA (analysis of variance)",
+          "def": "A test of whether the averages of three or more groups are all equal. Despite the name, it compares means; it does so by comparing two kinds of variation."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: signal versus noise in a classroom",
+      "blocks": [
+        {
+          "p": "Picture three school classes that sat the same exam. Class A averaged 60, class B 62 and class C 75. Did class C have a better teacher?"
+        },
+        {
+          "steps": [
+            "**Look at how far apart the class averages are.** 60, 62 and 75 are fairly spread out. This is the **between-group** variation: the signal.",
+            "**Now look inside each class.** If marks inside every class range from 20 to 100, a few points between averages are tiny compared with how much students differ. This is the **within-group** variation: the noise.",
+            "**Compare the two.** If class averages differ a lot while students inside each class are tightly bunched, the classes are clearly different. If students vary wildly, differences in averages could easily be luck in who ended up in which class.",
+            "**Make one ratio: signal ÷ noise.** That ratio is the F-statistic."
+          ],
+          "title": "How to judge whether classes differ"
+        },
+        {
+          "p": "The key insight is that **you cannot judge a gap between averages on its own**. A 5-point gap is huge if everyone in each group scores within 1 point of their average, and meaningless if individuals swing by 30 points."
+        },
+        {
+          "think": {
+            "q": "Two experiments both show group averages of 20, 23 and 29. In experiment 1, individuals in each group vary by about ±2. In experiment 2, they vary by about ±15. Which one gives stronger evidence of real differences?",
+            "a": "Experiment 1. The between-group spread is the same, but the within-group noise is far smaller, so the signal-to-noise ratio (F) is much larger. The same averages can be convincing or meaningless depending on the noise."
+          }
+        },
+        {
+          "callout": "ANOVA is \"analysis of variance\" because it splits the total variation in the data into two parts: the part explained by which group you are in, and the leftover part caused by individual differences.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How ANOVA works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Compute each group mean** and the grand mean",
+              "**Between-group** spread: how far group means sit from the grand mean",
+              "**Within-group** spread: how far individuals sit from their own group mean",
+              "**F = between ÷ within** (each per degree of freedom)",
+              "**p-value**; if small, run a **post-hoc test**"
+            ],
+            "caption": "The one-way ANOVA pipeline. ANOVA answers \"is anything different?\"; the post-hoc test answers \"what exactly?\""
+          }
+        },
+        {
+          "p": "**Step 1.** Compute the mean of each group and the **grand mean**, the average of all observations together."
+        },
+        {
+          "term": "Grand mean",
+          "def": "The average of every observation in the study, ignoring which group it came from."
+        },
+        {
+          "p": "**Step 2. Between-group sum of squares (SSB).** For each group, square the gap between its mean and the grand mean, multiply by the group size, and add up. Big when group means are spread out."
+        },
+        {
+          "p": "**Step 3. Within-group sum of squares (SSW).** For each individual, square the gap from its own group mean, and add up across everyone. Big when individuals are noisy."
+        },
+        {
+          "term": "Sum of squares",
+          "def": "Add up squared gaps from an average. It is the raw material for measuring spread, the same building block used in variance."
+        },
+        {
+          "p": "**Step 4.** Turn each sum of squares into an average by dividing by its degrees of freedom: these are called **mean squares**. Then F = mean square between ÷ mean square within."
+        },
+        {
+          "p": "**Step 5.** Compare F with the F-distribution to get a p-value. If p is small, at least one group mean differs. Then run a post-hoc test such as **Tukey HSD** to find which pairs differ, with the false-alarm risk kept under control."
+        },
+        {
+          "term": "Post-hoc test",
+          "def": "A follow-up test run after a significant ANOVA to compare specific pairs of groups, adjusted so that the overall false-positive rate stays at 5%. Tukey's HSD (honestly significant difference) is the most common."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "SS_B = \\sum_{j=1}^{k} n_j\\,(\\bar{x}_j - \\bar{x})^2",
+          "plain": "For each group, how far its mean sits from the grand mean, squared, weighted by how many observations the group has.",
+          "symbols": [
+            [
+              "k",
+              "number of groups"
+            ],
+            [
+              "n_j",
+              "size of group j"
+            ],
+            [
+              "\\bar{x}_j",
+              "mean of group j"
+            ],
+            [
+              "\\bar{x}",
+              "grand mean"
+            ]
+          ]
+        },
+        {
+          "tex": "SS_W = \\sum_{j=1}^{k} \\sum_{i \\in j} (x_i - \\bar{x}_j)^2",
+          "plain": "For every individual, how far it sits from its own group mean, squared and added up."
+        },
+        {
+          "p": "A neat fact: SSB + SSW equals the total sum of squares around the grand mean. Every bit of variation is either \"explained by group\" or \"left over\"."
+        },
+        {
+          "tex": "F = \\frac{SS_B / (k-1)}{SS_W / (N-k)} = \\frac{MS_B}{MS_W}",
+          "plain": "Average between-group variation divided by average within-group variation. If the groups are truly the same, both estimate the same noise and F is about 1. Real differences push F up.",
+          "symbols": [
+            [
+              "N",
+              "total number of observations"
+            ],
+            [
+              "k-1",
+              "between-group degrees of freedom"
+            ],
+            [
+              "N-k",
+              "within-group degrees of freedom"
+            ],
+            [
+              "MS",
+              "mean square, a sum of squares divided by its df"
+            ]
+          ]
+        },
+        {
+          "p": "Why divide by degrees of freedom? Because sums of squares grow simply by having more terms. Dividing turns them into fair averages that can be compared."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.pow(1+x/3,-4)",
+            "xMin": 0,
+            "xMax": 18,
+            "shade": [
+              5.14,
+              18
+            ],
+            "marks": [
+              {
+                "x": 5.14,
+                "label": "5% cut-off 5.14"
+              },
+              {
+                "x": 15.75,
+                "label": "scripts: 15.75"
+              }
+            ],
+            "xLabel": "F value (df 2 and 6)",
+            "yLabel": "density",
+            "caption": "The F-distribution for 3 groups of 3. If the scripts made no difference, F would usually be near 1 and exceed 5.14 only 5% of the time. Our F of 15.75 sits far out in the tail."
+          }
+        },
+        {
+          "tex": "\\eta^2 = \\frac{SS_B}{SS_B + SS_W}",
+          "plain": "Eta-squared: the share of total variation explained by group membership. It is the effect size that goes with ANOVA."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Three call scripts (business case, illustrative)",
+            "setup": "Weekly sales for three agents on each script. Script A: 18, 20, 22. Script B: 21, 23, 25. Script C: 27, 29, 31.",
+            "steps": [
+              "Group means: A = 20, B = 23, C = 29. Grand mean = (60 + 69 + 87) ÷ 9 = 216 ÷ 9 = 24.",
+              "SSB = 3 × (20 − 24)² + 3 × (23 − 24)² + 3 × (29 − 24)² = 3 × 16 + 3 × 1 + 3 × 25 = 126.",
+              "SSW: each group has gaps −2, 0, +2 from its mean, so each contributes 4 + 0 + 4 = 8. SSW = 3 × 8 = 24.",
+              "df between = 3 − 1 = 2; df within = 9 − 3 = 6.",
+              "MSB = 126 ÷ 2 = 63. MSW = 24 ÷ 6 = 4. F = 63 ÷ 4 = 15.75.",
+              "p-value (`scipy.stats.f_oneway`) = 0.0041. η² = 126 ÷ 150 = 0.84: script explains 84% of the variation."
+            ],
+            "result": "Strong evidence that the scripts differ. But which ones? That needs the post-hoc test below."
+          }
+        },
+        {
+          "example": {
+            "title": "Following up with Tukey HSD",
+            "setup": "Same data. Tukey compares every pair while keeping the overall false-alarm risk at 5%.",
+            "steps": [
+              "The Tukey yardstick here is about 5.0 sales: any pair of means further apart than that is significant.",
+              "C − A = 9 → significant (adjusted p = 0.004).",
+              "C − B = 6 → significant (adjusted p = 0.024).",
+              "B − A = 3 → not significant (adjusted p = 0.24)."
+            ],
+            "result": "Script C beats both others. A and B cannot be told apart with this much data. Roll out C; do not waste time choosing between A and B."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "script (1 = A, 2 = B, 3 = C)",
+            "yLabel": "weekly sales",
+            "caption": "Each dot is one agent. The groups barely overlap and the spread inside each group (±2) is small compared with the gaps between them. That picture is what a large F looks like.",
+            "points": [
+              [
+                1,
+                18,
+                0
+              ],
+              [
+                1,
+                20,
+                0
+              ],
+              [
+                1,
+                22,
+                0
+              ],
+              [
+                2,
+                21,
+                1
+              ],
+              [
+                2,
+                23,
+                1
+              ],
+              [
+                2,
+                25,
+                1
+              ],
+              [
+                3,
+                27,
+                2
+              ],
+              [
+                3,
+                29,
+                2
+              ],
+              [
+                3,
+                31,
+                2
+              ]
+            ],
+            "centers": [
+              [
+                1,
+                20
+              ],
+              [
+                2,
+                23
+              ],
+              [
+                3,
+                29
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "Three steel suppliers: no real difference",
+            "setup": "Tensile strength scores (in arbitrary units) of five sample bars from each supplier. X: 52, 48, 50, 55, 45. Y: 51, 47, 53, 49, 55. Z: 54, 50, 46, 52, 48.",
+            "steps": [
+              "Means: X = 50, Y = 51, Z = 50. Grand mean = 755 ÷ 15 = 50.33.",
+              "SSB = 5 × (0.33² + 0.67² + 0.33²) = 3.33. Tiny: the means are almost identical.",
+              "SSW = 58 + 40 + 40 = 138. Individual bars vary a lot.",
+              "F = (3.33 ÷ 2) ÷ (138 ÷ 12) = 1.67 ÷ 11.5 = 0.145. p = 0.87."
+            ],
+            "result": "No evidence that suppliers differ in strength. Procurement can choose on price and delivery reliability instead. Note F is below 1: the between-group spread is even smaller than noise would typically produce."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Assumptions and variants",
+      "blocks": [
+        {
+          "bullets": [
+            "**Independent observations.** Each agent, bar or customer is measured once and does not influence others.",
+            "**Roughly normal data within each group,** or large enough groups (about 20 or more each) for this to matter little.",
+            "**Similar spreads across groups.** Check with a box plot or Levene's test (`scipy.stats.levene`). If spreads differ a lot, use **Welch's ANOVA**, which does not assume equal variances."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Situation",
+              "Use"
+            ],
+            "rows": [
+              [
+                "3+ groups, one factor",
+                "One-way ANOVA"
+              ],
+              [
+                "Unequal spreads across groups",
+                "Welch's ANOVA"
+              ],
+              [
+                "Two factors (script and region)",
+                "Two-way ANOVA"
+              ],
+              [
+                "Same people measured several times",
+                "Repeated-measures ANOVA"
+              ],
+              [
+                "Skewed data or ranks",
+                "Kruskal–Wallis test"
+              ],
+              [
+                "Only two groups",
+                "t-test (F = t²)"
+              ]
+            ],
+            "caption": "The ANOVA family. Pick the variant that matches how your data was collected."
+          }
+        },
+        {
+          "callout": "With exactly two groups, one-way ANOVA and the equal-variance t-test give the same p-value: F equals t squared. ANOVA is the natural generalisation of the t-test.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "ANOVA in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Process tuning in manufacturing (illustrative)",
+            "story": "A plastics moulding plant tests four barrel temperatures, running 12 parts at each, and measures shrinkage. One-way ANOVA gives p < 0.01, and Tukey HSD shows the two hottest settings shrink significantly less than the two coolest, with no difference within each pair. Engineers pick the cooler of the two good settings to save energy. This style of experiment, often extended to two-way ANOVA for temperature and pressure together, is the core of **design of experiments (DoE)** in quality programmes such as Six Sigma."
+          }
+        },
+        {
+          "bullets": [
+            "**Marketing:** compare average order value across four campaign creatives.",
+            "**Retail:** compare weekly sales across store layouts, with region as a second factor.",
+            "**Agriculture and pharma:** the method was developed by Ronald Fisher for crop trials, and remains standard in clinical and field experiments.",
+            "**Regression link:** ANOVA is linear regression with dummy variables for groups; statsmodels prints an ANOVA table for any fitted linear model."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Stopping at \"significant\".** ANOVA only says some group differs. Always follow up with a post-hoc test.",
+            "**Running post-hoc tests after a non-significant ANOVA** to fish for a difference. That defeats the purpose.",
+            "**Ignoring effect size.** With thousands of observations, trivial differences become significant. Report η² and the actual mean differences.",
+            "**Non-random groups.** If the best agents chose script C, ANOVA cannot separate the script from the agents. Randomise who gets what."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Many pairwise t-tests",
+              "items": [
+                "Simple to explain",
+                "False-alarm risk grows with every pair",
+                "10 groups → 45 tests → ~90% chance of a fluke",
+                "No overall answer"
+              ]
+            },
+            "right": {
+              "title": "ANOVA + Tukey HSD",
+              "items": [
+                "One overall test at 5%",
+                "Then pairwise comparisons, adjusted",
+                "Uses all groups to estimate noise, so more power",
+                "Standard in experiments and reports"
+              ]
+            },
+            "caption": "Why analysts use ANOVA instead of a pile of t-tests."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why is it called analysis of variance if it compares means?",
+      "a": "Because it decides whether means differ by comparing two variances: the spread of the group means and the spread inside the groups."
+    },
+    {
+      "q": "What does an F of about 1 mean?",
+      "a": "The group means are about as spread out as random noise would make them. There is no evidence of a real difference."
+    },
+    {
+      "q": "Can I use ANOVA with only two groups?",
+      "a": "Yes. It gives the same answer as an equal-variance t-test, with F equal to t squared. Most people just use the t-test."
+    },
+    {
+      "q": "My ANOVA is significant. Which group is best?",
+      "a": "ANOVA does not say. Run Tukey HSD (`scipy.stats.tukey_hsd` or statsmodels `pairwise_tukeyhsd`) to compare pairs with proper adjustment."
+    },
+    {
+      "q": "What if my data is heavily skewed, such as revenue per customer?",
+      "a": "Try a log transform, use Welch's ANOVA if spreads differ, or switch to the Kruskal–Wallis test, which works on ranks."
+    },
+    {
+      "q": "Do the groups need to be the same size?",
+      "a": "No, one-way ANOVA handles unequal sizes. Balanced groups make the test more robust to unequal variances, so aim for similar sizes when you design the study."
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Explain soft clustering with Gaussian components",
+    "Describe the EM algorithm",
+    "Choose the number of components with BIC"
+  ],
+  "why": "GMMs give probabilities of cluster membership and elliptical clusters: customer personas that overlap, speaker identification, anomaly scores.",
+  "explain": [
+    "A **Gaussian Mixture Model** assumes the data comes from a mix of several bell-shaped (Gaussian) clusters, each with its own centre, shape (covariance) and weight.",
+    "Unlike k-means' hard assignment, each point gets a **probability** of belonging to each cluster: \"70% persona A, 30% persona B\". It is k-means that admits it is not 100% sure.",
+    "It is fitted by **EM**: the **E-step** computes membership probabilities given the current clusters; the **M-step** updates each cluster's mean, covariance and weight using those probabilities. Repeat until stable.",
+    "Choose the number of components with **BIC** (lower is better), which balances fit against complexity."
+  ],
+  "example": {
+    "title": "Two overlapping customer personas",
+    "steps": [
+      "Component 1: mean spend ₹2k, weight 60%; component 2: mean ₹6k, weight 40%",
+      "A customer spending ₹4k sits between them",
+      "GMM says 55% component 1, 45% component 2",
+      "Marketing sends a blended offer instead of forcing one label"
+    ],
+    "result": "Soft assignments keep the uncertainty that k-means throws away."
+  },
+  "mistakes": [
+    "Too many components (overfits): use BIC.",
+    "Full covariance matrices with many features and few rows (unstable)."
+  ],
+  "takeaways": [
+    "A mixture of Gaussians = soft, elliptical clusters",
+    "Fitted with EM",
+    "Choose components with BIC"
+  ],
+  "use": [
+    "Overlapping clusters, membership probabilities, density estimation"
+  ],
+  "avoid": [
+    "Non-Gaussian, oddly shaped clusters",
+    "Very high dimensions with few rows"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import make_blobs\nfrom sklearn.mixture import GaussianMixture\nX, _ = make_blobs(500, centers=3, cluster_std=[1, 2, 0.5], random_state=0)\nfor k in range(1, 6):\n    print(k, round(GaussianMixture(k, random_state=0).fit(X).bic(X)))\ng = GaussianMixture(3, random_state=0).fit(X); print(g.predict_proba(X[:3]).round(2))"
+  },
+  "check": [
+    {
+      "q": "Key difference between a GMM and k-means?",
+      "options": [
+        "A GMM is supervised",
+        "A GMM gives soft probabilistic assignments with elliptical clusters",
+        "k-means uses EM",
+        "A GMM needs no k"
+      ],
+      "answer": 1,
+      "why": "k-means is a hard, spherical special case."
+    },
+    {
+      "q": "The E-step of EM computes…",
+      "options": [
+        "New means",
+        "Membership probabilities for each point",
+        "The number of clusters",
+        "Gradients"
+      ],
+      "answer": 1,
+      "why": "The M-step then updates the parameters."
+    }
+  ],
+  "chapterMinutes": 17
+}

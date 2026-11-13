@@ -1,0 +1,440 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A photographer is asked to capture two crowds, supporters of rival cricket teams, in one picture so that viewers can instantly tell them apart. From some angles the crowds overlap into one blur. From the right angle they appear as two distinct groups with a clear gap between them. **Linear Discriminant Analysis** finds that best camera angle for data: the direction along which the classes look furthest apart compared with how spread out each one is. Then it classifies new points by which side of the gap they fall on.",
+  "sections": [
+    {
+      "heading": "The problem: separating classes, and seeing them",
+      "blocks": [
+        {
+          "p": "LDA answers two business needs at once. First, **classification**: is this company likely to go bankrupt, is this applicant likely to default? Second, **simplification**: we have 13 chemical measurements of wine samples, or 30 financial ratios per company, and we want a 1- or 2-dimensional view in which the groups are clearly visible on a chart for a management presentation."
+        },
+        {
+          "p": "The method goes back to the statistician Ronald Fisher, who in 1936 used it to tell iris species apart from flower measurements. It remains a fast, stable, well-understood classifier, especially when data is limited."
+        },
+        {
+          "term": "Projection",
+          "def": "Squashing data onto a line (or a plane) by recording only the position of each point's \"shadow\" along that line. A 2-feature point becomes a single number."
+        },
+        {
+          "term": "Discriminant",
+          "def": "A score computed from the features whose job is to discriminate, that is, to tell the classes apart. LDA's discriminant is a weighted sum of features."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "feature 1",
+            "yLabel": "feature 2",
+            "line": {
+              "m": 1.25,
+              "b": -1.25
+            },
+            "caption": "Two classes of three points each (blue and red). Projected straight down onto feature 1 alone, both classes contain the value 3, so they overlap. LDA finds a better direction, and its boundary (the line) separates them cleanly.",
+            "points": [
+              [
+                1,
+                2,
+                0
+              ],
+              [
+                2,
+                4,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                1,
+                1
+              ],
+              [
+                4,
+                3,
+                1
+              ],
+              [
+                5,
+                2,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the best camera angle",
+      "blocks": [
+        {
+          "p": "Imagine two clouds of points as two crowds standing in a field, viewed from a drone. You may photograph them only from the side, so the picture squashes everyone onto one horizontal line. Which side should you shoot from?"
+        },
+        {
+          "steps": [
+            "**Walk around the field.** From each angle, note where each crowd's centre appears in the photo.",
+            "**Look for distance between centres.** You want the two centres far apart in the photo.",
+            "**But also look at width.** If each crowd is smeared widely across the photo, even far-apart centres leave the crowds overlapping.",
+            "**Pick the angle with the best ratio:** big gap between centres, compared with how wide each crowd looks.",
+            "**Draw a cut** in the middle of the gap. Anyone left of the cut belongs to crowd A, right of it to crowd B."
+          ],
+          "title": "Choosing the camera angle"
+        },
+        {
+          "term": "Between-class spread",
+          "def": "How far apart the class centres (averages) are. LDA wants this large."
+        },
+        {
+          "term": "Within-class spread",
+          "def": "How scattered the points of each class are around their own centre. LDA wants this small, once projected."
+        },
+        {
+          "think": {
+            "q": "Why not simply choose the direction where the two class centres are furthest apart?",
+            "a": "Because the crowds might be long and thin, stretched along that very direction. Centres far apart mean little if each crowd is even more spread out along the same line. LDA considers the spread too, and can prefer an angle where centres are a bit closer but each crowd looks much narrower."
+          }
+        },
+        {
+          "callout": "PCA, which you may meet elsewhere, picks the angle where the **whole** dataset looks most spread out, ignoring labels. LDA uses the labels and picks the angle where the **classes** look most separated. Different goals, often very different answers.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Compute each **class mean**",
+              "Measure **within-class spread** (pooled covariance)",
+              "Find the **direction** maximising gap ÷ spread",
+              "**Project** data onto it",
+              "**Classify** by nearest class, adjusted for priors"
+            ],
+            "caption": "LDA training is a few averages and one matrix calculation; no iterative search is needed, so it is very fast."
+          }
+        },
+        {
+          "p": "**Step 1: Class means.** For each class, average every feature. This gives one centre point per class."
+        },
+        {
+          "p": "**Step 2: Within-class spread.** For each class, measure how its points scatter around its own mean, including how features move together. LDA assumes every class has the same shape of scatter, so these are pooled into one shared measure."
+        },
+        {
+          "term": "Covariance",
+          "def": "A measure of how two features move together. Positive if they tend to rise together, negative if one rises as the other falls. A covariance matrix lists this for every pair of features, plus each feature's own variance."
+        },
+        {
+          "p": "**Step 3: Best direction.** Solve for the direction that maximises the ratio of between-class spread to within-class spread. There is a neat formula, shown in the next section."
+        },
+        {
+          "p": "**Step 4: Project.** Each point gets one number: its position along the best direction. With more than two classes, LDA finds up to (number of classes − 1) directions."
+        },
+        {
+          "p": "**Step 5: Classify.** Assign a new point to the class whose projected centre it is closest to, nudged towards classes that are more common (the prior). Equivalently, LDA computes the probability of each class assuming bell-curve shaped classes and picks the highest."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Fisher's idea is a single ratio. For a candidate direction w, project the data; measure the squared gap between projected class means; divide by the projected within-class spread."
+        },
+        {
+          "tex": "J(w) = \\frac{\\big(w^{\\top}(\\mu_A - \\mu_B)\\big)^2}{w^{\\top} S_W \\, w}",
+          "plain": "Top: the squared distance between the two class centres after projecting onto w. Bottom: the total spread within the classes after projecting. LDA picks the w that makes this ratio as large as possible.",
+          "symbols": [
+            [
+              "w",
+              "the direction we project onto"
+            ],
+            [
+              "\\mu_A, \\mu_B",
+              "the mean feature vectors of classes A and B"
+            ],
+            [
+              "S_W",
+              "the within-class scatter matrix: pooled spread of each class around its own mean"
+            ],
+            [
+              "w^{\\top}",
+              "w written as a row, used to take dot products"
+            ]
+          ]
+        },
+        {
+          "p": "Calculus gives a closed-form answer: no search required."
+        },
+        {
+          "tex": "w \\propto S_W^{-1} (\\mu_A - \\mu_B)",
+          "plain": "Start from the arrow joining the two class means, then correct it by \"dividing\" by the within-class spread. The correction turns the direction away from axes along which the classes are widely spread.",
+          "symbols": [
+            [
+              "S_W^{-1}",
+              "the inverse of the scatter matrix, the matrix version of dividing"
+            ],
+            [
+              "\\propto",
+              "proportional to: only the direction matters, not the length"
+            ]
+          ]
+        },
+        {
+          "p": "For classification, LDA takes a probability view. It assumes each class follows a normal (bell-curve) distribution with its own mean but a **shared** spread. With one feature x, the score for class k is:"
+        },
+        {
+          "tex": "\\delta_k(x) = \\frac{x\\,\\mu_k}{\\sigma^2} - \\frac{\\mu_k^2}{2\\sigma^2} + \\ln \\pi_k",
+          "plain": "Each class gets a score that is a straight-line function of x, plus a bonus for being common (the log of its prior). Predict the class with the highest score. Because the scores are linear in x, the boundaries are straight: hence \"linear\" discriminant analysis.",
+          "symbols": [
+            [
+              "\\mu_k",
+              "mean of class k"
+            ],
+            [
+              "\\sigma^2",
+              "the shared variance"
+            ],
+            [
+              "\\pi_k",
+              "prior probability (share) of class k"
+            ],
+            [
+              "\\ln",
+              "natural logarithm"
+            ]
+          ]
+        },
+        {
+          "tex": "x^{*} = \\frac{\\mu_1 + \\mu_2}{2} + \\frac{\\sigma^2 \\ln(\\pi_2 / \\pi_1)}{\\mu_1 - \\mu_2}",
+          "plain": "The cut-off between two classes is the midpoint of their means, shifted towards the rarer class. With equal priors the log term is zero and the cut is exactly in the middle."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Credit default by debt-to-income ratio (illustrative)",
+            "setup": "A lender uses one feature: debt-to-income ratio (DTI, %). Repaid customers average 30%, defaulters 50%, both with SD 10 percentage points. 80% of customers repay. An applicant has DTI 44%.",
+            "steps": [
+              "Equal priors: cut-off = (30 + 50) / 2 = 40%. The applicant (44%) is above it → predict default.",
+              "With equal priors, the default probability at 44% works out to about 0.69.",
+              "Real priors: π(repaid) = 0.8, π(default) = 0.2. Shift = 10² × ln(0.2 / 0.8) / (30 − 50) = 100 × (−1.386) / (−20) ≈ +6.93.",
+              "New cut-off ≈ 40 + 6.93 = 46.93%. The applicant (44%) is now below it → predict repaid.",
+              "With real priors the default probability at 44% is about 0.36."
+            ],
+            "result": "Because defaults are rare, LDA demands stronger evidence before calling one: the cut-off moves from 40% to about 46.9%. If a missed default costs far more than a lost good customer, the lender can still set a lower decision threshold on the probability."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-Math.pow(x-30,2)/200)",
+            "fn2": "Math.exp(-Math.pow(x-50,2)/200)",
+            "xMin": 0,
+            "xMax": 80,
+            "marks": [
+              {
+                "x": 40,
+                "label": "equal priors 40%"
+              },
+              {
+                "x": 46.93,
+                "label": "with priors 46.9%"
+              }
+            ],
+            "xLabel": "debt-to-income ratio (%)",
+            "yLabel": "relative likelihood",
+            "legend": [
+              "repaid",
+              "defaulted"
+            ],
+            "caption": "The two bell curves LDA assumes for repaid and defaulted customers, with the same width. Equal priors cut where the curves cross (40%); taking into account that 80% repay pushes the cut towards the rarer defaulters."
+          }
+        },
+        {
+          "example": {
+            "title": "Finding Fisher's direction by hand",
+            "setup": "Class A: (1, 2), (2, 4), (3, 3). Class B: (3, 1), (4, 3), (5, 2). These are the six points in the first diagram.",
+            "steps": [
+              "Means: μA = (2, 3), μB = (4, 2). Difference μA − μB = (−2, 1).",
+              "Within-class scatter: each class has deviations (−1, −1), (0, 1), (1, 0) from its mean, giving the matrix [[2, 1], [1, 2]] per class. Pooled: S_W = [[4, 2], [2, 4]].",
+              "Inverse: S_W⁻¹ = (1/12) × [[4, −2], [−2, 4]]. Then w = (1/12) × (4×(−2) − 2×1, −2×(−2) + 4×1) = (1/12) × (−10, 8). Any multiple works; use w = (−5, 4).",
+              "Project (score = −5 × feature 1 + 4 × feature 2). Class A: 3, 6, −3. Class B: −11, −8, −17.",
+              "Projected means: A = 2, B = −12. Cut-off at the midpoint, −5. Every A point is above −5 and every B point below it.",
+              "Compare: projected onto feature 1 alone, A = {1, 2, 3} and B = {3, 4, 5} overlap at 3. Fisher's ratio is 1.0 along feature 1 and about 2.33 along (−5, 4)."
+            ],
+            "result": "LDA's direction separates the classes perfectly where either original feature alone fails. The boundary −5x₁ + 4x₂ = −5 is the line drawn in the first diagram."
+          }
+        },
+        {
+          "example": {
+            "title": "Reducing 13 wine measurements to a 2-D chart",
+            "setup": "scikit-learn's wine dataset has 178 wines from 3 cultivars, each with 13 chemical measurements. How many LDA directions can we get, and what do we see?",
+            "steps": [
+              "With 3 classes, LDA finds at most 3 − 1 = 2 directions, whatever the number of features.",
+              "`LinearDiscriminantAnalysis(n_components=2).fit_transform(X, y)` turns the 178 × 13 table into 178 × 2.",
+              "Plotted on those two axes, the three cultivars form three clearly separated clouds.",
+              "As a classifier on all 13 features, LDA scores about 97% accuracy in 5-fold cross-validation on this dataset."
+            ],
+            "result": "Thirteen numbers per wine become two, chosen specifically to keep the cultivars apart: ideal for a one-slide visual summary."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Assumptions, and how LDA relates to its cousins",
+      "blocks": [
+        {
+          "p": "LDA is a **generative** classifier: it models what each class's data looks like (a bell curve with a shared shape) and then uses Bayes' theorem to classify. Its accuracy depends on these assumptions being roughly true."
+        },
+        {
+          "bullets": [
+            "**Roughly normal features within each class.** Check histograms per class; transform skewed features such as income with a log.",
+            "**Similar spread in every class.** If one class is far more scattered, the shared-covariance assumption breaks.",
+            "**No extreme outliers.** Means and covariances are sensitive to them.",
+            "**Features not perfect copies of each other.** Perfect duplicates make S_W impossible to invert; use `solver=\"lsqr\", shrinkage=\"auto\"` to stabilise."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Method",
+              "Uses labels?",
+              "Boundary",
+              "Main assumption",
+              "Best for"
+            ],
+            "rows": [
+              [
+                "PCA",
+                "No",
+                "None (not a classifier)",
+                "High variance = important",
+                "Compression, visualisation"
+              ],
+              [
+                "LDA",
+                "Yes",
+                "Straight",
+                "Normal classes, shared spread",
+                "Small data, class-separating views"
+              ],
+              [
+                "QDA",
+                "Yes",
+                "Curved",
+                "Normal classes, own spread",
+                "Classes with different shapes"
+              ],
+              [
+                "Logistic regression",
+                "Yes",
+                "Straight",
+                "Log-odds linear in features",
+                "Calibrated probabilities, larger data"
+              ]
+            ],
+            "caption": "LDA sits between PCA (unsupervised) and logistic regression (no distribution assumptions). QDA relaxes the shared-spread assumption at the cost of many more parameters."
+          }
+        },
+        {
+          "callout": "LDA and logistic regression both draw straight boundaries. LDA is more efficient with small samples when its normality assumptions hold; logistic regression is safer when they do not.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "LDA in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Predicting corporate bankruptcy",
+            "story": "In 1968 Edward Altman published the Z-score, built with multiple discriminant analysis, the family of methods LDA belongs to. It combines five financial ratios of a company, including working capital to total assets, retained earnings to total assets and earnings before interest and taxes to total assets, into a single weighted score. Firms below one cut-off were flagged as likely to fail, firms above another as safe, with a grey zone in between. The Z-score became one of the best-known tools in credit analysis and is still taught and quoted today, a direct example of a discriminant score used for business decisions."
+          }
+        },
+        {
+          "bullets": [
+            "**Face recognition:** \"Fisherfaces\" (1997) applied LDA to face images so that differences between people were emphasised over differences in lighting.",
+            "**Marketing:** projecting survey answers onto discriminant axes that separate brand-loyal and switching customers.",
+            "**Quality control (illustrative):** separating three grades of steel from a dozen composition measurements, and plotting batches on two discriminant axes.",
+            "**Preprocessing:** reducing many features to (classes − 1) before k-NN or other classifiers."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**At most (classes − 1) components.** A two-class problem gives exactly one LDA direction, however many features you have.",
+            "**Straight boundaries only.** Ring-shaped or island-shaped classes need QDA, kernel methods or trees.",
+            "**Sensitive to outliers and skewed features.** Clean and transform first.",
+            "**Many features, few rows** make the covariance unreliable; use shrinkage.",
+            "**Probabilities can be overconfident** when the normality assumption is badly wrong."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "LDA",
+              "items": [
+                "Supervised: uses class labels",
+                "Maximises separation between classes",
+                "At most (classes − 1) components",
+                "Also a classifier",
+                "Best view for telling classes apart"
+              ]
+            },
+            "right": {
+              "title": "PCA",
+              "items": [
+                "Unsupervised: ignores labels",
+                "Maximises total variance",
+                "Up to (number of features) components",
+                "Not a classifier",
+                "Best view for overall structure and compression"
+              ]
+            },
+            "caption": "Both find directions to project onto. Ask yourself: do I want to see the classes apart (LDA) or the data's main variation (PCA)?"
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is this the same LDA as topic modelling?",
+      "a": "No. Latent Dirichlet Allocation, used to find topics in text, shares the initials but is a completely different method. In classification, LDA means Linear Discriminant Analysis."
+    },
+    {
+      "q": "How many dimensions can LDA reduce to?",
+      "a": "At most the number of classes minus one. Two classes give one direction; three classes give two."
+    },
+    {
+      "q": "Does LDA need scaled features?",
+      "a": "Its classifications do not change with scaling, because it accounts for each feature's spread. Scaling still helps when you want to compare the size of the discriminant weights."
+    },
+    {
+      "q": "When should I choose LDA over logistic regression?",
+      "a": "When data is small and features are roughly normal with similar spread in each class, LDA is often a little more accurate and very stable. With larger or clearly non-normal data, logistic regression is the safer default."
+    },
+    {
+      "q": "What is QDA?",
+      "a": "Quadratic Discriminant Analysis. It lets each class have its own spread, which produces curved boundaries. It needs more data, because it estimates a separate covariance matrix per class."
+    },
+    {
+      "q": "Why is LDA called \"generative\"?",
+      "a": "Because it models how each class generates its data (a bell curve) and then uses Bayes' theorem to classify. Logistic regression is \"discriminative\": it models the class probability directly without describing the data."
+    }
+  ]
+}

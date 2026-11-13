@@ -1,0 +1,407 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 14,
+  "hook": "Ask a computer which customer is most similar to a 25-year-old earning ₹6 lakh, and give it two candidates: a 60-year-old earning ₹6.5 lakh and a 27-year-old earning ₹12 lakh. Measured naively, the 60-year-old wins easily, because ₹50,000 is a smaller number than ₹6,00,000, and a 35-year age gap is just \"35\". The computer is not wrong; it was asked an unfair question. **Feature scaling** makes the question fair by putting every feature on a comparable scale.",
+  "sections": [
+    {
+      "heading": "The problem: features measured in different units",
+      "blocks": [
+        {
+          "p": "Business data mixes units freely: income in rupees, age in years, tenure in months, a satisfaction score from 1 to 5. Many algorithms combine features by adding up differences or weighted values. When one feature is measured in lakhs and another in single digits, the large-unit feature dominates purely because of its units."
+        },
+        {
+          "term": "Feature scaling",
+          "def": "Transforming numeric features so they share a comparable range or spread, so that no feature dominates a model simply because of the units it happens to be measured in."
+        },
+        {
+          "p": "Which models care? Any model that measures **distances** (k-nearest neighbours, k-means, support vector machines), any that **penalises large weights** (ridge and lasso regression), dimension-reduction methods like PCA, and anything trained by **gradient descent** (logistic regression solvers, neural networks). Tree-based models do not care, because they split on one feature at a time."
+        },
+        {
+          "term": "Gradient descent",
+          "def": "A training method that improves a model by repeatedly taking small steps downhill on the error. When features have very different scales, the downhill path zig-zags and training becomes slow or unstable."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "income gap (₹)",
+              "age gap (years)"
+            ],
+            "values": [
+              50000,
+              35
+            ],
+            "highlight": 1,
+            "yLabel": "raw difference",
+            "caption": "The raw differences between the 25-year-old and the 60-year-old. The age gap of 35 years is so small next to ₹50,000 that its bar is invisible. Unscaled, a distance calculation sees exactly this picture."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: marks out of different totals",
+      "blocks": [
+        {
+          "p": "A student scores 45 in Maths, marked out of 50, and 70 in English, marked out of 100. Which is the better performance? Adding the raw marks would give English more influence just because its paper had a bigger total. Every teacher instinctively converts to a common scale first: 90% and 70%."
+        },
+        {
+          "steps": [
+            "**Notice the units differ.** Marks out of 50 and out of 100 cannot be compared or added directly.",
+            "**Choose a common yardstick.** Percentages (a range-based yardstick) or \"how far above the class average\" (a spread-based yardstick).",
+            "**Convert every subject the same way.** Use each subject's own total or average.",
+            "**Now compare or combine fairly.** Each subject contributes according to performance, not paper size."
+          ],
+          "title": "How a teacher makes marks comparable"
+        },
+        {
+          "p": "Converting to percentages is **min-max normalisation**. Asking \"how many standard deviations above the class average?\" is **standardisation**. Both are feature scaling."
+        },
+        {
+          "think": {
+            "q": "In the hook, which customer is \"really\" more similar to the 25-year-old earning ₹6 lakh?",
+            "a": "It depends on the business purpose, and that is the point. Without scaling, the answer is decided by accident of units (income wins). After scaling, both features get a fair say, and you can then deliberately weight one more if the business wants. Scaling replaces an accident with a decision."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How to scale correctly, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Split** data into train and test",
+              "**Fit** the scaler on training data only",
+              "**Transform** the training data",
+              "**Transform** test and future data with the same numbers",
+              "**Train and predict** with the model"
+            ],
+            "caption": "The scaler learns its means and spreads from the training data alone, then applies those same numbers everywhere else."
+          }
+        },
+        {
+          "p": "**Step 1: Split first.** The test set stands in for future data you have never seen, so it must not influence any preparation step."
+        },
+        {
+          "p": "**Step 2: Fit on training data.** `scaler = StandardScaler().fit(X_train)` computes each column's mean and standard deviation from training rows only."
+        },
+        {
+          "p": "**Step 3 and 4: Transform.** `scaler.transform(X_train)` and `scaler.transform(X_test)` apply the same training means and spreads to both. A test value may come out above 3 or below 0; that is expected and correct."
+        },
+        {
+          "p": "**Step 5: Model.** In practice, wrap everything in a pipeline: `make_pipeline(StandardScaler(), KNeighborsClassifier())`. The pipeline does the fitting and transforming in the right order automatically, including inside cross-validation."
+        },
+        {
+          "callout": "Fitting the scaler on all data before splitting is a quiet form of leakage: the test set's mean and spread seep into training. The effect is often small, but it makes your evaluation slightly optimistic, and in time series it can be large.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "term": "Standard deviation",
+          "def": "A measure of spread: roughly, the typical distance of values from their mean. Small when values cluster tightly, large when they are spread out."
+        },
+        {
+          "term": "Standardisation (z-score)",
+          "def": "Rescaling a feature so it has mean 0 and standard deviation 1, by subtracting the mean and dividing by the standard deviation. The default choice for most models."
+        },
+        {
+          "tex": "z = \\frac{x - \\mu}{\\sigma}",
+          "plain": "Subtract the training mean so the centre becomes 0, then divide by the training standard deviation so one unit means \"one typical spread\". A z of 1.5 means \"1.5 standard deviations above average\", whether the feature was rupees or years.",
+          "symbols": [
+            [
+              "x",
+              "original value"
+            ],
+            [
+              "\\mu",
+              "mean of the feature in the training data"
+            ],
+            [
+              "\\sigma",
+              "standard deviation of the feature in the training data"
+            ]
+          ]
+        },
+        {
+          "term": "Min-max normalisation",
+          "def": "Rescaling a feature to a fixed range, usually 0 to 1, using its smallest and largest training values."
+        },
+        {
+          "tex": "x' = \\frac{x - x_{\\min}}{x_{\\max} - x_{\\min}}",
+          "plain": "Shift so the minimum becomes 0, then divide by the range so the maximum becomes 1. Useful when a model or a display needs bounded inputs, such as pixel intensities or some neural networks.",
+          "symbols": [
+            [
+              "x_{\\min}, x_{\\max}",
+              "smallest and largest training values"
+            ]
+          ]
+        },
+        {
+          "tex": "x' = \\frac{x - \\text{median}}{Q_3 - Q_1}",
+          "plain": "Robust scaling uses the median and the interquartile range (the width of the middle half of the data). Because neither is dragged by extreme values, outliers do not squash everyone else together.",
+          "symbols": [
+            [
+              "Q_3 - Q_1",
+              "interquartile range: 75th minus 25th percentile"
+            ]
+          ]
+        },
+        {
+          "p": "Notice what scaling does **not** do: it does not change the shape of the distribution. A skewed income column stays skewed after standardisation; only the axis labels change. To change the shape, use a transformation such as a log (see the feature engineering chapter)."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Standardising a new customer with StandardScaler",
+            "setup": "Training data, (age, income in ₹): (30, 4,00,000), (40, 9,00,000), (50, 15,00,000). Scale a new customer aged 55 earning ₹6,00,000.",
+            "steps": [
+              "Age: mean = (30 + 40 + 50) / 3 = 40. StandardScaler divides by n (not n − 1), giving standard deviation √((100 + 0 + 100) / 3) ≈ 8.165.",
+              "Age z = (55 − 40) / 8.165 ≈ 1.84.",
+              "Income: mean = 28,00,000 / 3 ≈ ₹9,33,333; standard deviation ≈ ₹4,49,691.",
+              "Income z = (6,00,000 − 9,33,333) / 4,49,691 ≈ −0.74.",
+              "The new customer becomes (1.84, −0.74): well above average age, somewhat below average income, both in the same \"standard deviation\" units."
+            ],
+            "result": "Two features with units differing by a factor of tens of thousands now sit on the same scale. Note that 1.84 lies outside the training range of ±1.22, which is fine."
+          }
+        },
+        {
+          "example": {
+            "title": "Scaling changes who your nearest neighbour is",
+            "setup": "Target customer A: age 25, income ₹6 lakh. Candidates: B (60, ₹6.5 lakh) and C (27, ₹12 lakh). Suppose the training standard deviations are 12 years for age and ₹3 lakh for income.",
+            "steps": [
+              "Unscaled distance A–B = √(35² + 50,000²) ≈ 50,000. Unscaled A–C = √(2² + 6,00,000²) ≈ 6,00,000. B looks twelve times closer.",
+              "Scaled differences A–B: age 35 / 12 ≈ 2.92, income 0.5 / 3 ≈ 0.17. Distance ≈ √(2.92² + 0.17²) ≈ 2.92.",
+              "Scaled differences A–C: age 2 / 12 ≈ 0.17, income 6 / 3 = 2.0. Distance ≈ √(0.17² + 2.0²) ≈ 2.01.",
+              "After scaling, C is the nearer neighbour."
+            ],
+            "result": "A k-nearest-neighbours recommender or a k-means segmentation would give opposite answers depending on whether the data was scaled. Unscaled, age was effectively ignored."
+          }
+        },
+        {
+          "example": {
+            "title": "One crorepati and min-max scaling",
+            "setup": "Six incomes in ₹ lakh: 5, 8, 10, 12, 15, 200.",
+            "steps": [
+              "Min-max: (x − 5) / (200 − 5) = (x − 5) / 195. Results: 0, 0.015, 0.026, 0.036, 0.051, 1.",
+              "Five of the six customers are crammed between 0 and 0.05; the model can barely tell them apart.",
+              "Robust scaling: median = 11, IQR = 14.25 − 8.5 = 5.75. Results: −1.04, −0.52, −0.17, 0.17, 0.70, 32.87.",
+              "Now the ordinary customers are spread across about −1 to 0.7, and the outlier stands clearly apart."
+            ],
+            "result": "Min-max lets one extreme value squash everyone else. With outliers, prefer robust scaling, a log transform, or both."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "customer",
+            "yLabel": "scaled income",
+            "caption": "The same five ordinary incomes after min-max scaling (blue, all near 0) and robust scaling (red, spread from about −1 to 0.7). The outlier, at 1 and 32.9 respectively, is left off the chart.",
+            "points": [
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0.015
+              ],
+              [
+                3,
+                0.026
+              ],
+              [
+                4,
+                0.036
+              ],
+              [
+                5,
+                0.051
+              ],
+              [
+                1,
+                -1.04,
+                1
+              ],
+              [
+                2,
+                -0.52,
+                1
+              ],
+              [
+                3,
+                -0.17,
+                1
+              ],
+              [
+                4,
+                0.17,
+                1
+              ],
+              [
+                5,
+                0.7,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Which models need scaling?",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Model",
+              "Needs scaling?",
+              "Why"
+            ],
+            "rows": [
+              [
+                "k-NN, k-means",
+                "Yes",
+                "Built on distances"
+              ],
+              [
+                "SVM",
+                "Yes",
+                "Distances and margins"
+              ],
+              [
+                "PCA",
+                "Yes",
+                "Finds directions of largest variance"
+              ],
+              [
+                "Ridge, lasso, elastic net",
+                "Yes",
+                "Penalty treats all weights equally"
+              ],
+              [
+                "Neural networks",
+                "Yes",
+                "Gradient descent trains faster and more stably"
+              ],
+              [
+                "Plain linear regression",
+                "Not for accuracy",
+                "Coefficients rescale; helps interpretation"
+              ],
+              [
+                "Decision trees, random forests, boosting",
+                "No",
+                "Split one feature at a time on thresholds"
+              ]
+            ],
+            "caption": "A quick reference. When unsure, scaling inside a pipeline rarely hurts."
+          }
+        },
+        {
+          "bullets": [
+            "**One-hot columns:** they are already 0/1. Standardising them is allowed but usually unnecessary; many pipelines scale only the numeric columns via a ColumnTransformer.",
+            "**The target:** you normally do not need to scale y for most models. Neural network regressions sometimes benefit; scikit-learn's TransformedTargetRegressor handles the conversion back.",
+            "**Sparse data:** for mostly-zero data such as word counts, subtracting the mean would fill every zero. Use `MaxAbsScaler` or `StandardScaler(with_mean=False)`."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scaling in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Segmenting dealers for an automotive OEM (illustrative)",
+            "story": "An analytics team clusters 600 dealerships using annual sales (in crore), service bays (5 to 40), customer satisfaction (1 to 5) and years in operation. The first k-means run produces segments that are simply \"big\", \"medium\" and \"small\" by sales, because sales in rupees swamps everything else. After standardising all four features inside a pipeline, the segments change completely: \"high-volume but low-satisfaction\", \"small but loyal\", \"new and growing\". Those segments lead to different support programmes, which the size-only segmentation could never have suggested."
+          }
+        },
+        {
+          "bullets": [
+            "**Credit scoring with logistic regression:** standardised features make the regularisation penalty fair and coefficients comparable.",
+            "**Sensor analytics:** temperature, pressure and vibration in different units are standardised before PCA or anomaly detection.",
+            "**Recommendation systems:** similarity between customers or products is meaningless unless features share a scale.",
+            "**Deep learning:** image pixels are typically scaled from 0–255 to 0–1 before training."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Fitting on all data.** Fit on training data only; a pipeline enforces it.",
+            "**Forgetting to scale in production.** The saved model must be paired with the saved, already-fitted scaler. Saving the whole pipeline avoids mismatches.",
+            "**Min-max with outliers.** One extreme value compresses everyone else. Use robust scaling or transform first.",
+            "**Expecting scaling to fix skew.** It does not change the distribution's shape. Use log or power transforms for that.",
+            "**Scaling for trees.** Harmless but wasted effort."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "StandardScaler (z-score)",
+              "items": [
+                "Mean 0, standard deviation 1",
+                "Default for most models",
+                "Affected by outliers, but less than min-max",
+                "No fixed range: values can exceed ±3"
+              ]
+            },
+            "right": {
+              "title": "Alternatives",
+              "items": [
+                "**MinMaxScaler**: fixed 0–1 range; outlier-sensitive",
+                "**RobustScaler**: median and IQR; outlier-resistant",
+                "**MaxAbsScaler**: keeps zeros; for sparse data",
+                "**PowerTransformer**: reshapes skewed data towards a bell curve"
+              ]
+            },
+            "caption": "Start with StandardScaler. Switch when outliers, sparsity or a required range tell you to."
+          }
+        },
+        {
+          "callout": "Scaling is cheap, fast and easy to get right inside a pipeline, and forgetting it can quietly ruin distance-based models. Make it a habit.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Normalisation or standardisation: which should I use?",
+      "a": "Standardisation is the safer default. Use min-max normalisation when you need a fixed range, such as image pixels, and the data has no extreme outliers."
+    },
+    {
+      "q": "Why does StandardScaler give slightly different numbers from my Excel calculation?",
+      "a": "StandardScaler divides by n (population standard deviation); Excel's STDEV.S and pandas' `.std()` divide by n − 1. The difference shrinks as the dataset grows."
+    },
+    {
+      "q": "Should I scale before or after splitting the data?",
+      "a": "After. Fit the scaler on the training data, then use it to transform both training and test data. A pipeline does this automatically."
+    },
+    {
+      "q": "Do I need to scale for random forests or XGBoost?",
+      "a": "No. Tree splits depend only on the order of values within each feature, which scaling does not change."
+    },
+    {
+      "q": "Can a scaled value be greater than 1 or less than 0?",
+      "a": "Yes. Standardised values are often between −3 and 3 but have no hard limits. Even min-max values for test data can fall outside 0–1 if they exceed the training range."
+    },
+    {
+      "q": "Does scaling change the relationships in my data?",
+      "a": "No. Correlations and the order of values within each column stay the same. Only the units change, which is why it is safe to do."
+    }
+  ]
+}

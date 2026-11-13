@@ -1,9 +1,8 @@
 import { isAnimated } from '../anim/registry';
-import { minutesOf } from '../lessons/minutes';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TOPICS, TRACKS, TrackId } from '../data/curriculum';
-import { LESSONS } from '../lessons';
+import { LESSONS, minutesOf } from '../content';
 import { useProgress } from '../lib/progress';
 
 export default function Playbook() {

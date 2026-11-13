@@ -1,0 +1,363 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A golfer rarely sinks the ball in one shot. The first drive gets it roughly towards the hole; each shot after that only has to fix what is left: a long iron, a chip, a short putt. Nobody expects the first shot to be perfect. **Gradient boosting** builds a prediction the same way: a rough first guess, then a series of small models, each correcting the error that remains.",
+  "sections": [
+    {
+      "heading": "The problem: fixing errors one step at a time",
+      "blocks": [
+        {
+          "p": "A consumer-goods company wants to forecast monthly sales for 4,000 stores using features like store size, city tier, footfall and local festivals. A single decision tree is too crude, and a random forest is good but plateaus. The team wants a model that keeps getting better by looking directly at **where it is still wrong**."
+        },
+        {
+          "p": "AdaBoost showed that building models in sequence, each focusing on earlier mistakes, is powerful. But AdaBoost was designed for yes/no classification with one particular way of scoring mistakes. Business problems need more: forecasting rupee amounts, predicting probabilities, predicting delivery times where being late is worse than being early."
+        },
+        {
+          "p": "In 1999–2001 the statistician Jerome Friedman generalised the idea into **gradient boosting**: fit each new tree to the remaining errors, measured with **any** sensible loss function. It is now one of the most successful methods for tabular data, the rows-and-columns data that fills most company databases."
+        },
+        {
+          "term": "Residual",
+          "def": "The error left over for one row: actual value minus predicted value. A residual of +5 means the model predicted 5 too low."
+        },
+        {
+          "term": "Loss function",
+          "def": "A formula that scores how bad a prediction is. Squared error, (actual − predicted)², is the most common for numbers; log loss is the most common for probabilities."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Start (mean)",
+              "After tree 1",
+              "After tree 2",
+              "After tree 3",
+              "After tree 4",
+              "After tree 5"
+            ],
+            "values": [
+              46,
+              19,
+              6.75,
+              3.08,
+              1.03,
+              0.51
+            ],
+            "highlight": 0,
+            "yLabel": "mean squared error",
+            "caption": "Error on four stores (worked example below) as trees are added with learning rate 0.5. Each tree removes a large share of what is left, just like the golfer's shots getting shorter."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: a team of correctors",
+      "blocks": [
+        {
+          "p": "Imagine forecasting next month's sales for four shops, with a team of junior analysts who each may only make a very simple statement."
+        },
+        {
+          "steps": [
+            "**The first analyst** says: \"Every shop will sell the average, ₹18 lakh.\" Simple, and wrong for every shop.",
+            "**You write down the misses:** shop 1 actually sold ₹8 lakh less than that, shop 4 sold ₹10 lakh more.",
+            "**The second analyst** does not forecast sales at all. She looks only at the misses and says: \"Small shops are being overestimated and big shops underestimated.\"",
+            "**You apply half of her correction** (to stay cautious), and write down the new, smaller misses.",
+            "**The third analyst** studies those smaller misses, and so on. The final forecast is the first guess plus every correction added together."
+          ],
+          "title": "Each analyst fixes what the last one missed"
+        },
+        {
+          "p": "Every analyst is weak on their own. The power comes from the fact that **each one studies exactly the errors that remain**, so effort always goes where it is needed."
+        },
+        {
+          "think": {
+            "q": "Why apply only half of each analyst's correction instead of all of it?",
+            "a": "Each correction is learned from limited, noisy data, so it is partly right and partly chasing noise. Taking small steps lets later analysts average out the noise. This is the learning rate, and smaller steps with more analysts almost always generalise better."
+          }
+        },
+        {
+          "callout": "Bagging asks many models the same question and averages. Boosting asks each new model a different question: \"What is still wrong?\" and adds the answers up.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How gradient boosting works, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**Start with a constant prediction** F₀ for everyone: the mean of the target for squared error.",
+            "**Compute the residuals** (more generally, the pseudo-residuals) for every row.",
+            "**Fit a small regression tree** (depth 2–6) that predicts those residuals from the features.",
+            "**Update the model:** add the tree's prediction, multiplied by a learning rate η (for example 0.1), to every row's current prediction.",
+            "**Repeat steps 2–4** for M rounds, or until a validation score stops improving.",
+            "**Predict** a new case by adding F₀ and every tree's scaled output."
+          ],
+          "title": "The gradient boosting loop"
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**F₀ = mean** of target",
+              "Compute **residuals** y − F",
+              "Fit a **small tree** to residuals",
+              "**F ← F + η × tree**",
+              "Repeat M times; **sum of all trees**"
+            ],
+            "caption": "The core loop. Notice the tree in step 3 predicts errors, not sales. The model is a sum: starting guess plus many small corrections."
+          }
+        },
+        {
+          "term": "Learning rate (η, eta)",
+          "def": "A number between 0 and 1 that scales each tree's contribution. Smaller values mean smaller, more cautious steps; you then need more trees."
+        },
+        {
+          "term": "Regression tree",
+          "def": "A decision tree that predicts a number. Each leaf outputs the average target value of the training rows that land in it."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "The model after m rounds is the previous model plus a scaled new tree:"
+        },
+        {
+          "tex": "F_m(x) = F_{m-1}(x) + \\eta \\, h_m(x)",
+          "plain": "Today's prediction equals yesterday's prediction plus a small step in the direction the new tree suggests.",
+          "symbols": [
+            [
+              "F_m(x)",
+              "model prediction after m trees"
+            ],
+            [
+              "h_m(x)",
+              "the m-th tree, fitted to current errors"
+            ],
+            [
+              "\\eta",
+              "learning rate"
+            ]
+          ]
+        },
+        {
+          "p": "Where does the word **gradient** come in? For squared-error loss, the residual is exactly the direction that reduces the loss fastest. Take the loss for one row and ask how it changes as the prediction F changes:"
+        },
+        {
+          "term": "Gradient",
+          "def": "The slope of the loss with respect to the prediction: which direction, and how steeply, the loss rises if you nudge the prediction. Moving against the gradient reduces the loss."
+        },
+        {
+          "tex": "L = \\tfrac{1}{2}(y - F)^2 \\quad\\Rightarrow\\quad -\\frac{\\partial L}{\\partial F} = y - F",
+          "plain": "The negative slope of the squared-error loss is simply the residual. So \"fit a tree to the residuals\" is the same as \"take a step downhill on the loss\". The ½ is only there to make the derivative tidy.",
+          "symbols": [
+            [
+              "y",
+              "actual value"
+            ],
+            [
+              "F",
+              "current prediction"
+            ],
+            [
+              "\\partial L / \\partial F",
+              "how the loss changes when F changes"
+            ]
+          ]
+        },
+        {
+          "p": "For any other loss, you compute this negative slope for every row and call it the **pseudo-residual**. The tree is fitted to pseudo-residuals, and everything else stays the same. That is why gradient boosting works for regression, classification, ranking and more: you only swap the loss."
+        },
+        {
+          "tex": "r_i = y_i - p_i \\quad \\text{(log loss, with } p_i = \\text{current predicted probability)}",
+          "plain": "For yes/no problems with log loss, the pseudo-residual is the actual label (1 or 0) minus the current probability. A churner currently given 30% has pseudo-residual 1 − 0.3 = 0.7: push this one up.",
+          "symbols": [
+            [
+              "r_i",
+              "pseudo-residual for row i"
+            ],
+            [
+              "p_i",
+              "current predicted probability for row i"
+            ]
+          ]
+        },
+        {
+          "callout": "This is gradient descent, the same idea used to train neural networks, but the steps are taken in the space of predictions and each step is a tree.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Two rounds by hand on four stores",
+            "setup": "Monthly sales (₹ lakh) for stores 1–4: 10, 14, 20, 28. Stores 1 and 2 are small, 3 and 4 large. Learning rate η = 0.5. Trees have one split.",
+            "steps": [
+              "F₀ = mean = (10 + 14 + 20 + 28) / 4 = 18. Residuals: −8, −4, +2, +10. Mean squared error (MSE) = (64 + 16 + 4 + 100) / 4 = 46.",
+              "Tree 1 splits {1, 2} vs {3, 4}. Leaf values are the average residuals: (−8 − 4) / 2 = −6 and (2 + 10) / 2 = +6.",
+              "Update: stores 1, 2 → 18 + 0.5 × (−6) = 15. Stores 3, 4 → 18 + 0.5 × 6 = 21. New residuals: −5, −1, −1, +7. MSE = (25 + 1 + 1 + 49) / 4 = 19.",
+              "Tree 2 finds the best split is {1, 2, 3} vs {4}. Leaf values: (−5 − 1 − 1) / 3 ≈ −2.333 and +7.",
+              "Update: stores 1–3 subtract 0.5 × 2.333 ≈ 1.167 → 13.833, 13.833, 19.833. Store 4 adds 3.5 → 24.5.",
+              "New residuals ≈ −3.833, +0.167, +0.167, +3.5. MSE = 6.75."
+            ],
+            "result": "Error fell from 46 to 19 to 6.75 in two tiny trees. Each tree looked only at what was left over, not at the original sales."
+          }
+        },
+        {
+          "example": {
+            "title": "Reading a prediction as a sum",
+            "setup": "Using the model above, what does it predict for store 4, and why?",
+            "steps": [
+              "Start: 18 (the average store).",
+              "Tree 1: store 4 is \"large\" → + 0.5 × 6 = +3.",
+              "Tree 2: store 4 is \"the very largest\" → + 0.5 × 7 = +3.5.",
+              "Total: 18 + 3 + 3.5 = 24.5 (actual 28; later trees would close the gap)."
+            ],
+            "result": "A boosted model is a story told in instalments: a baseline plus a list of adjustments, each tied to a simple rule. Tools like SHAP build on this additive structure to explain individual predictions."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: churn probabilities with log loss (illustrative)",
+            "setup": "A subscription video app has a 30% churn rate. Model the log-odds of churn with gradient boosting, η = 0.1.",
+            "steps": [
+              "Start in log-odds: F₀ = ln(0.3 / 0.7) ≈ −0.847, which converts back to probability 0.30 for everyone.",
+              "Pseudo-residuals: a customer who churned gets 1 − 0.30 = 0.70; one who stayed gets 0 − 0.30 = −0.30.",
+              "Suppose tree 1 places a churner in a leaf with value +2.5. New log-odds: −0.847 + 0.1 × 2.5 = −0.597.",
+              "Convert back: probability = 1 / (1 + e^0.597) ≈ 0.355. The model has nudged this customer from 30% to about 35.5%."
+            ],
+            "result": "For classification, gradient boosting works in log-odds (where adding is natural) and converts to a probability at the end, exactly like logistic regression does."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Tuning: learning rate, trees and early stopping",
+      "blocks": [
+        {
+          "p": "Gradient boosting has more knobs than a random forest, and they interact. The most important relationship is between the learning rate and the number of trees."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "0.35*Math.exp(-x/25)+0.10+0.0006*x",
+            "fn2": "0.35*Math.exp(-x/120)+0.09+0.00005*x",
+            "xMin": 0,
+            "xMax": 600,
+            "legend": [
+              "validation error, η = 0.3",
+              "validation error, η = 0.05"
+            ],
+            "xLabel": "number of trees",
+            "yLabel": "validation error",
+            "caption": "Illustrative curves. A big learning rate reaches its best quickly and then overfits as trees keep being added. A small learning rate needs many more trees but usually reaches a slightly lower minimum and degrades more gently."
+          }
+        },
+        {
+          "bullets": [
+            "**n_estimators and learning_rate:** set a small learning rate (0.03–0.1) and let **early stopping** choose the number of trees.",
+            "**max_depth:** 3–6 is typical. Depth controls how many features can interact inside one tree.",
+            "**subsample:** training each tree on a random 50–80% of rows (stochastic gradient boosting) adds randomness that often improves generalisation.",
+            "**min_samples_leaf:** stops trees from creating leaves for one or two odd rows."
+          ]
+        },
+        {
+          "term": "Early stopping",
+          "def": "Watching performance on a validation set after each new tree and stopping once it has not improved for a set number of rounds. It picks the number of trees automatically."
+        },
+        {
+          "p": "scikit-learn offers `GradientBoostingRegressor` and `GradientBoostingClassifier` (defaults: 100 trees, learning rate 0.1, depth 3), and the much faster `HistGradientBoostingRegressor` / `HistGradientBoostingClassifier`, which bin features into histograms, handle missing values natively, and switch on early stopping automatically for datasets larger than 10,000 rows."
+        }
+      ]
+    },
+    {
+      "heading": "Gradient boosting in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Store-level demand forecasting for a consumer brand (illustrative, based on common practice)",
+            "story": "A packaged-foods company forecasts weekly demand for 300 products across 4,000 retail outlets to plan production and truck loading. The team turns time into features (week of year, festival flags, price discounts, last four weeks' sales, rainfall) and trains a gradient-boosted model on two years of history, using the final 12 weeks as a time-ordered validation set with early stopping. Compared with the previous moving-average method, planners see fewer stock-outs before festivals. They also use quantile loss to produce a \"90th percentile\" forecast for safety stock, something an averaging model cannot give directly."
+          }
+        },
+        {
+          "bullets": [
+            "**Search ranking:** boosted trees with ranking losses (such as LambdaMART) have long been used to order search results.",
+            "**Credit and insurance pricing:** probability of default, claim frequency and claim severity models.",
+            "**Machine-learning competitions:** gradient boosting libraries are a staple of winning solutions on tabular data.",
+            "**Logistics:** estimating delivery times, often with losses that penalise late more than early."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**It can overfit.** Unlike a random forest, adding trees eventually makes test error worse. Always use a validation set and early stopping.",
+            "**It is sequential.** Trees must be built one after another, so training is slower than a forest of the same size (modern libraries parallelise within each tree).",
+            "**More tuning.** Learning rate, depth, subsampling and regularisation interact. Poorly tuned boosting can lose to an untuned forest.",
+            "**No extrapolation.** Like every tree method, it cannot predict values beyond the range of its training targets.",
+            "**Leakage is punished hard.** Boosting will greedily exploit any feature that secretly contains the answer, such as a \"refund issued\" column when predicting complaints."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Random forest",
+              "items": [
+                "Trees built independently, in parallel",
+                "Deep trees, averaged",
+                "More trees never hurts",
+                "Few settings; strong defaults",
+                "Reduces variance"
+              ]
+            },
+            "right": {
+              "title": "Gradient boosting",
+              "items": [
+                "Trees built in sequence",
+                "Shallow trees, added up",
+                "Too many trees overfits: use early stopping",
+                "More settings; rewards tuning",
+                "Reduces bias (and variance with subsampling)"
+              ]
+            },
+            "caption": "The two great tree ensembles. Boosting usually wins on accuracy when tuned; the forest wins on ease and robustness."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why use small trees instead of deep ones?",
+      "a": "Each tree only needs to make a modest correction. Deep trees would fit the current residuals, including noise, too aggressively. Shallow trees plus many rounds learn the pattern gradually and generalise better."
+    },
+    {
+      "q": "What learning rate should I use?",
+      "a": "A common starting point is 0.05 or 0.1 with early stopping. Smaller rates need more trees and more time but rarely hurt accuracy. Very large rates (0.5 and above) tend to overfit quickly."
+    },
+    {
+      "q": "How is gradient boosting related to AdaBoost?",
+      "a": "AdaBoost is a special case: gradient boosting with the exponential loss. Gradient boosting replaces re-weighting rows with fitting trees to pseudo-residuals, which works for any differentiable loss."
+    },
+    {
+      "q": "Do I need to scale or one-hot encode features?",
+      "a": "Scaling is unnecessary for trees. Categorical columns must be numbers for scikit-learn's classic version; HistGradientBoosting and libraries like LightGBM and CatBoost can handle categories natively."
+    },
+    {
+      "q": "Should I use scikit-learn or XGBoost/LightGBM?",
+      "a": "For small and medium data, scikit-learn's HistGradientBoosting is fast and capable. XGBoost, LightGBM and CatBoost add more regularisation options, GPU training, and categorical-feature tricks, and are covered in the next chapter."
+    },
+    {
+      "q": "Can gradient boosting give prediction intervals?",
+      "a": "Yes, indirectly. Train separate models with quantile loss, for example at the 10th and 90th percentiles, to get a range. scikit-learn supports `loss=\"quantile\"` with an `alpha` setting."
+    }
+  ]
+}

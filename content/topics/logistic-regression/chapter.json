@@ -1,0 +1,473 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A bank receives 5,000 personal-loan applications a week. For each one a credit officer must decide: approve or decline. What the officer really wants is not a yes/no verdict from a machine, but a number: \"this applicant has an 11% chance of defaulting; that one, 56%\". With such probabilities the bank can approve, decline, ask for a guarantor or adjust the interest rate. **Logistic regression** produces exactly those probabilities, and has been the backbone of credit scoring for decades.",
+  "sections": [
+    {
+      "heading": "The problem: predicting yes or no",
+      "blocks": [
+        {
+          "p": "Many business questions have two possible answers. Will this customer default? Will this subscriber cancel next month? Is this transaction fraud? Will this machine fail within a week? The target is a category with two values, usually coded 1 (the event happens) and 0 (it does not)."
+        },
+        {
+          "term": "Classification",
+          "def": "Predicting which category something belongs to (default / no default, spam / not spam) rather than a number. With two categories it is called binary classification."
+        },
+        {
+          "p": "Why not use linear regression on the 0/1 target? Try it on twelve past loan applicants, with the feature being debt-to-income ratio (DTI: monthly debt payments divided by monthly income)."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "debt-to-income ratio (tenths: 3 = 0.3)",
+            "yLabel": "defaulted (1) or repaid (0)",
+            "line": {
+              "m": 0.1797,
+              "b": -0.3394
+            },
+            "caption": "Twelve applicants: dots at 1 defaulted, dots at 0 repaid. A straight line fitted by least squares predicts −0.16 \"probability\" at DTI 0.1 and 1.28 at DTI 0.9. Probabilities must stay between 0 and 1, so a straight line is the wrong shape.",
+            "points": [
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                2.5,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                3.5,
+                1
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                4.5,
+                0
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                5.5,
+                0
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                6.5,
+                1
+              ],
+              [
+                7,
+                1
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Logistic regression keeps the useful part of linear regression, a weighted sum of features, and fixes the shape problem by bending that sum through an S-shaped curve that always lies between 0 and 1."
+        },
+        {
+          "callout": "Despite the name, logistic regression is a classification method. \"Regression\" refers to the linear score inside it.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: points, then a conversion chart",
+      "blocks": [
+        {
+          "p": "Think of an old-fashioned credit scorecard. The officer adds up points: high debt-to-income adds risk points, a long job history removes some, previous late payments add more. The total is a **risk score** that can be any number, positive or negative."
+        },
+        {
+          "steps": [
+            "**Add up the evidence** into one score. Higher score means more risk.",
+            "**Look up the score on a conversion chart** that turns it into a probability.",
+            "**The chart is S-shaped.** Very negative scores give probabilities near 0; very positive scores give probabilities near 1; a score of 0 gives exactly 50%.",
+            "**In the middle the chart is steep**: a few extra points change the probability a lot. At the extremes it is flat: an already-hopeless or already-safe applicant barely moves."
+          ],
+          "title": "How logistic regression reasons"
+        },
+        {
+          "p": "That S-shaped conversion chart is called the **sigmoid** or logistic function. Logistic regression learns the points (the coefficients) from past data, and the sigmoid does the conversion."
+        },
+        {
+          "term": "Sigmoid function",
+          "def": "An S-shaped curve that turns any number into a value between 0 and 1. Input 0 gives 0.5; large positive inputs approach 1; large negative inputs approach 0."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "1/(1+Math.exp(-x))",
+            "xMin": -6,
+            "xMax": 6,
+            "marks": [
+              {
+                "x": 0,
+                "label": "score 0 → 50%"
+              },
+              {
+                "x": 2,
+                "label": "score 2 → 88%"
+              }
+            ],
+            "xLabel": "risk score z",
+            "yLabel": "probability",
+            "caption": "The sigmoid. It never goes below 0 or above 1. A score of 2 gives 88%, a score of −2 gives 12%. The curve is steepest at 50%, where the evidence is most finely balanced."
+          }
+        },
+        {
+          "think": {
+            "q": "Two applicants have scores of 0 and 1; two others have 5 and 6. Which pair differs more in probability?",
+            "a": "The first pair. Moving from 0 to 1 raises the probability from 50% to 73%. Moving from 5 to 6 raises it from 99.3% to 99.8%. The same extra evidence matters most when the case is borderline."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Score** z = b₀ + b₁x₁ + …",
+              "**Squash** p = sigmoid(z)",
+              "**Train** by minimising log-loss",
+              "**Choose a threshold** from business costs",
+              "**Decide**: approve, review or decline"
+            ],
+            "caption": "From features to a decision. The model outputs probabilities; the threshold that turns them into actions is a business choice."
+          }
+        },
+        {
+          "p": "**Step 1: Score.** Compute a weighted sum of the features, exactly as in multiple regression."
+        },
+        {
+          "p": "**Step 2: Squash.** Pass the score through the sigmoid to get a probability."
+        },
+        {
+          "p": "**Step 3: Train.** Find the coefficients that make the predicted probabilities match the past outcomes as well as possible. The measure used is log-loss (next section). There is no one-line formula, so the computer improves the coefficients step by step until they stop changing."
+        },
+        {
+          "p": "**Step 4: Choose a threshold.** A probability is not yet a decision. If declining a good customer costs little but approving a defaulter costs a lot, you decline at a fairly low probability. The default threshold of 0.5 is rarely the right business answer."
+        },
+        {
+          "term": "Decision threshold",
+          "def": "The probability above which you act as if the event will happen (decline the loan, flag the transaction). Default 0.5, but it should be set from the costs of each kind of mistake."
+        },
+        {
+          "p": "**Step 5: Decide and monitor.** Apply the threshold, perhaps with a \"grey zone\" sent to a human reviewer, and check over time that predicted probabilities still match actual default rates."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "p = \\sigma(z) = \\frac{1}{1 + e^{-z}}, \\qquad z = b_0 + b_1 x_1 + \\dots + b_p x_p",
+          "plain": "Compute the score z as a weighted sum of the features, then convert it to a probability with the sigmoid. When z = 0, e⁰ = 1 and p = 1/2.",
+          "symbols": [
+            [
+              "p",
+              "predicted probability that the event happens (y = 1)"
+            ],
+            [
+              "z",
+              "the linear score, also called the log-odds"
+            ],
+            [
+              "\\sigma",
+              "the sigmoid function"
+            ],
+            [
+              "e",
+              "Euler’s number, about 2.718"
+            ]
+          ]
+        },
+        {
+          "p": "To interpret the coefficients we need the idea of **odds**, familiar from betting. If the probability of default is 0.8, the odds are 0.8 / 0.2 = 4, \"four to one on\". If the probability is 0.5, the odds are 1."
+        },
+        {
+          "term": "Odds",
+          "def": "Probability that something happens divided by probability that it does not: p / (1 − p). Probability 0.75 means odds of 3; probability 0.2 means odds of 0.25."
+        },
+        {
+          "tex": "\\log\\frac{p}{1-p} = b_0 + b_1 x_1 + \\dots + b_p x_p",
+          "plain": "Rearranging the sigmoid shows that the log of the odds is exactly the linear score. So each coefficient adds to the log-odds, which means e raised to that coefficient multiplies the odds.",
+          "symbols": [
+            [
+              "\\frac{p}{1-p}",
+              "the odds"
+            ],
+            [
+              "e^{b_j}",
+              "odds ratio: the factor by which the odds multiply when feature j rises by one unit"
+            ]
+          ]
+        },
+        {
+          "term": "Odds ratio",
+          "def": "e raised to a logistic coefficient. An odds ratio of 3.2 means each one-unit increase in that feature multiplies the odds of the event by 3.2, holding the other features fixed."
+        },
+        {
+          "p": "Finally, how does training judge a set of coefficients? It uses **log-loss**, which rewards confident correct predictions and punishes confident wrong ones very harshly."
+        },
+        {
+          "tex": "\\text{log-loss} = -\\frac{1}{n} \\sum_{i=1}^{n} \\left[ y_i \\log p_i + (1 - y_i) \\log (1 - p_i) \\right]",
+          "plain": "For a customer who defaulted (y = 1) the cost is −log p: small if you predicted a high probability, huge if you predicted a tiny one. For a customer who repaid (y = 0) the cost is −log(1 − p). Average over all customers.",
+          "symbols": [
+            [
+              "y_i",
+              "actual outcome, 1 or 0"
+            ],
+            [
+              "p_i",
+              "predicted probability of 1"
+            ],
+            [
+              "\\log",
+              "natural logarithm"
+            ]
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "-Math.log(x)",
+            "xMin": 0.01,
+            "xMax": 1,
+            "marks": [
+              {
+                "x": 0.1,
+                "label": "p = 0.1 → cost 2.30"
+              },
+              {
+                "x": 0.9,
+                "label": "p = 0.9 → cost 0.11"
+              }
+            ],
+            "xLabel": "predicted probability for what actually happened",
+            "yLabel": "log-loss for that case",
+            "caption": "Log-loss for a single case. Predicting 90% for something that happened costs 0.11; predicting 10% costs 2.30; predicting 1% costs 4.61. Being confidently wrong is punished far more than being unsure."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Fitting a default model on twelve applicants",
+            "setup": "The twelve applicants in the scatter plot (DTI from 0.1 to 0.7, five defaults). Fitting logistic regression without a penalty, with DTI measured in tenths, gives z = −5.54 + 1.16 × DTI.",
+            "steps": [
+              "Applicant with DTI 0.3: z = −5.54 + 1.16 × 3 = −2.06. p = 1 / (1 + e^2.06) ≈ 0.11.",
+              "Applicant with DTI 0.5: z = −5.54 + 5.80 = 0.26. p = 1 / (1 + e^−0.26) ≈ 0.56.",
+              "Applicant with DTI 0.7: z = −5.54 + 8.12 = 2.58. p ≈ 0.93.",
+              "The 50% point is where z = 0: DTI = 5.54 / 1.16 ≈ 4.78 tenths, i.e. a DTI of about 0.48.",
+              "Odds ratio = e^1.16 ≈ 3.19."
+            ],
+            "result": "Each extra 0.1 of debt-to-income multiplies the odds of default by about 3.2. With only twelve applicants this is a toy, but the reading is exactly how a real scorecard is explained to a credit committee."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "1/(1+Math.exp(-(-5.54+1.16*x)))",
+            "xMin": 0,
+            "xMax": 10,
+            "marks": [
+              {
+                "x": 4.78,
+                "label": "50% at DTI ≈ 0.48"
+              }
+            ],
+            "xLabel": "debt-to-income ratio (tenths)",
+            "yLabel": "probability of default",
+            "caption": "The fitted model. Unlike the straight line, it stays between 0 and 1, rising steeply between DTI 0.3 and 0.7 where the data shows the change from mostly-repaid to mostly-defaulted."
+          }
+        },
+        {
+          "example": {
+            "title": "Scoring predictions with log-loss",
+            "setup": "Four customers all defaulted (y = 1). Model A predicted 0.9, 0.6, 0.1 and 0.01 for them respectively. Compute each case’s log-loss.",
+            "steps": [
+              "p = 0.9: −ln 0.9 ≈ 0.105.",
+              "p = 0.6: −ln 0.6 ≈ 0.511.",
+              "p = 0.1: −ln 0.1 ≈ 2.303.",
+              "p = 0.01: −ln 0.01 ≈ 4.605.",
+              "Average = (0.105 + 0.511 + 2.303 + 4.605) / 4 ≈ 1.88."
+            ],
+            "result": "The single badly wrong prediction (1%) contributes more than half of the total. Training pushes hard to avoid confident mistakes, which is why logistic regression tends to give well-calibrated probabilities."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: setting the approval threshold",
+            "setup": "Approving a customer who later defaults costs the bank about ₹2,00,000. Declining a customer who would have repaid loses about ₹20,000 of profit. Out of 1,000 applicants, 100 will default. Compare two thresholds (illustrative counts).",
+            "steps": [
+              "Break-even threshold, if probabilities are well calibrated: decline when p > 20,000 / (20,000 + 2,00,000) ≈ 0.09.",
+              "Threshold 0.5: catches 55 defaulters, misses 45, wrongly declines 30 good customers. Cost = 45 × ₹2L + 30 × ₹0.2L = ₹90L + ₹6L = ₹96 lakh.",
+              "Threshold 0.2: catches 80, misses 20, wrongly declines 150. Cost = 20 × ₹2L + 150 × ₹0.2L = ₹40L + ₹30L = ₹70 lakh."
+            ],
+            "result": "Lowering the threshold saves about ₹26 lakh per 1,000 applicants, even though it turns away more good customers. The right threshold comes from costs, not from the default 0.5."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading the output: errors, metrics and calibration",
+      "blocks": [
+        {
+          "p": "Once a threshold is set, each prediction falls into one of four boxes. Laying them out as a table, called a **confusion matrix**, makes the trade-offs visible."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "",
+              "Predicted default",
+              "Predicted repay",
+              "Total"
+            ],
+            "rows": [
+              [
+                "Actually defaulted",
+                "80 (caught)",
+                "20 (missed)",
+                "100"
+              ],
+              [
+                "Actually repaid",
+                "150 (false alarm)",
+                "750 (correct)",
+                "900"
+              ],
+              [
+                "Total",
+                "230",
+                "770",
+                "1,000"
+              ]
+            ],
+            "caption": "Confusion matrix for the 0.2 threshold in the business example. Recall = 80 / 100 = 80% of defaulters caught; precision = 80 / 230 ≈ 35% of declined applicants would really have defaulted. Accuracy = 830 / 1,000 = 83%, lower than the 90% you would get by approving everyone, yet far cheaper."
+          }
+        },
+        {
+          "term": "Precision and recall",
+          "def": "Recall: of all actual positives (defaulters), the share the model caught. Precision: of all cases the model flagged, the share that really were positive. Raising the threshold usually raises precision and lowers recall."
+        },
+        {
+          "bullets": [
+            "**Do not judge by accuracy on imbalanced data.** Approving everyone is 90% accurate here and catches no defaulters.",
+            "**Use ROC-AUC** to measure how well the model ranks risky above safe applicants, independent of threshold.",
+            "**Check calibration:** among applicants scored around 20%, about 20% should actually default. Logistic regression is usually well calibrated if the model is sensible.",
+            "**Read coefficients as odds ratios**, after standardising features if you want to compare their importance."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Credit scorecards",
+            "story": "Logistic regression has long been the standard technique behind application credit scorecards at banks and lenders worldwide. A typical build bins each variable (age band, income band, utilisation band), transforms the bins into \"weight of evidence\" values, fits a logistic regression, and converts the coefficients into points so that, for example, every 20 extra points halves the odds of default. The appeal is explainability: lenders must be able to tell a declined applicant the main reasons, and regulators and model-risk teams can inspect every coefficient. More complex models are increasingly used alongside, but they are usually compared against a logistic baseline."
+          }
+        },
+        {
+          "bullets": [
+            "**Telecom and subscriptions:** churn probability next month, to target retention offers.",
+            "**Marketing:** probability a customer responds to a campaign, to rank whom to contact.",
+            "**Healthcare:** risk scores for conditions such as heart disease from age, blood pressure and cholesterol.",
+            "**Manufacturing:** probability a part fails inspection given process settings.",
+            "**Payments:** a fast first-layer fraud score before heavier models run."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Straight-line boundary:** the model separates classes with a straight line (a flat plane in more dimensions) in feature space. Curved boundaries need polynomial or interaction features, or trees.",
+            "**Perfect separation:** if one feature splits the classes perfectly, coefficients grow without limit. Regularisation (on by default in scikit-learn) fixes this.",
+            "**Forgetting scaling with regularisation:** scikit-learn’s `LogisticRegression` applies an L2 penalty by default (`C=1.0`), so unscaled features are penalised unevenly.",
+            "**Class imbalance:** with 1% fraud, use precision, recall and AUC, and consider `class_weight=\"balanced\"` or threshold tuning.",
+            "**Correlated features:** odds ratios become unstable, just as in multiple regression."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Logistic regression is ideal when…",
+              "items": [
+                "Target is yes / no",
+                "You need probabilities, not just labels",
+                "Decisions must be explained (credit, health)",
+                "Relationships are roughly monotonic",
+                "You want a fast, strong baseline"
+              ]
+            },
+            "right": {
+              "title": "Consider instead…",
+              "items": [
+                "Complex interactions → **gradient boosting, random forest**",
+                "More than two classes → **multinomial logistic regression**",
+                "Very many features → **L1-penalised logistic regression**",
+                "Images, text, audio → **neural networks**",
+                "Counts rather than yes/no → **Poisson regression**"
+              ]
+            },
+            "caption": "Logistic regression is the first model to try for any binary prediction, and often the one that ships."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why is it called regression if it classifies?",
+      "a": "Because inside it is a linear regression on the log-odds. The classification only happens when you apply a threshold to the probability it outputs."
+    },
+    {
+      "q": "How do I explain a coefficient of 0.5 to a manager?",
+      "a": "Exponentiate it: e^0.5 ≈ 1.65. \"Each one-unit increase in this feature multiplies the odds of the event by about 1.65, holding everything else fixed\", i.e. 65% higher odds."
+    },
+    {
+      "q": "Is 0.5 the right threshold?",
+      "a": "Only if both kinds of mistake cost the same and classes are balanced. Otherwise compute the threshold from costs (decline when p exceeds cost of a false alarm ÷ total cost of both errors) or pick it from a precision-recall curve."
+    },
+    {
+      "q": "Can it handle more than two classes?",
+      "a": "Yes. Multinomial logistic regression (also called softmax regression) gives a probability for each class. scikit-learn’s `LogisticRegression` handles this automatically."
+    },
+    {
+      "q": "What does C mean in scikit-learn?",
+      "a": "C is the inverse of regularisation strength. Smaller C means a stronger penalty and smaller coefficients. The default is 1.0; tune it by cross-validation and scale features first."
+    },
+    {
+      "q": "Odds versus probability: what is the difference?",
+      "a": "Probability is chances out of all cases (0.8 = 80%). Odds compare happening with not happening (0.8 / 0.2 = 4). Logistic coefficients act on the log of the odds, which is why they multiply the odds rather than add to the probability."
+    }
+  ]
+}

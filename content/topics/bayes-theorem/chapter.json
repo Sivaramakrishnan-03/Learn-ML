@@ -1,0 +1,413 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 14,
+  "hook": "A bank's fraud system flags your card payment. The system catches 95% of fraud and wrongly flags only 2% of honest payments. So there is a 95% chance this payment is fraud, right? Not even close: the answer is under 9%. The gap between those two numbers trips up doctors, judges, managers and data scientists alike. **Bayes' theorem** is the simple rule that gets it right, by combining what you knew before with what the evidence says.",
+  "sections": [
+    {
+      "heading": "The problem: updating beliefs with evidence",
+      "blocks": [
+        {
+          "p": "Decisions rarely start from nothing. A credit analyst knows roughly what share of applicants default. A plant manager knows which line usually causes defects. Then new evidence arrives: a test result, an alert, a customer complaint. The question is always: **how much should this evidence change my mind?**"
+        },
+        {
+          "p": "People are bad at this by instinct. We tend to focus on how accurate the evidence sounds (\"95% of frauds are caught\") and forget how rare the thing we are looking for was to begin with. Bayes' theorem is the arithmetic of combining the two correctly."
+        },
+        {
+          "term": "Conditional probability",
+          "def": "The probability of one thing given that another is known to be true, written P(A | B) and read \"probability of A given B\". For example, P(alert | fraud) is the chance of an alert when the payment really is fraud."
+        },
+        {
+          "term": "Base rate",
+          "def": "How common something is before you look at any specific evidence. If 0.2% of payments are fraudulent, the base rate of fraud is 0.2%."
+        },
+        {
+          "p": "The heart of the confusion is that **P(alert | fraud) is not the same as P(fraud | alert)**. The first is how good the detector is. The second is what you actually want to know after an alert. Bayes' theorem converts one into the other."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "P(alert | fraud)",
+              "P(fraud | alert)"
+            ],
+            "values": [
+              95,
+              8.7
+            ],
+            "highlight": 1,
+            "yLabel": "probability (%)",
+            "caption": "Two probabilities that sound alike and are wildly different. The detector catches 95% of fraud, yet only 8.7% of alerts are fraud, because fraud is so rare. We will derive this number below."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: count people, not percentages",
+      "blocks": [
+        {
+          "p": "The easiest way to think like Bayes is to stop using percentages and imagine a crowd. Take a disease that affects 1% of people, and a test that is positive for 99% of sick people and, wrongly, for 5% of healthy people. You test positive. How worried should you be?"
+        },
+        {
+          "steps": [
+            "**Imagine 10,000 people.** At 1%, 100 are sick and 9,900 are healthy.",
+            "**Of the 100 sick,** the test catches 99. These are true positives.",
+            "**Of the 9,900 healthy,** 5% test positive anyway: 495 false positives.",
+            "**Everyone who tested positive** is in a room: 99 + 495 = 594 people.",
+            "**Only 99 of those 594 are sick.** 99 ÷ 594 is about 16.7%."
+          ],
+          "title": "The crowd method"
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "10,000 people",
+              "children": [
+                {
+                  "label": "100 sick",
+                  "edge": "1%",
+                  "children": [
+                    {
+                      "label": "99 test positive",
+                      "edge": "99%"
+                    },
+                    {
+                      "label": "1 tests negative",
+                      "edge": "1%"
+                    }
+                  ]
+                },
+                {
+                  "label": "9,900 healthy",
+                  "edge": "99%",
+                  "children": [
+                    {
+                      "label": "495 test positive",
+                      "edge": "5%"
+                    },
+                    {
+                      "label": "9,405 test negative",
+                      "edge": "95%"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "Natural frequencies for the medical test. The positives come from two branches: 99 sick people and 495 healthy ones. False alarms outnumber true cases five to one because healthy people are 99 times more common."
+          }
+        },
+        {
+          "term": "False positive",
+          "def": "A test or alert that says \"yes\" when the true answer is \"no\", such as a healthy person testing positive or an honest payment being flagged."
+        },
+        {
+          "think": {
+            "q": "If the disease affected 20% of people instead of 1%, would a positive result be more or less worrying, with the same test?",
+            "a": "Much more worrying. Out of 10,000: 2,000 sick give 1,980 true positives, and 8,000 healthy give 400 false positives. P(sick | positive) = 1,980 ÷ 2,380 ≈ 83%. The test is identical; only the base rate changed."
+          }
+        },
+        {
+          "callout": "When the thing you are looking for is rare, even an accurate test produces mostly false alarms. Forgetting this is called the **base-rate fallacy**.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How Bayesian updating works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Prior**: what you believe before the evidence",
+              "**Likelihood**: how probable the evidence is under each possibility",
+              "**Multiply** prior × likelihood for each possibility",
+              "**Normalise** so the results add to 1",
+              "**Posterior**: updated belief, the next prior"
+            ],
+            "caption": "The Bayesian update. The last box loops back: today's posterior becomes tomorrow's prior when more evidence arrives."
+          }
+        },
+        {
+          "term": "Prior",
+          "def": "Your probability for a hypothesis before seeing the new evidence. Often a base rate from historical data."
+        },
+        {
+          "term": "Likelihood",
+          "def": "How probable the observed evidence is if a given hypothesis were true. P(positive test | sick) = 99% is a likelihood."
+        },
+        {
+          "term": "Posterior",
+          "def": "Your updated probability for the hypothesis after taking the evidence into account. It is what Bayes' theorem calculates."
+        },
+        {
+          "steps": [
+            "List the possibilities (sick or healthy; fraud or honest; plant A, B or C).",
+            "Write down the prior for each.",
+            "Write down the likelihood of the evidence under each.",
+            "Multiply prior × likelihood for each possibility.",
+            "Divide each product by their total. Those are the posteriors."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "P(H \\mid E) = \\frac{P(E \\mid H)\\; P(H)}{P(E)}",
+          "plain": "The probability of the hypothesis given the evidence equals how well the hypothesis explains the evidence, times how believable the hypothesis was beforehand, divided by how common the evidence is overall.",
+          "symbols": [
+            [
+              "H",
+              "hypothesis (e.g. the person is sick)"
+            ],
+            [
+              "E",
+              "evidence (e.g. a positive test)"
+            ],
+            [
+              "P(H)",
+              "prior"
+            ],
+            [
+              "P(E \\mid H)",
+              "likelihood"
+            ],
+            [
+              "P(H \\mid E)",
+              "posterior"
+            ],
+            [
+              "P(E)",
+              "total probability of the evidence"
+            ]
+          ]
+        },
+        {
+          "p": "Where does P(E) come from? The evidence can arise in several ways (from sick people or from healthy people), so add up all of them. This is exactly \"everyone in the positive room\" from the crowd method."
+        },
+        {
+          "tex": "P(E) = P(E \\mid H)\\,P(H) + P(E \\mid \\text{not } H)\\,P(\\text{not } H)",
+          "plain": "Total chance of a positive = true positives from the sick + false positives from the healthy."
+        },
+        {
+          "p": "Why does the theorem have this shape? The top, P(E | H) × P(H), is the share of all people who are both sick and positive (99 out of 10,000). The bottom is the share who are positive at all (594 out of 10,000). Their ratio is the share of positives who are sick."
+        },
+        {
+          "tex": "\\underbrace{\\frac{P(H \\mid E)}{P(\\text{not } H \\mid E)}}_{\\text{posterior odds}} = \\underbrace{\\frac{P(E \\mid H)}{P(E \\mid \\text{not } H)}}_{\\text{likelihood ratio}} \\times \\underbrace{\\frac{P(H)}{P(\\text{not } H)}}_{\\text{prior odds}}",
+          "plain": "The odds version: multiply your prior odds by the likelihood ratio (how many times more likely the evidence is under H). For the medical test: prior odds 1 : 99, likelihood ratio 0.99 ÷ 0.05 = 19.8, posterior odds 0.2, which is a probability of 1/6 ≈ 16.7%."
+        },
+        {
+          "p": "The odds form is handy in practice. Each new, independent piece of evidence simply multiplies the odds by its own likelihood ratio."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Fraud alerts at a card issuer (business case, illustrative)",
+            "setup": "0.2% of card payments are fraudulent. The model flags 95% of fraud and 2% of honest payments. What share of alerts are real fraud?",
+            "steps": [
+              "Take 1,00,000 payments: 200 fraudulent, 99,800 honest.",
+              "True alerts: 95% of 200 = 190.",
+              "False alerts: 2% of 99,800 = 1,996.",
+              "Total alerts = 190 + 1,996 = 2,186.",
+              "P(fraud | alert) = 190 ÷ 2,186 = 8.7%."
+            ],
+            "result": "More than 9 out of 10 alerts are honest customers. That shapes operations: a quick SMS confirmation is a better first response than blocking the card, and investigators should be sized for about 2,200 alerts per lakh payments, not 200."
+          }
+        },
+        {
+          "example": {
+            "title": "A second test changes everything",
+            "setup": "Back to the medical test. After one positive, P(sick) = 16.7%. The person takes a second, independent test with the same accuracy, and it is also positive.",
+            "steps": [
+              "New prior = 0.167 (yesterday's posterior).",
+              "Top: 0.99 × 0.167 = 0.165.",
+              "Bottom: 0.165 + 0.05 × 0.833 = 0.165 + 0.042 = 0.207.",
+              "Posterior = 0.165 ÷ 0.207 ≈ 0.80."
+            ],
+            "result": "Two positives raise the probability from 1% to 16.7% to about 80%. This is why doctors confirm screening results with a second test, and why a single alert should trigger a check rather than a final verdict."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Before any test",
+              "After 1 positive",
+              "After 2 positives"
+            ],
+            "values": [
+              1,
+              16.7,
+              79.8
+            ],
+            "highlight": 2,
+            "yLabel": "P(sick) (%)",
+            "caption": "Sequential updating. Each positive result multiplies the odds by about 20, so belief climbs fast once evidence accumulates."
+          }
+        },
+        {
+          "example": {
+            "title": "Which plant made the faulty part?",
+            "setup": "An automotive supplier sources a component from three plants. Plant A makes 50% of parts with a 1% defect rate, plant B 30% with 2%, plant C 20% with 5%. A customer returns a defective part. Which plant most likely made it?",
+            "steps": [
+              "Prior × likelihood: A 0.50 × 0.01 = 0.005; B 0.30 × 0.02 = 0.006; C 0.20 × 0.05 = 0.010.",
+              "Total = 0.021 (2.1% of all parts are defective).",
+              "Posteriors: A 0.005 ÷ 0.021 = 23.8%; B 28.6%; C 47.6%."
+            ],
+            "result": "Plant C makes only a fifth of the parts but is the likeliest source of a defect, at almost 48%. Start the quality audit there."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Plant",
+              "Prior (share made)",
+              "Defect rate",
+              "Prior × likelihood",
+              "Posterior"
+            ],
+            "rows": [
+              [
+                "A",
+                "50%",
+                "1%",
+                "0.005",
+                "23.8%"
+              ],
+              [
+                "B",
+                "30%",
+                "2%",
+                "0.006",
+                "28.6%"
+              ],
+              [
+                "C",
+                "20%",
+                "5%",
+                "0.010",
+                "47.6%"
+              ],
+              [
+                "Total",
+                "100%",
+                "",
+                "0.021",
+                "100%"
+              ]
+            ],
+            "caption": "Bayes in a table. Multiply across, add down, divide. The posterior ranking differs from the prior ranking because the evidence (a defect) is far more likely to come from plant C."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Bayes in machine learning and decision-making",
+      "blocks": [
+        {
+          "bullets": [
+            "**Naive Bayes classifiers:** spam filters compute P(spam | words) from how often each word appears in spam and normal mail, assuming words are independent. Simple, fast, and still a strong baseline for text.",
+            "**Bayesian A/B testing:** instead of a p-value, report \"the probability that B beats A is 97%\", which managers find easier to act on.",
+            "**Bayesian inference:** treat model parameters themselves as uncertain, with a prior and a posterior distribution, giving full uncertainty rather than a single estimate.",
+            "**Threshold setting:** posterior probabilities combined with costs (a missed fraud versus an annoyed customer) tell you where to set alert thresholds."
+          ]
+        },
+        {
+          "think": {
+            "q": "A rival vendor offers a fraud model that flags 99% of fraud with a 2% false-alarm rate, versus your 95%. Will this fix the problem that most alerts are false?",
+            "a": "Barely. Out of 1,00,000 payments it would give 198 true alerts and still 1,996 false ones, so P(fraud | alert) rises only from 8.7% to about 9.0%. With a rare event, the false-positive rate matters far more than catching a few more frauds."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Medical screening programmes",
+            "story": "Public-health screening (for example, mammography for breast cancer) is the classic real-world Bayes problem, widely discussed in medical statistics. Because most screened people do not have the disease, a large share of positive screens turn out to be false alarms, even with a good test. That is why screening positives are followed by more specific diagnostic tests, and why health agencies weigh the anxiety and cost of false positives when deciding who should be screened and how often. Restricting screening to higher-risk groups raises the prior, and so raises the value of each positive result."
+          }
+        },
+        {
+          "bullets": [
+            "**Credit risk:** updating a borrower's default probability as repayment behaviour comes in.",
+            "**Predictive maintenance:** combining a machine's age (prior) with a vibration alarm (evidence).",
+            "**Search and rescue:** Bayesian search theory updates the probability map of where a lost object is after each area is searched.",
+            "**Recommendation and ranking:** shrinking a new product's 5-star average from 2 reviews towards the category average is a Bayesian idea."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Confusing the inverse:** P(evidence | guilty) is not P(guilty | evidence). This error even has a name in law: the prosecutor's fallacy.",
+            "**Ignoring the base rate:** always ask \"how common was this to begin with?\"",
+            "**Bad priors:** a prior from the wrong population (all customers instead of new customers) gives a wrong posterior.",
+            "**Assuming independence:** two tests that share the same flaw are not independent; the second positive adds less than the formula suggests."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Frequentist view",
+              "items": [
+                "Probability = long-run frequency",
+                "Parameters are fixed, unknown numbers",
+                "Reports p-values and confidence intervals",
+                "No prior needed"
+              ]
+            },
+            "right": {
+              "title": "Bayesian view",
+              "items": [
+                "Probability = degree of belief",
+                "Parameters have probability distributions",
+                "Reports posterior probabilities and credible intervals",
+                "Requires a prior, which must be justified"
+              ]
+            },
+            "caption": "Bayes' theorem itself is uncontroversial arithmetic. The two schools differ on whether to apply it to unknown parameters. Both are used widely in industry."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "In one sentence, what does Bayes' theorem do?",
+      "a": "It updates the probability of a hypothesis by combining your prior belief with how well the hypothesis explains new evidence: posterior ∝ likelihood × prior."
+    },
+    {
+      "q": "Where do priors come from?",
+      "a": "Usually from historical data (base rates), from earlier studies, or from expert judgement. When unsure, use a weak prior that lets the data dominate, and check how sensitive the answer is."
+    },
+    {
+      "q": "Why is a \"99% accurate\" test often wrong when it says positive?",
+      "a": "Because when the condition is rare, the small false-positive rate applies to a huge number of healthy people and produces more false alarms than true cases."
+    },
+    {
+      "q": "What is the difference between likelihood and probability?",
+      "a": "Probability asks how likely the evidence is. Likelihood is that same number viewed as a measure of how well each hypothesis explains the evidence you already have. Bayes uses it to weigh hypotheses."
+    },
+    {
+      "q": "Is Naive Bayes the same as Bayes' theorem?",
+      "a": "Naive Bayes is a classifier built on Bayes' theorem plus the \"naive\" simplifying assumption that features are independent given the class."
+    },
+    {
+      "q": "How do I compute it in Python?",
+      "a": "For a simple case it is one line: `post = lik * prior / (lik * prior + fpr * (1 - prior))`. For classifiers, `sklearn.naive_bayes`; for full Bayesian models, libraries such as PyMC."
+    }
+  ]
+}

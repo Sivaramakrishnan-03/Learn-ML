@@ -1,0 +1,399 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A sales director asks a simple question: \"How good is the new demand forecast?\" The data scientist replies, \"R² of 0.67 and RMSE of 13.8.\" The director nods politely and understands nothing. A better answer would be: \"On average we are off by about 12 units a month, roughly 11%, and the big misses happen in launch months.\" **Regression metrics** are the different ways of measuring how wrong a numeric prediction is, and choosing and explaining the right one is half of a forecasting project.",
+  "sections": [
+    {
+      "heading": "The problem: how wrong is the number?",
+      "blocks": [
+        {
+          "p": "Many business predictions are numbers: next month's sales, the price of a flat, the hours a machine will run before it needs service, the rupee value of an insurance claim. A model that predicts a number is a **regression** model, and it is never exactly right. The question is how wrong it is, and in what way."
+        },
+        {
+          "term": "Regression",
+          "def": "Predicting a number on a continuous scale (price, demand, temperature), as opposed to classification, which predicts a category (yes/no, spam/not spam)."
+        },
+        {
+          "term": "Error (residual)",
+          "def": "The difference between the actual value and the prediction: actual − predicted. Positive means the model predicted too low; negative means too high."
+        },
+        {
+          "p": "Summarising thousands of errors into one number forces a choice. Do you care about the typical miss or the worst misses? About rupees or percentages? About beating a simple baseline? Each metric answers a slightly different question, and the wrong metric can make a poor model look good."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "actual demand (units)",
+            "yLabel": "forecast demand (units)",
+            "line": {
+              "m": 1,
+              "b": 0
+            },
+            "caption": "Five months of forecasts against reality. The diagonal line is \"perfect forecast\". Each point's vertical distance from the line is that month's error. The point far above the line (actual 105, forecast 130) is the big miss that some metrics punish much more than others.",
+            "points": [
+              [
+                120,
+                110,
+                0
+              ],
+              [
+                95,
+                100,
+                0
+              ],
+              [
+                150,
+                140,
+                0
+              ],
+              [
+                80,
+                90,
+                0
+              ],
+              [
+                105,
+                130,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: judging a weather forecaster",
+      "blocks": [
+        {
+          "p": "Suppose you want to judge a weather forecaster who predicts tomorrow's temperature every day for a month. How would you score them?"
+        },
+        {
+          "steps": [
+            "**Look at each day's miss.** Forecast 32°C, actual 30°C: 2 degrees off. Ignore the direction for now; 2 too hot is as bad as 2 too cold.",
+            "**Average the misses.** \"On a typical day she is 1.8 degrees off.\" That is easy to understand and is the idea behind MAE.",
+            "**Decide whether big misses deserve extra blame.** Missing by 10 degrees on the day of a heatwave may cause far more harm than ten 1-degree misses. If so, you should punish large misses more heavily. That is the idea behind RMSE.",
+            "**Compare with a lazy forecaster.** Someone who always predicts the monthly average temperature needs no skill. How much better is our forecaster than that? That is the idea behind R².",
+            "**Think in percentages if scales differ.** Being 2 degrees off in Shimla in January is a bigger relative miss than in Chennai in May. Percentage errors (MAPE) handle that."
+          ],
+          "title": "Four ways to grade a forecaster"
+        },
+        {
+          "think": {
+            "q": "Forecaster X is off by 2 degrees every single day. Forecaster Y is perfect on 29 days and off by 60 degrees on one day. Their average miss is the same. Which would you rather employ?",
+            "a": "Most people prefer X: a 60-degree miss is a disaster, and occasional huge misses destroy trust. Average miss (MAE) rates them equally; a squared-error metric (RMSE) would rate X far better. The choice of metric is a choice about which errors hurt."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How to evaluate a regression model, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Predict** on held-out test data",
+              "**Compute errors**: actual − predicted for every row",
+              "**Summarise** with MAE, RMSE, R² (and MAPE if useful)",
+              "**Compare** with a simple baseline",
+              "**Explain** in business units and inspect the biggest misses"
+            ],
+            "caption": "Metrics are always computed on data the model did not learn from, and always compared with a baseline."
+          }
+        },
+        {
+          "steps": [
+            "Compute predictions on the test set (or out-of-fold predictions from cross-validation).",
+            "Compute the error for each row. Plot them: a histogram of errors and a chart of actual versus predicted reveal patterns that no single number shows.",
+            "Compute two or three metrics. MAE for communication, RMSE if big misses are costly, R² for comparison with the mean baseline.",
+            "Compute the same metrics for a naive baseline: \"always predict the average\" or, for time series, \"predict the same as last month\". A model that cannot beat the naive baseline is not ready.",
+            "Translate the headline metric into the business's language: units, rupees, percentage, hours."
+          ],
+          "title": "The routine"
+        },
+        {
+          "callout": "A metric means little on its own. \"RMSE = 13.8\" is meaningless until you know that demand is around 110 units a month and the naive forecast scores 24.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Write yᵢ for the actual value of row i, ŷᵢ (\"y-hat\") for the prediction, and n for the number of rows. Every metric below is built from the errors yᵢ − ŷᵢ."
+        },
+        {
+          "term": "MAE (mean absolute error)",
+          "def": "The average size of the misses, ignoring direction. In the same units as the target: rupees, units, hours."
+        },
+        {
+          "tex": "\\text{MAE} = \\frac{1}{n}\\sum_{i=1}^{n} |y_i - \\hat y_i|",
+          "plain": "Take each miss, drop its sign, add them up and divide by the number of rows.",
+          "symbols": [
+            [
+              "y_i",
+              "actual value of row i"
+            ],
+            [
+              "\\hat y_i",
+              "predicted value of row i"
+            ],
+            [
+              "|\\cdot|",
+              "absolute value: drop the minus sign"
+            ]
+          ]
+        },
+        {
+          "p": "Why drop the sign? Because otherwise a +10 miss and a −10 miss would cancel and the model would look perfect. The average of the signed errors is still useful, but for something else: it shows **bias**, a tendency to predict too high or too low."
+        },
+        {
+          "term": "RMSE (root mean squared error)",
+          "def": "Square each miss, average the squares, take the square root. Also in the target's units, but large misses count much more than small ones."
+        },
+        {
+          "tex": "\\text{RMSE} = \\sqrt{\\frac{1}{n}\\sum_{i=1}^{n} (y_i - \\hat y_i)^2}",
+          "plain": "Squaring makes every miss positive and makes big misses huge (a miss of 20 counts 400, a miss of 2 counts 4). The square root at the end brings the result back to the original units."
+        },
+        {
+          "p": "The quantity inside the square root is the **MSE** (mean squared error). It is what most regression models minimise during training, because it has smooth mathematical properties. RMSE is always at least as large as MAE; the bigger the gap, the more your errors are dominated by a few large misses."
+        },
+        {
+          "tex": "R^2 = 1 - \\frac{\\sum_i (y_i - \\hat y_i)^2}{\\sum_i (y_i - \\bar y)^2}",
+          "plain": "Compare the model's squared errors with the squared errors of a lazy model that always predicts the average ȳ. R² is the share of that lazy error the model removes.",
+          "symbols": [
+            [
+              "\\bar y",
+              "the mean of the actual values"
+            ],
+            [
+              "R^2",
+              "1 = perfect, 0 = no better than the mean, below 0 = worse than the mean"
+            ]
+          ]
+        },
+        {
+          "p": "R² is unit-free, which makes it handy for comparing models on the same data. But it says nothing about the size of errors in business terms, and it can be negative on test data if a model is worse than simply predicting the average."
+        },
+        {
+          "tex": "\\text{MAPE} = \\frac{100\\%}{n}\\sum_{i=1}^{n} \\left|\\frac{y_i - \\hat y_i}{y_i}\\right|",
+          "plain": "Each miss is divided by the actual value to make it a percentage, and the percentages are averaged. \"We are 11% off on average.\""
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Three predictions by hand",
+            "setup": "Actual values 10, 20, 30. Predictions 12, 18, 36.",
+            "steps": [
+              "Errors (actual − predicted): −2, +2, −6. Absolute errors: 2, 2, 6.",
+              "MAE = (2 + 2 + 6) / 3 = 10 / 3 ≈ 3.33.",
+              "Squared errors: 4, 4, 36. MSE = 44 / 3 ≈ 14.67. RMSE = √14.67 ≈ 3.83.",
+              "Mean of actuals = 20. Lazy squared errors: (10 − 20)² + 0 + (30 − 20)² = 200.",
+              "R² = 1 − 44 / 200 = 1 − 0.22 = 0.78."
+            ],
+            "result": "MAE 3.33, RMSE 3.83, R² 0.78. RMSE is higher than MAE because the single miss of 6 is punished more heavily than the two misses of 2."
+          }
+        },
+        {
+          "example": {
+            "title": "Spare-parts demand at a car dealership (business case)",
+            "setup": "Monthly demand for a brake-pad kit over five months: actual 120, 95, 150, 80, 105 units. Forecast 110, 100, 140, 90, 130.",
+            "steps": [
+              "Errors: +10, −5, +10, −10, −25. Absolute: 10, 5, 10, 10, 25. MAE = 60 / 5 = 12 units.",
+              "Squared: 100, 25, 100, 100, 625. MSE = 950 / 5 = 190. RMSE = √190 ≈ 13.78 units.",
+              "Mean actual = 550 / 5 = 110. Lazy squared errors: 100 + 225 + 1,600 + 900 + 25 = 2,850. R² = 1 − 950 / 2,850 ≈ 0.67.",
+              "Percentage misses: 8.33%, 5.26%, 6.67%, 12.5%, 23.81%. MAPE ≈ 11.3%.",
+              "The last month (miss of 25) supplies 625 of the 950 squared error: about two-thirds of the MSE from one month."
+            ],
+            "result": "For the parts manager: \"We are off by about 12 kits a month, roughly 11%, and the fifth month's over-forecast is the main problem.\" Investigating that month (a cancelled fleet order, perhaps) is worth more than any further tuning."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Month 1",
+              "Month 2",
+              "Month 3",
+              "Month 4",
+              "Month 5"
+            ],
+            "values": [
+              10,
+              5,
+              10,
+              10,
+              25
+            ],
+            "highlight": 4,
+            "yLabel": "absolute error (units)",
+            "caption": "Absolute errors for the dealership forecast. MAE treats month 5 as one miss among five; RMSE squares it to 625 and lets it dominate. When one bar towers over the rest, RMSE and MAE drift apart."
+          }
+        },
+        {
+          "example": {
+            "title": "Same MAE, very different RMSE",
+            "setup": "Two models predict four claims. Model P misses by 5, 5, 5, 5. Model Q misses by 0, 0, 0, 20.",
+            "steps": [
+              "MAE of P = 20 / 4 = 5. MAE of Q = 20 / 4 = 5. Identical.",
+              "RMSE of P = √((25 + 25 + 25 + 25) / 4) = √25 = 5.",
+              "RMSE of Q = √((0 + 0 + 0 + 400) / 4) = √100 = 10."
+            ],
+            "result": "MAE cannot tell these models apart; RMSE says Q is twice as bad. Use RMSE when one large miss (an under-reserved insurance claim, a stock-out of a critical part) costs far more than several small ones."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing the right metric",
+      "blocks": [
+        {
+          "p": "The best metric mirrors how errors cost money. Ask the business owner: \"Is a miss of 20 twice as bad as a miss of 10, or much worse? Do we think in units or in percentages? Can actual values be zero?\""
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Metric",
+              "Units",
+              "Big misses",
+              "Best used when"
+            ],
+            "rows": [
+              [
+                "MAE",
+                "Same as target",
+                "Counted normally",
+                "Explaining to stakeholders; costs grow linearly"
+              ],
+              [
+                "RMSE",
+                "Same as target",
+                "Punished heavily",
+                "Large errors are especially costly"
+              ],
+              [
+                "R²",
+                "None (0 to 1)",
+                "Punished heavily",
+                "Comparing models on the same data"
+              ],
+              [
+                "MAPE",
+                "Percent",
+                "Relative to actual",
+                "Comparing items of different sizes, no zeros"
+              ],
+              [
+                "WAPE",
+                "Percent",
+                "Relative to total",
+                "Demand forecasting with small or zero values"
+              ]
+            ],
+            "caption": "A quick guide. Most reports show MAE or RMSE in business units plus one relative measure."
+          }
+        },
+        {
+          "term": "WAPE (weighted absolute percentage error)",
+          "def": "Total absolute error divided by total actual value. In the dealership example, 60 / 550 ≈ 10.9%. It avoids MAPE's explosion when individual actual values are tiny."
+        },
+        {
+          "bullets": [
+            "**Asymmetric costs:** if under-forecasting (stock-outs) costs more than over-forecasting (extra stock), consider a quantile or pinball loss, which penalises one direction more.",
+            "**Many series of different sizes:** MAPE or WAPE make a 10-unit miss on a slow item and a 1,000-unit miss on a fast item comparable.",
+            "**Model training versus reporting:** you can train with MSE and still report MAE; they need not be the same."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Choosing a forecast metric for a quick-commerce grocer (illustrative)",
+            "story": "A quick-commerce company forecasts hourly demand for 6,000 products in each dark store. MAPE looked natural until analysts found that many products sell 0 or 1 unit in an hour: a forecast of 2 against an actual of 1 is a 100% error, and actual zeros make MAPE undefined. The team switched to WAPE for the headline number, which weights each product by its volume, and added an RMSE check on the top 200 products, where a stock-out of milk or bread costs most. Reports to store managers say \"we are about 18% off in total units\", a figure they can relate to their own experience."
+          }
+        },
+        {
+          "bullets": [
+            "**Real estate:** price models are often reported with MAE in lakh and a median percentage error, because a few luxury properties distort RMSE.",
+            "**Energy utilities:** load forecasts use RMSE and MAPE; peak-hour misses are what cause expensive spot purchases.",
+            "**Insurance:** claim-severity models are checked with RMSE and with error by claim-size band, because a few large claims dominate cost."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Reporting only R².** A high R² can coexist with errors far too large for the business, and a low R² can be fine when the target is noisy by nature.",
+            "**MAPE with zeros or tiny actuals.** Actual 2, forecast 6 is a 200% error. Use WAPE or MAE instead.",
+            "**Comparing RMSE across datasets.** RMSE is in the target's units; an RMSE of 10 on demand of 100 and on demand of 10,000 are worlds apart.",
+            "**Scoring on training data.** All metrics look better on data the model learned from. Use test data or cross-validation.",
+            "**Ignoring the direction of errors.** A model can have a decent MAE yet consistently over-forecast. Check the mean signed error too.",
+            "**Negative R² surprises.** On test data R² can be negative. Predicting 30, 20, 10 for actuals 10, 20, 30 gives R² = −3: much worse than predicting the average."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "MAE",
+              "items": [
+                "Average miss, easy to explain",
+                "Robust to a few outliers",
+                "Treats all misses in proportion",
+                "Minimised by predicting the median"
+              ]
+            },
+            "right": {
+              "title": "RMSE",
+              "items": [
+                "Square root of the average squared miss",
+                "Sensitive to large misses",
+                "Penalises one big miss more than many small ones",
+                "Minimised by predicting the mean"
+              ]
+            },
+            "caption": "The two most common error metrics. Report both: when RMSE is much larger than MAE, a few large misses deserve investigation."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which metric should I report to management?",
+      "a": "Usually MAE in business units (rupees, units, hours) plus a percentage such as WAPE. Keep R² and RMSE for technical comparisons unless large misses are the main concern."
+    },
+    {
+      "q": "What is a good R²?",
+      "a": "It depends entirely on the problem. Physical processes can reach 0.95; customer behaviour models may be useful at 0.3. Compare with a baseline and with the business need, not with a universal threshold."
+    },
+    {
+      "q": "Why is RMSE always at least as large as MAE?",
+      "a": "Squaring gives extra weight to large errors, and the square root of an average of squares is never smaller than the plain average. They are equal only when every miss is the same size."
+    },
+    {
+      "q": "Can MAPE be more than 100%?",
+      "a": "Yes. If the actual is 10 and the forecast is 35, that miss alone is 250%. Over-forecasting is unbounded, which is one reason MAPE is criticised."
+    },
+    {
+      "q": "Why does scikit-learn show \"neg_mean_absolute_error\"?",
+      "a": "Its tuning tools always maximise a score, so error metrics are negated. A value of −12 means an MAE of 12."
+    },
+    {
+      "q": "Should I use the same metric for training and evaluation?",
+      "a": "Not necessarily. Many models train on squared error for mathematical convenience. Evaluate with the metric that reflects business cost, and if they differ greatly, look for a model or loss that matches the business metric."
+    }
+  ]
+}

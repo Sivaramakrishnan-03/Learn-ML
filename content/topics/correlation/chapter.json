@@ -1,0 +1,427 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "Every summer, ice-cream sales and drowning accidents rise together. Put the two on a chart and they look tightly linked. Nobody sensible believes ice cream causes drowning; hot weather drives both. Business decks are full of the same trap: \"stores with more staff sell more\", \"customers who use the app spend more\". **Correlation** measures how strongly two numbers move together. This chapter teaches you to compute it, read it, and not be fooled by it.",
+  "sections": [
+    {
+      "heading": "The problem: do these two things move together?",
+      "blocks": [
+        {
+          "p": "Managers constantly ask whether two quantities are related. Does advertising spend go with sales? Does machine temperature go with defect rate? Does delivery time go with customer ratings? Before building any model, you want a quick, single number that says how strongly two variables travel together and in which direction."
+        },
+        {
+          "p": "That number is the **correlation coefficient**. It is one of the most used and most abused statistics in business. Used well, it is a fast first look at which drivers deserve attention. Used badly, it produces confident claims about causes that the data never supported."
+        },
+        {
+          "term": "Variable",
+          "def": "Any quantity you measure that can change from one item to the next: monthly sales, price, temperature, age."
+        },
+        {
+          "term": "Correlation coefficient (r)",
+          "def": "A number between −1 and +1 that measures how closely two variables follow a straight-line relationship. +1 is a perfect rising line, −1 a perfect falling line, 0 no straight-line pattern at all."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "ad spend (₹ lakh)",
+            "yLabel": "sales (₹ lakh)",
+            "caption": "Five months of ad spend and sales. The points climb together, close to a straight line. The correlation is r = 0.95, which we will calculate by hand later.",
+            "points": [
+              [
+                1,
+                10
+              ],
+              [
+                2,
+                14
+              ],
+              [
+                3,
+                13
+              ],
+              [
+                4,
+                18
+              ],
+              [
+                5,
+                20
+              ]
+            ],
+            "line": {
+              "m": 2.4,
+              "b": 7.8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the dance partners",
+      "blocks": [
+        {
+          "p": "Imagine watching two dancers on a stage. You do not care where they stand on average; you care whether they **move together**."
+        },
+        {
+          "steps": [
+            "**Mark the centre of the stage for each dancer**: their average position.",
+            "**Each moment, ask: is dancer X to the right of her centre or the left? Is dancer Y?**",
+            "**If both are on the same side at the same time**, they are moving together. Score a plus.",
+            "**If they are on opposite sides**, they are moving against each other. Score a minus.",
+            "**Add up the scores over the whole dance.** Mostly pluses means they move together; mostly minuses means they mirror each other; a mix means no pattern."
+          ],
+          "title": "Scoring how two dancers move"
+        },
+        {
+          "p": "That running total is **covariance**. It has one annoying flaw: its size depends on the units. Measure the stage in centimetres instead of metres and the number grows a hundredfold, even though the dance is identical. Correlation fixes this by dividing out each dancer's typical range of movement, so the answer always lands between −1 and +1."
+        },
+        {
+          "term": "Covariance",
+          "def": "The average of (how far x is from its mean) × (how far y is from its mean). Positive when the two tend to be above or below average together; negative when one is high while the other is low. Its size depends on the units."
+        },
+        {
+          "think": {
+            "q": "You convert sales from ₹ lakh to rupees (multiply by 1,00,000). What happens to the covariance and to the correlation?",
+            "a": "The covariance is multiplied by 1,00,000, because every y-deviation is. The correlation does not change at all, because it divides by the standard deviation of y, which grows by the same factor. That is exactly why we prefer correlation for describing strength."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How to compute it, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Plot** the scatter first",
+              "Subtract each **mean**: get deviations",
+              "**Multiply** paired deviations and add: covariance",
+              "**Divide** by both standard deviations: r",
+              "**Interpret** strength, direction and causes"
+            ],
+            "caption": "Computing Pearson's r. The first box matters most: a picture catches problems a single number hides."
+          }
+        },
+        {
+          "steps": [
+            "Draw a scatter plot. Check the pattern looks roughly like a straight line and look for odd points.",
+            "Compute the mean of x and the mean of y.",
+            "For each pair, compute the deviations (x − mean of x) and (y − mean of y) and multiply them.",
+            "Add the products and divide by n − 1. That is the sample covariance.",
+            "Divide the covariance by (standard deviation of x × standard deviation of y). That is r."
+          ]
+        },
+        {
+          "term": "Standard deviation",
+          "def": "The typical distance of values from their average. Small means values are bunched together; large means they are spread out."
+        },
+        {
+          "p": "In pandas the whole thing is one line: `df[[\"spend\", \"sales\"]].corr()`. In scipy, `scipy.stats.pearsonr(x, y)` also returns a p-value testing whether the true correlation could be zero."
+        },
+        {
+          "p": "There is a second, very useful kind of correlation. **Spearman's rank correlation** first replaces each value by its rank (1st, 2nd, 3rd…) and then computes Pearson's r on the ranks. It asks a looser question: \"when x goes up, does y tend to go up?\", without needing a straight line."
+        },
+        {
+          "term": "Spearman's rank correlation (ρ)",
+          "def": "Correlation computed on ranks instead of raw values. It measures any consistently rising or falling (monotonic) relationship and is far less affected by extreme values."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\operatorname{Cov}(x, y) = \\frac{1}{n-1} \\sum_{i=1}^{n} (x_i - \\bar{x})(y_i - \\bar{y})",
+          "plain": "Average the products of paired deviations. Pairs on the same side of their means add; pairs on opposite sides subtract.",
+          "symbols": [
+            [
+              "x_i, y_i",
+              "the i-th pair of values"
+            ],
+            [
+              "\\bar{x}, \\bar{y}",
+              "the two means"
+            ],
+            [
+              "n",
+              "number of pairs"
+            ]
+          ]
+        },
+        {
+          "p": "Why n − 1 rather than n? Because we measure deviations from the sample mean, which is itself fitted to the data, the deviations are slightly too small on average. Dividing by n − 1 corrects for that. For correlation it does not matter, because the same factor appears top and bottom and cancels."
+        },
+        {
+          "tex": "r = \\frac{\\operatorname{Cov}(x, y)}{s_x \\, s_y}",
+          "plain": "Covariance divided by both standard deviations. This removes the units and squeezes the answer between −1 and +1.",
+          "symbols": [
+            [
+              "s_x, s_y",
+              "sample standard deviations of x and y"
+            ]
+          ]
+        },
+        {
+          "tex": "r^2 = \\text{share of the variation in } y \\text{ explained by a straight line in } x",
+          "plain": "Squaring r gives the fraction of y's ups and downs that a straight-line fit on x accounts for. r = 0.95 gives r² = 0.90, or 90%."
+        },
+        {
+          "p": "A rough guide many analysts use: |r| below 0.3 is weak, 0.3 to 0.7 moderate, above 0.7 strong. These are conventions, not laws. In noisy fields such as marketing, r = 0.3 can be valuable; in physics, r = 0.9 might signal a problem with the instrument."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "−1.0",
+              "−0.7",
+              "−0.3",
+              "0",
+              "+0.3",
+              "+0.7",
+              "+1.0"
+            ],
+            "values": [
+              100,
+              49,
+              9,
+              0,
+              9,
+              49,
+              100
+            ],
+            "highlight": 5,
+            "yLabel": "r² (% of variation explained)",
+            "caption": "The same r values expressed as r². A \"moderate\" r of 0.3 explains only 9% of the variation, while r = 0.7 explains about half. Strength grows much faster near the ends of the scale."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Ad spend and sales by hand (business case, illustrative)",
+            "setup": "Five months for a regional FMCG distributor. Ad spend (₹ lakh): 1, 2, 3, 4, 5. Sales (₹ lakh): 10, 14, 13, 18, 20.",
+            "steps": [
+              "Means: spend = 15 ÷ 5 = 3; sales = 75 ÷ 5 = 15.",
+              "Spend deviations: −2, −1, 0, 1, 2. Sales deviations: −5, −1, −2, 3, 5.",
+              "Products: 10, 1, 0, 3, 10. Sum = 24. Covariance = 24 ÷ 4 = 6.",
+              "Squared spend deviations sum to 10, so s(spend) = √(10 ÷ 4) = 1.58. Squared sales deviations sum to 64, so s(sales) = √(64 ÷ 4) = 4.",
+              "r = 6 ÷ (1.58 × 4) = 0.95. r² = 0.90.",
+              "With only five points, `pearsonr` gives p = 0.014: unlikely to be pure chance."
+            ],
+            "result": "A strong positive relationship. Every extra ₹1 lakh of spend comes with about ₹2.4 lakh more sales on the fitted line. But this does not prove the ads caused the sales (see the case below)."
+          }
+        },
+        {
+          "example": {
+            "title": "One typo destroys Pearson, not Spearman",
+            "setup": "Eight stores: daily footfall (hundreds) 10, 12, 14, 16, 18, 20, 22, 24 and sales (₹ thousand) 20, 23, 27, 30, 35, 38, 41, 45.",
+            "steps": [
+              "Clean data: Pearson r = 0.999, Spearman ρ = 1.00. Almost a perfect line.",
+              "Now someone types the last store's sales as 5 instead of 45.",
+              "Pearson r collapses to 0.06: it now reports \"no relationship\".",
+              "Spearman ρ falls to 0.33. Still hurt, but far less, because a wrong value can only move one rank."
+            ],
+            "result": "A single bad point can wipe out Pearson's r. Always plot, check for data-entry errors, and compare Pearson with Spearman. A big gap between them is a warning sign."
+          }
+        },
+        {
+          "example": {
+            "title": "Zero correlation, perfect relationship",
+            "setup": "x = −2, −1, 0, 1, 2 and y = x², so y = 4, 1, 0, 1, 4.",
+            "steps": [
+              "Mean of x = 0, mean of y = 2.",
+              "Products of deviations: (−2)(2) + (−1)(−1) + (0)(−2) + (1)(−1) + (2)(2) = −4 + 1 + 0 − 1 + 4 = 0.",
+              "So the covariance and r are exactly 0."
+            ],
+            "result": "y is completely determined by x, yet r = 0. Correlation only detects straight-line patterns. A U-shape (such as stress versus performance, or price versus profit) is invisible to it."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "x",
+            "yLabel": "y",
+            "caption": "The U-shape from the third example. The left half falls and the right half rises; the two cancel exactly, giving r = 0. Plot before you trust r.",
+            "points": [
+              [
+                -2,
+                4
+              ],
+              [
+                -1.5,
+                2.25
+              ],
+              [
+                -1,
+                1
+              ],
+              [
+                -0.5,
+                0.25
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0.5,
+                0.25
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1.5,
+                2.25
+              ],
+              [
+                2,
+                4
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Correlation is not causation",
+      "blocks": [
+        {
+          "p": "This is the most important idea in the chapter. When x and y are correlated, there are at least four possible explanations, and only one of them is \"x causes y\"."
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "x and y are correlated",
+              "children": [
+                {
+                  "label": "x causes y",
+                  "edge": "possible"
+                },
+                {
+                  "label": "y causes x",
+                  "edge": "reverse"
+                },
+                {
+                  "label": "z causes both",
+                  "edge": "confounder"
+                },
+                {
+                  "label": "pure coincidence",
+                  "edge": "chance"
+                }
+              ]
+            },
+            "caption": "Four explanations for a correlation. Data alone usually cannot tell them apart; an experiment or careful causal reasoning can."
+          }
+        },
+        {
+          "term": "Confounder",
+          "def": "A third variable that influences both x and y, creating a correlation between them even if neither affects the other. Hot weather is the confounder behind ice cream and drownings."
+        },
+        {
+          "bullets": [
+            "**Reverse causation:** cities with more police have more crime. Police do not cause crime; high crime leads cities to hire more police.",
+            "**Confounding:** customers who use the app spend more. Perhaps loyal, high-income customers are the ones who install the app.",
+            "**Coincidence:** with enough variables, some will correlate by pure chance. Search through thousands of metrics and you will find \"significant\" nonsense."
+          ]
+        },
+        {
+          "callout": "To claim that x causes y, the gold standard is a randomised experiment (an A/B test). When experiments are impossible, use causal methods such as difference-in-differences, and state your assumptions.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Festival season fools the marketing dashboard (illustrative)",
+            "story": "A consumer-electronics retailer finds r = 0.85 between monthly ad spend and sales over two years, and the marketing team asks for a bigger budget. An analyst notices that the budget is always raised for Diwali and year-end sales, exactly when customers buy anyway. Season is a confounder. The company runs a geo-experiment: ads are increased in half the cities and held flat in the others for the same weeks. The measured lift is real but less than half of what the correlation implied. The budget decision is now based on the experiment."
+          }
+        },
+        {
+          "bullets": [
+            "**Feature screening:** a correlation matrix (`df.corr()`) shows which inputs relate to the target and which inputs duplicate each other.",
+            "**Multicollinearity checks:** highly correlated inputs (r above about 0.9) make regression coefficients unstable.",
+            "**Portfolio risk:** finance teams use correlations between asset returns; assets that are weakly correlated reduce overall risk when combined.",
+            "**Sensor monitoring:** in a car or a plant, two sensors that normally correlate strongly suddenly drifting apart can signal a fault."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Not plotting.** Very different datasets can share the same r. Always look at the scatter plot.",
+            "**Outliers.** One extreme point can create or destroy a correlation. Compare with Spearman.",
+            "**Curves.** Pearson misses U-shapes and saturating curves. Use Spearman for monotonic curves, or plot.",
+            "**Restricted range.** Correlating test scores with job performance only among hired staff (all high scorers) weakens r artificially.",
+            "**Aggregation.** Correlations between averages (by city or month) are usually much stronger than between individuals."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Pearson r",
+              "items": [
+                "Measures straight-line relationships",
+                "Uses the actual values",
+                "Sensitive to outliers",
+                "r² links directly to linear regression",
+                "Best for roughly linear, clean numeric data"
+              ]
+            },
+            "right": {
+              "title": "Spearman ρ",
+              "items": [
+                "Measures any rising or falling pattern",
+                "Uses ranks only",
+                "Robust to outliers",
+                "Works for ordinal data such as ratings",
+                "Best for curves, skewed data or ranked scores"
+              ]
+            },
+            "caption": "Report both when in doubt. If they disagree a lot, the plot will tell you why."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What counts as a \"strong\" correlation?",
+      "a": "A common rule of thumb is |r| above 0.7 strong, 0.3 to 0.7 moderate, below 0.3 weak. But the context matters: in customer behaviour data, 0.3 can be useful."
+    },
+    {
+      "q": "Does r = 0 mean the variables are unrelated?",
+      "a": "No. It means there is no straight-line relationship. There could be a strong curved one, like the U-shape example."
+    },
+    {
+      "q": "What is the difference between covariance and correlation?",
+      "a": "Covariance measures joint movement in the original units, so its size is hard to interpret. Correlation divides by both standard deviations so it always lies between −1 and +1."
+    },
+    {
+      "q": "When should I use Spearman instead of Pearson?",
+      "a": "When the relationship is curved but consistently rising or falling, when there are outliers, or when the data are ranks or ratings such as 1–5 survey scores."
+    },
+    {
+      "q": "Is a significant correlation an important one?",
+      "a": "Not necessarily. With 10,000 rows, even r = 0.03 is statistically significant but explains less than 0.1% of the variation. Look at r and r², not just the p-value."
+    },
+    {
+      "q": "Can correlation ever prove causation?",
+      "a": "On its own, no. A randomised experiment can establish causation; observational data needs causal methods and assumptions you can defend."
+    }
+  ]
+}

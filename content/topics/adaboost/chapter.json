@@ -1,0 +1,392 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A good maths tutor does not make you redo the questions you already get right. After each test she looks at what you got wrong and sets the next practice sheet around exactly those questions. Over many rounds, your weak spots get the most attention. **AdaBoost** trains models the same way: each new model concentrates on the examples the previous ones got wrong, and the final answer is a weighted vote of them all.",
+  "sections": [
+    {
+      "heading": "The problem: can weak rules add up to a strong one?",
+      "blocks": [
+        {
+          "p": "In the late 1980s, computer scientists asked a theoretical question. Suppose you have a way to produce rules that are only **slightly better than guessing**, say 55% accurate on a yes/no question. Can you combine such weak rules into one that is extremely accurate?"
+        },
+        {
+          "term": "Weak learner",
+          "def": "A very simple model that does only a little better than random guessing. The classic example is a decision stump."
+        },
+        {
+          "term": "Decision stump",
+          "def": "A decision tree with just one question and two leaves, for example \"Is the transaction amount above ₹20,000? If yes, say fraud; if no, say genuine.\""
+        },
+        {
+          "p": "Yoav Freund and Robert Schapire answered yes, and in the mid-1990s published a practical method: **AdaBoost**, short for **Ada**ptive **Boost**ing. Their work later won the Gödel Prize, one of the top awards in theoretical computer science. AdaBoost became famous in practice through the Viola–Jones face detector (2001), which used boosted simple image features to find faces fast enough for early digital cameras."
+        },
+        {
+          "term": "Boosting",
+          "def": "A family of methods that build models **one after another**, each new model trying to fix the mistakes of the ones before it. Contrast with bagging, where models are built independently."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Bagging",
+              "items": [
+                "Models built **in parallel**, independently",
+                "Every row equally important",
+                "Simple average or majority vote",
+                "Mainly reduces **variance**",
+                "Uses strong, deep trees"
+              ]
+            },
+            "right": {
+              "title": "Boosting (AdaBoost)",
+              "items": [
+                "Models built **in sequence**",
+                "Hard rows gain weight each round",
+                "Weighted vote: better models count more",
+                "Mainly reduces **bias**",
+                "Uses weak learners such as stumps"
+              ]
+            },
+            "caption": "Both are ensembles, but they attack different problems. Bagging steadies unstable models; boosting makes simple models smarter."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the tutor and the practice sheets",
+      "blocks": [
+        {
+          "p": "Follow the tutor through a few rounds, with no formulas."
+        },
+        {
+          "steps": [
+            "**Round 1.** All 20 questions on the sheet are equally important. The student (a weak learner) answers, and gets questions 4, 9 and 15 wrong.",
+            "**The tutor re-weights.** Questions 4, 9 and 15 are now marked \"important\"; the others are marked \"less important\".",
+            "**Round 2.** A new student is told to focus on the important questions. They get those right but slip on questions 2 and 11.",
+            "**Re-weight again.** Questions 2 and 11 become important; questions this student got right lose importance.",
+            "**Final exam.** All the students vote on each question. Students who did well on their weighted practice sheets get a louder voice."
+          ],
+          "title": "Round by round"
+        },
+        {
+          "p": "No single student is impressive. But because each covers a different weakness, the panel together gets almost everything right. That is boosting."
+        },
+        {
+          "think": {
+            "q": "Why should a student who scored well on their practice sheet get a louder vote than one who barely beat guessing?",
+            "a": "Because their opinion is more reliable. A student who is 90% accurate on what they were asked deserves more trust than one who is 52% accurate. AdaBoost turns each learner's weighted accuracy directly into its voting weight."
+          }
+        },
+        {
+          "callout": "Two kinds of weight appear in AdaBoost. **Row weights** say how much each training example matters in the next round. **Model weights (α)** say how loudly each learner votes at the end.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How AdaBoost works, step by step",
+      "blocks": [
+        {
+          "p": "AdaBoost is usually described for two classes coded as +1 and −1 (for example +1 = fraud, −1 = genuine)."
+        },
+        {
+          "steps": [
+            "**Start with equal row weights.** With n rows, every row gets weight 1/n.",
+            "**Train a weak learner** (a stump) that minimises weighted error, meaning mistakes on heavy rows cost more.",
+            "**Measure its weighted error ε:** the total weight of the rows it got wrong.",
+            "**Give it a vote α** based on ε: low error → big vote; error near 0.5 → vote near zero.",
+            "**Re-weight the rows:** multiply wrong rows' weights up and right rows' weights down, then rescale so all weights add to 1.",
+            "**Repeat** for the chosen number of rounds, then predict with the weighted vote of all learners."
+          ],
+          "title": "The AdaBoost loop"
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Equal weights** 1/n on all rows",
+              "**Fit a stump** to the weighted data",
+              "**Weighted error ε** and vote α",
+              "**Up-weight mistakes**, down-weight successes",
+              "Repeat; final = **sign of Σ α·h(x)**"
+            ],
+            "caption": "Each round passes a re-weighted dataset to the next learner. The final model adds up the learners' votes, each scaled by its α."
+          }
+        },
+        {
+          "term": "Weighted error (ε)",
+          "def": "The sum of the weights of the rows a learner got wrong. If the weights add to 1, ε is between 0 and 1; ε = 0.5 means no better than a coin toss."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Three formulas run the whole algorithm. Each one has a clear job."
+        },
+        {
+          "tex": "\\alpha_t = \\tfrac{1}{2} \\ln\\!\\left( \\frac{1 - \\varepsilon_t}{\\varepsilon_t} \\right)",
+          "plain": "The vote of learner t depends on the odds of it being right. If it is right far more often than wrong, the odds are large and so is its vote. At ε = 0.5 the odds are 1 and ln(1) = 0: a coin-flip learner gets no vote.",
+          "symbols": [
+            [
+              "\\alpha_t",
+              "voting weight of learner t"
+            ],
+            [
+              "\\varepsilon_t",
+              "weighted error of learner t"
+            ],
+            [
+              "\\ln",
+              "natural logarithm"
+            ]
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "0.5*Math.log((1-x)/x)",
+            "xMin": 0.03,
+            "xMax": 0.97,
+            "marks": [
+              {
+                "x": 0.5,
+                "label": "coin flip: α = 0"
+              },
+              {
+                "x": 0.2,
+                "label": "ε = 0.2: α ≈ 0.69"
+              }
+            ],
+            "xLabel": "weighted error ε",
+            "yLabel": "vote α",
+            "caption": "Accurate learners (left) get large positive votes. A learner at ε = 0.5 gets zero. A learner worse than chance (right) gets a negative vote: AdaBoost simply flips its answers."
+          }
+        },
+        {
+          "tex": "w_i \\leftarrow w_i \\, e^{-\\alpha_t \\, y_i \\, h_t(x_i)}",
+          "plain": "If the learner got row i right, y and h(x) have the same sign, the exponent is negative, and the weight shrinks. If it got row i wrong, the exponent is positive and the weight grows. Afterwards, divide every weight by the total so they add to 1 again.",
+          "symbols": [
+            [
+              "w_i",
+              "weight of row i"
+            ],
+            [
+              "y_i",
+              "true label of row i, +1 or −1"
+            ],
+            [
+              "h_t(x_i)",
+              "learner t's prediction for row i, +1 or −1"
+            ]
+          ]
+        },
+        {
+          "tex": "H(x) = \\operatorname{sign}\\!\\left( \\sum_{t=1}^{T} \\alpha_t \\, h_t(x) \\right)",
+          "plain": "To classify a new case, add up every learner's vote (+1 or −1) times its α. If the total is positive, predict +1; if negative, predict −1.",
+          "symbols": [
+            [
+              "H(x)",
+              "final AdaBoost prediction"
+            ],
+            [
+              "T",
+              "number of rounds (learners)"
+            ]
+          ]
+        },
+        {
+          "p": "A neat property falls out of these formulas: right after re-weighting, the rows the last learner got wrong hold **exactly half** of the total weight. So the next learner is forced to take those mistakes seriously, since ignoring them would make it no better than chance."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Two rounds of row re-weighting",
+            "setup": "Five transactions, all starting with weight 0.2. Stump 1 gets transaction 1 wrong and the other four right.",
+            "steps": [
+              "ε₁ = 0.2 (the weight of the one wrong row).",
+              "α₁ = ½ ln(0.8 / 0.2) = ½ ln 4 ≈ 0.693.",
+              "Wrong row: 0.2 × e^0.693 = 0.2 × 2 = 0.4. Right rows: 0.2 × e^−0.693 = 0.2 × 0.5 = 0.1 each.",
+              "Total = 0.4 + 4 × 0.1 = 0.8. Rescale: row 1 = 0.4 / 0.8 = 0.5; rows 2–5 = 0.1 / 0.8 = 0.125 each.",
+              "Stump 2 gets rows 2 and 3 wrong: ε₂ = 0.125 + 0.125 = 0.25, so α₂ = ½ ln(0.75 / 0.25) = ½ ln 3 ≈ 0.549.",
+              "Re-weight and rescale: row 1 ≈ 0.333, rows 2 and 3 = 0.25 each, rows 4 and 5 ≈ 0.083 each."
+            ],
+            "result": "After each round, the rows just misclassified hold half the weight (0.5 after round 1; 0.25 + 0.25 = 0.5 after round 2). The algorithm keeps pointing the next learner at the current weak spots."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Row",
+              "Start",
+              "After stump 1",
+              "After stump 2"
+            ],
+            "rows": [
+              [
+                "1",
+                "0.200",
+                "0.500",
+                "0.333"
+              ],
+              [
+                "2",
+                "0.200",
+                "0.125",
+                "0.250"
+              ],
+              [
+                "3",
+                "0.200",
+                "0.125",
+                "0.250"
+              ],
+              [
+                "4",
+                "0.200",
+                "0.125",
+                "0.083"
+              ],
+              [
+                "5",
+                "0.200",
+                "0.125",
+                "0.083"
+              ]
+            ],
+            "caption": "Row weights over two rounds. Row 1 jumps after stump 1 misses it; rows 2 and 3 jump after stump 2 misses them. Weights always add to 1."
+          }
+        },
+        {
+          "example": {
+            "title": "Three weak stumps, zero training mistakes",
+            "setup": "Continue: stump 3 gets rows 4 and 5 wrong, so ε₃ = 0.083 + 0.083 ≈ 0.167 (exactly 1/6). Now combine all three.",
+            "steps": [
+              "α₃ = ½ ln((5/6) / (1/6)) = ½ ln 5 ≈ 0.805.",
+              "Row 1 (only stump 1 wrong): score = −0.693 + 0.549 + 0.805 = +0.661 → correct.",
+              "Rows 2 and 3 (only stump 2 wrong): +0.693 − 0.549 + 0.805 = +0.949 → correct.",
+              "Rows 4 and 5 (only stump 3 wrong): +0.693 + 0.549 − 0.805 = +0.437 → correct."
+            ],
+            "result": "Each stump alone gets one or two rows wrong, yet the weighted vote gets all five right, because the stumps' mistakes fall on different rows and are always outvoted."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: scoring a new card transaction (illustrative)",
+            "setup": "A bank's fraud model is the three stumps above. Stump 1 asks \"amount > ₹20,000?\", stump 2 asks \"new device?\", stump 3 asks \"merchant category is high risk?\". For a new transaction, stumps 1 and 3 say fraud (+1), stump 2 says genuine (−1).",
+            "steps": [
+              "Score = 0.693 × (+1) + 0.549 × (−1) + 0.805 × (+1).",
+              "= 0.693 − 0.549 + 0.805 = 0.949.",
+              "Positive → flag as likely fraud and send a one-time password check.",
+              "If instead only stump 1 said fraud: 0.693 − 0.549 − 0.805 = −0.661 → let it through."
+            ],
+            "result": "A big score in either direction means the stumps largely agree. Scores near zero are the borderline cases where a bank might choose a softer check."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Settings and variants",
+      "blocks": [
+        {
+          "p": "In scikit-learn, `AdaBoostClassifier` uses depth-1 trees (stumps) by default, with `n_estimators=50` and `learning_rate=1.0`. A smaller learning rate shrinks every α, so each learner counts for less and you usually need more rounds, but the result is often more robust."
+        },
+        {
+          "term": "Learning rate (shrinkage)",
+          "def": "A multiplier between 0 and 1 applied to each new model's contribution. Smaller values make learning slower and steadier, which usually generalises better."
+        },
+        {
+          "bullets": [
+            "**Multi-class problems:** scikit-learn uses the SAMME algorithm, which extends the α formula to more than two classes. For two classes it gives the same predictions as the classic version.",
+            "**Regression:** `AdaBoostRegressor` (the AdaBoost.R2 method) re-weights rows by the size of their errors.",
+            "**Base learner depth:** stumps are classic, but depth-2 or depth-3 trees can capture feature interactions.",
+            "**Stopping:** watch performance on a validation set as rounds increase (`staged_predict` gives predictions after each round)."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "0.30*Math.exp(-x/15)+0.05",
+            "fn2": "0.32*Math.exp(-x/18)+0.08+0.0009*x",
+            "xMin": 0,
+            "xMax": 150,
+            "legend": [
+              "training error",
+              "validation error"
+            ],
+            "xLabel": "boosting rounds",
+            "yLabel": "error rate",
+            "caption": "A typical (illustrative) pattern: training error keeps falling while validation error bottoms out and then creeps up when the model starts chasing noisy rows. Pick the round where validation error is lowest."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "AdaBoost in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Fast face detection (Viola and Jones, 2001)",
+            "story": "Paul Viola and Michael Jones built a face detector that could scan images in real time on ordinary hardware of the early 2000s. They computed thousands of very simple rectangle features (for example, \"the eye region is darker than the cheek region\") and used AdaBoost both to select the most useful few and to weight them. They then arranged boosted classifiers into a cascade, so that most non-face regions were rejected by the first cheap stages. Descendants of this approach powered face-finding boxes in many digital cameras of that era."
+          }
+        },
+        {
+          "bullets": [
+            "**Teaching boosting:** AdaBoost is the clearest way to understand the idea behind gradient boosting and XGBoost.",
+            "**Small, clean tabular datasets:** it can be competitive with little tuning.",
+            "**Feature selection:** boosted stumps reveal which single features best separate the classes."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Sensitive to noisy labels and outliers.** A mislabelled row is \"wrong\" every round, so its weight keeps growing until later learners twist themselves around it. Clean labels matter more for AdaBoost than for random forests.",
+            "**Sequential, so slower to train.** Each round depends on the previous one; you cannot build the learners in parallel as with bagging.",
+            "**Largely superseded in practice.** Gradient boosting generalises AdaBoost's idea to any loss function and, with modern libraries, usually wins on accuracy.",
+            "**Weak learners must beat chance.** If no stump can get weighted error below 0.5, AdaBoost stalls."
+          ]
+        },
+        {
+          "callout": "AdaBoost can be shown to be gradient boosting with a particular loss, the exponential loss, which punishes confident mistakes very harshly. That harshness is exactly why noisy labels hurt it.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why are stumps used instead of full trees?",
+      "a": "Boosting needs weak, high-bias learners that it can improve step by step. A deep tree would fit the weighted data almost perfectly in one go, leaving nothing for later rounds and overfitting quickly."
+    },
+    {
+      "q": "Does AdaBoost overfit?",
+      "a": "Surprisingly slowly on clean data; test error often keeps improving long after training error reaches zero. On noisy data it can overfit, so use a validation set to choose the number of rounds and a learning rate below 1."
+    },
+    {
+      "q": "What happens if a learner has error above 0.5?",
+      "a": "Its α becomes negative, so its votes are flipped. A learner that is reliably wrong is useful information. In practice, implementations usually stop or discard a learner whose error reaches 0.5."
+    },
+    {
+      "q": "Do I need to scale features?",
+      "a": "Not with tree-based weak learners such as stumps, which only compare a feature with a threshold."
+    },
+    {
+      "q": "Why does scikit-learn's α look twice as big as the textbook formula?",
+      "a": "Its SAMME version drops the ½. Doubling every α does not change which side of zero the final score falls, and after rescaling the row weights come out the same, so predictions are identical for two classes."
+    },
+    {
+      "q": "Is AdaBoost still worth learning?",
+      "a": "Yes, as a concept. Re-weighting hard cases and combining weighted votes is the cleanest introduction to boosting, and it makes gradient boosting much easier to understand."
+    }
+  ]
+}

@@ -1,0 +1,424 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "A bank's credit team once wrote its loan rules by hand: \"approve if salary is above ₹50,000 and no missed payments\". The rules grew to hundreds of exceptions, contradicted each other, and still missed obvious risks. Meanwhile the bank had files on a hundred thousand past loans, each showing what the applicant looked like and whether the loan was repaid. **Machine learning** is the idea of letting a computer study those past examples and work out the rules itself.",
+  "sections": [
+    {
+      "heading": "The problem: some rules are too complicated to write down",
+      "blocks": [
+        {
+          "p": "Ordinary software follows rules a programmer typed in: if the cart total is above ₹500, delivery is free. That works when the rules are known and few. But try writing rules for \"is this email spam?\" or \"will this customer cancel next month?\" Every rule you write has exceptions, and the world keeps changing."
+        },
+        {
+          "term": "Machine learning (ML)",
+          "def": "A way of building software in which the computer learns a pattern from examples instead of being given explicit rules. You supply data with the answers; the algorithm produces the rules."
+        },
+        {
+          "p": "The shift is easiest to see side by side. In traditional programming, **rules plus data produce answers**. In machine learning, **data plus answers produce rules**. Those learned rules are then applied to new data to produce new answers."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Traditional programming",
+              "items": [
+                "A person writes the rules",
+                "Input: rules + data",
+                "Output: answers",
+                "Easy to explain, hard to scale to messy problems",
+                "Example: GST calculation, free-delivery threshold"
+              ]
+            },
+            "right": {
+              "title": "Machine learning",
+              "items": [
+                "The computer learns the rules from examples",
+                "Input: data + past answers",
+                "Output: a model (the learned rules)",
+                "Handles messy patterns, needs good data",
+                "Example: spam filter, demand forecast, credit scoring"
+              ]
+            },
+            "caption": "Machine learning flips the direction: instead of writing rules to get answers, you give answers to get rules."
+          }
+        },
+        {
+          "p": "Machine learning is worth the effort when three things are true: the decision is repeated many times, there is a lot of historical data with known outcomes, and the pattern is too complicated or too changeable for hand-written rules. If any one of these is missing, simpler approaches usually win."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: how a new credit officer learns",
+      "blocks": [
+        {
+          "p": "Think about how a new credit officer becomes good at the job. Nobody hands them a perfect rulebook. Instead, a senior colleague sits with them and goes through old files: \"This one paid back. This one defaulted. See how her EMIs already ate half her salary?\""
+        },
+        {
+          "steps": [
+            "**Study examples with known outcomes.** Hundreds of past files, each with an applicant description and a final result.",
+            "**Notice patterns.** High existing debt relative to income seems to go with defaults; long job tenure seems to go with repayment.",
+            "**Form a mental rule.** Not a single \"if\", but a weighing of many signals together.",
+            "**Get tested on new files.** The senior colleague hands over files the trainee has never seen and checks the decisions.",
+            "**Keep learning.** As the economy changes, old patterns fade and the officer updates their judgement."
+          ],
+          "title": "From trainee to expert"
+        },
+        {
+          "p": "A machine learning project follows the same five steps. The applicant details are **features**, the outcome is the **label**, the trainee's judgement is the **model**, studying files is **training**, and deciding on new files is **inference** (or prediction)."
+        },
+        {
+          "term": "Feature",
+          "def": "One input piece of information about each example, such as income, age or city. Features are usually arranged as columns in a table, collectively called X."
+        },
+        {
+          "term": "Label (target)",
+          "def": "The answer you want to predict for each example, such as \"defaulted: yes or no\" or \"sale price\". Collectively called y."
+        },
+        {
+          "term": "Model",
+          "def": "The learned rule that turns features into a prediction. It can be as simple as a straight line or as complex as a neural network with millions of numbers."
+        },
+        {
+          "think": {
+            "q": "Why does the senior colleague test the trainee on files they have never seen, instead of the files they studied?",
+            "a": "Because getting studied files right could just mean remembering them. Only unseen files show whether the trainee learned the pattern. ML does exactly the same with a held-back **test set**."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How a machine learning project works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Frame** the question and how success is measured",
+              "**Collect and prepare** data: features and labels",
+              "**Split** into training and test sets",
+              "**Train** models on the training set",
+              "**Evaluate** on the test set, then deploy and monitor"
+            ],
+            "caption": "The life of an ML project. Framing and data preparation usually take far more time than training."
+          }
+        },
+        {
+          "p": "**Step 1: Frame the problem.** What exactly will be predicted, for whom, when, and what decision will it change? \"Predict which customers will cancel their subscription in the next 30 days, so retention can call the top 500 each week\" is a usable frame. \"Use AI on our customer data\" is not."
+        },
+        {
+          "p": "**Step 2: Prepare data.** Gather past examples, build features, clean errors and attach the correct label. This is the topic of the next few chapters, and it is where most project time goes."
+        },
+        {
+          "p": "**Step 3: Split.** Set aside part of the data, often 20%, as a test set that the model never sees during training."
+        },
+        {
+          "p": "**Step 4: Train.** Fit one or more models on the training set. In scikit-learn every model follows the same pattern: `model.fit(X_train, y_train)`."
+        },
+        {
+          "term": "Training",
+          "def": "The process of adjusting a model's internal numbers so that its predictions on the training examples come as close as possible to the true labels."
+        },
+        {
+          "p": "**Step 5: Evaluate, deploy, monitor.** Score the model on the test set with `model.predict(X_test)` and compare with a simple baseline. If it is good enough, put it into use, and keep checking it, because customer behaviour, prices and products change."
+        },
+        {
+          "term": "Generalisation",
+          "def": "A model's ability to make good predictions on new data it has never seen. It is the whole point of ML; doing well on training data alone proves nothing."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly: learning means reducing error",
+      "blocks": [
+        {
+          "p": "Underneath the jargon, almost every supervised model is a **function** with some adjustable numbers, called parameters. Learning means choosing those numbers so the predictions are as close as possible to the real answers."
+        },
+        {
+          "tex": "\\hat{y} = f(x; \\theta)",
+          "plain": "The prediction ŷ (\"y-hat\") is what the model f produces from the features x, using its current parameter settings θ (\"theta\"). Different θ values give different predictions.",
+          "symbols": [
+            [
+              "\\hat{y}",
+              "the model's prediction"
+            ],
+            [
+              "x",
+              "the features of one example"
+            ],
+            [
+              "\\theta",
+              "the model's adjustable numbers (parameters)"
+            ],
+            [
+              "f",
+              "the type of model, e.g. a straight line"
+            ]
+          ]
+        },
+        {
+          "p": "The simplest example is a straight line for flat prices: predicted price = w × area + b. Here θ is just the two numbers w (slope) and b (intercept). Training is choosing w and b."
+        },
+        {
+          "p": "To choose, we need a score for how wrong a candidate model is. A common choice for numeric targets is the **mean squared error**."
+        },
+        {
+          "term": "Loss function",
+          "def": "A formula that turns the gap between predictions and true answers into a single number measuring \"how wrong\". Training searches for the parameters that make it smallest."
+        },
+        {
+          "tex": "\\text{MSE} = \\frac{1}{n} \\sum_{i=1}^{n} \\left( y_i - \\hat{y}_i \\right)^2",
+          "plain": "For each example, take the error (true value minus prediction), square it, then average over all n examples. Squaring makes every error positive and punishes big misses much more than small ones.",
+          "symbols": [
+            [
+              "n",
+              "number of training examples"
+            ],
+            [
+              "y_i",
+              "true answer for example i"
+            ],
+            [
+              "\\hat{y}_i",
+              "model prediction for example i"
+            ]
+          ]
+        },
+        {
+          "p": "That is the heart of machine learning: **pick a model shape, pick a loss, search for the parameters with the lowest loss on the training data, then check the result on unseen data.** Different algorithms differ in the model shape (lines, trees, networks) and in how cleverly they search, but the logic is the same."
+        },
+        {
+          "callout": "For classification (yes/no targets), the loss is different, usually log loss, which punishes confident wrong answers, but the idea of \"search for the parameters that make the loss smallest\" is unchanged.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Framing four business questions",
+            "setup": "A consulting team is asked four questions by a client. Which type of machine learning fits each?",
+            "steps": [
+              "\"What price will this flat sell for?\" The answer is a number and past sale prices exist → **supervised regression**.",
+              "\"Will this customer cancel next month?\" The answer is yes/no and past cancellations are recorded → **supervised classification**.",
+              "\"What natural groups of customers do we have?\" There is no answer column at all → **unsupervised clustering**.",
+              "\"How should the warehouse robot move to pick parts fastest?\" It learns by trying moves and receiving rewards → **reinforcement learning**."
+            ],
+            "result": "The type of question decides the family of models, the loss, the metrics and how you validate. Framing comes before any algorithm."
+          }
+        },
+        {
+          "example": {
+            "title": "Choosing between two lines by their error",
+            "setup": "Four flats: area (hundreds of sq ft) 8, 10, 12, 15; price (₹ lakh) 52, 61, 70, 83. Compare line A: price = 4 × area + 20, and line B: price = 5 × area + 10.",
+            "steps": [
+              "Line A predicts 52, 60, 68, 80. Errors: 0, 1, 2, 3. Squared: 0, 1, 4, 9. MSE = 14 / 4 = 3.5.",
+              "Line B predicts 50, 60, 70, 85. Errors: 2, 1, 0, −2. Squared: 4, 1, 0, 4. MSE = 9 / 4 = 2.25.",
+              "Line B has lower loss, so a learning algorithm would prefer it over line A.",
+              "Searching every possible slope and intercept (which linear regression does with a formula) finds price ≈ 4.43 × area + 16.66, with MSE of only about 0.014.",
+              "Prediction for a new 1,100 sq ft flat: 4.43 × 11 + 16.66 ≈ ₹65.4 lakh."
+            ],
+            "result": "Training is nothing mysterious: it is a systematic search for the parameters with the smallest error, followed by using them on new cases."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "area (hundreds of sq ft)",
+            "yLabel": "price (₹ lakh)",
+            "line": {
+              "m": 4.43,
+              "b": 16.66
+            },
+            "caption": "The four flats and the best-fit line found by minimising mean squared error. The points lie almost exactly on it, which is why its error is so small.",
+            "points": [
+              [
+                8,
+                52
+              ],
+              [
+                10,
+                61
+              ],
+              [
+                12,
+                70
+              ],
+              [
+                15,
+                83
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "Is 85% accuracy good? A churn model (illustrative)",
+            "setup": "A telecom operator tests a churn model on 200 customers it never saw in training. 40 of them actually cancelled (20%). The model gets 170 of the 200 right.",
+            "steps": [
+              "Accuracy = 170 / 200 = 85%.",
+              "Baseline: a \"model\" that predicts \"nobody cancels\" is right for the 160 who stayed: 160 / 200 = 80%.",
+              "So the real gain over doing nothing is 5 percentage points, not 85.",
+              "Look closer: the model flagged 40 customers, of whom 25 truly cancelled, and it missed 15 of the 40 cancellers.",
+              "For the retention team, that means calling 40 people to reach 25 real risks, far better than calling at random, where only about 8 of 40 calls would reach a canceller."
+            ],
+            "result": "Always compare with a simple baseline and translate the score into the business action. Accuracy alone hid both the weakness and the value."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The main types of machine learning",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "Machine learning",
+              "children": [
+                {
+                  "label": "Supervised (labels)",
+                  "edge": "answers known",
+                  "children": [
+                    {
+                      "label": "Regression: number"
+                    },
+                    {
+                      "label": "Classification: category"
+                    }
+                  ]
+                },
+                {
+                  "label": "Unsupervised (no labels)",
+                  "edge": "find structure",
+                  "children": [
+                    {
+                      "label": "Clustering"
+                    },
+                    {
+                      "label": "Dimensionality reduction"
+                    }
+                  ]
+                },
+                {
+                  "label": "Reinforcement",
+                  "edge": "trial and reward",
+                  "children": [
+                    {
+                      "label": "Games, robots, bidding"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "The family tree. First ask whether you have labelled answers; then ask whether the answer is a number or a category."
+          }
+        },
+        {
+          "term": "Supervised learning",
+          "def": "Learning from examples that include the correct answer (the label). Regression predicts a number, such as next month's demand; classification predicts a category, such as fraud or not fraud."
+        },
+        {
+          "term": "Unsupervised learning",
+          "def": "Finding structure in data that has no answer column, such as grouping customers into segments or compressing 50 columns into a few summary scores."
+        },
+        {
+          "term": "Reinforcement learning",
+          "def": "Learning by acting, receiving rewards or penalties, and gradually preferring actions that earn more reward. Used for game-playing, robotics and some pricing and bidding systems."
+        },
+        {
+          "p": "Most business ML is supervised: forecasting, scoring, classifying. Unsupervised methods are often used earlier, to explore and segment. Reinforcement learning is powerful but needs a safe way to try many actions, so it appears less often in everyday business settings."
+        }
+      ]
+    },
+    {
+      "heading": "Machine learning in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "The Netflix Prize",
+            "story": "Netflix famously offered a $1 million prize to anyone who could improve its film-recommendation predictions by 10%. Thousands of teams worked on the same dataset of customer ratings, and the prize was awarded in 2009 to a team that blended many different models. The competition popularised ideas still used today, such as matrix factorisation and model ensembles. It also taught a business lesson: Netflix later explained that it did not put the full winning blend into production, because the extra accuracy did not justify the engineering effort. A model is only valuable if the improvement matters for the decision."
+          }
+        },
+        {
+          "bullets": [
+            "**Retail and FMCG:** forecasting demand per store and product so the right stock reaches shelves.",
+            "**Banking:** credit scoring, fraud detection on card transactions, anti-money-laundering alerts.",
+            "**Manufacturing and automotive:** predicting machine failures from sensor data, spotting defects in camera images on the line.",
+            "**Marketing:** churn prediction, customer segmentation, recommending the next product.",
+            "**Language:** chatbots, document search and summarisation use large language models, which are also learned from examples."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Overfitting.** A model that memorises training data, noise included, scores brilliantly in training and poorly on new data. The test set exists to catch this.",
+            "**Garbage in, garbage out.** Wrong labels, biased history or missing groups teach the model the wrong lessons. A model trained on past approvals learns past biases too.",
+            "**Leakage.** Using information that would not be available at prediction time makes a model look excellent in testing and fail in use.",
+            "**No baseline.** Without comparing to a simple rule, you cannot tell whether ML adds anything.",
+            "**Forgetting the world changes.** Patterns drift; a model needs monitoring and retraining."
+          ]
+        },
+        {
+          "term": "Overfitting",
+          "def": "When a model learns the quirks and noise of its training data so closely that it performs worse on new data. Like a student who memorised past papers and fails when the questions change."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Machine learning fits when…",
+              "items": [
+                "The decision repeats thousands of times",
+                "Lots of history with reliable outcomes",
+                "Patterns are complex or change over time",
+                "Some errors are acceptable"
+              ]
+            },
+            "right": {
+              "title": "Prefer rules, SQL or analysis when…",
+              "items": [
+                "A simple rule already works well",
+                "Little data, or labels you cannot trust",
+                "Every decision must be fully explained by law",
+                "The question is one-off: a chart answers it"
+              ]
+            },
+            "caption": "Machine learning is a tool, not a goal. Many valuable projects end with \"a good rule is enough\"."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is machine learning the same as AI?",
+      "a": "Artificial intelligence is the broad goal of machines doing tasks that seem intelligent. Machine learning is the main way modern AI is built: learning from data rather than hand-coded rules. Deep learning is a subset of ML that uses large neural networks."
+    },
+    {
+      "q": "Do I need advanced maths to use machine learning?",
+      "a": "To use standard tools well, school algebra, averages and some probability are enough to start. Deeper maths helps when you need to understand why a model behaves oddly, and later chapters build it up slowly."
+    },
+    {
+      "q": "How much data do I need?",
+      "a": "It depends on how complex the pattern is. Simple models can work with a few hundred labelled examples; image or language models need far more. More important than size is whether the data is representative and the labels are correct."
+    },
+    {
+      "q": "What is the difference between a model and an algorithm?",
+      "a": "The algorithm is the recipe for learning (for example, \"find the line with the smallest squared error\"). The model is the result of running it on your data (the specific line, price = 4.43 × area + 16.66)."
+    },
+    {
+      "q": "Why do we need a separate test set?",
+      "a": "Because a model can memorise training data. Only performance on data it never saw tells you how it will behave on next month's customers."
+    },
+    {
+      "q": "Which algorithm should I start with?",
+      "a": "A simple one: linear or logistic regression, or a decision tree. They are fast, explainable, and give you a baseline. Move to random forests or gradient boosting only if they clearly improve on it."
+    }
+  ]
+}

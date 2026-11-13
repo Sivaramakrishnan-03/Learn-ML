@@ -1,0 +1,77 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Explain the AR, I and MA parts",
+    "Choose orders using ACF/PACF or auto-ARIMA",
+    "Check the residuals"
+  ],
+  "why": "ARIMA is the classical statistical forecasting model in economics, finance and energy, and gives principled prediction intervals.",
+  "explain": [
+    "**AR (autoregressive, p)**: predict from past values (\"tomorrow resembles yesterday and the day before\").",
+    "**I (integrated, d)**: difference the series d times to make it stationary.",
+    "**MA (moving average, q)**: correct using past forecast errors (\"adjust for recent surprises\").",
+    "**SARIMA** adds seasonal terms; **SARIMAX** adds external regressors such as price or holidays. Choose orders with ACF/PACF plots or automatically by AIC (auto-ARIMA), then check that the residuals look like white noise."
+  ],
+  "formula": {
+    "tex": "y'_t = c + \\phi_1 y'_{t-1} + \\dots + \\phi_p y'_{t-p} + \\theta_1 \\varepsilon_{t-1} + \\dots + \\varepsilon_t",
+    "plain": "The (differenced) value = constant + weighted past values + weighted past errors + new noise."
+  },
+  "example": {
+    "title": "AR(1) forecast of daily electricity load deviation",
+    "steps": [
+      "Model: y_t = 0.7 × y_{t−1} + noise (y = deviation from normal, in MW)",
+      "Today the deviation is +100 MW",
+      "Tomorrow's forecast: 0.7 × 100 = +70 MW; the day after: 0.7 × 70 = +49 MW",
+      "The forecast decays back to normal (0)"
+    ],
+    "result": "AR models capture persistence: shocks fade gradually, at a rate set by φ."
+  },
+  "mistakes": [
+    "Fitting without making the series stationary.",
+    "Over-large p and q (overfitting).",
+    "Never checking residual autocorrelation (Ljung–Box test)."
+  ],
+  "takeaways": [
+    "AR = past values, I = differencing, MA = past errors",
+    "Select orders by AIC or ACF/PACF",
+    "Residuals should be white noise"
+  ],
+  "use": [
+    "Single series with autocorrelation and enough history",
+    "When prediction intervals matter"
+  ],
+  "avoid": [
+    "Thousands of series needing automation (ETS or global ML models)",
+    "Strong external drivers without SARIMAX"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom statsmodels.tsa.arima.model import ARIMA\nrng = np.random.default_rng(0); y = np.zeros(300)\nfor t in range(1, 300): y[t] = 0.7 * y[t - 1] + rng.normal()\nm = ARIMA(y, order=(1, 0, 0)).fit()\nprint(m.params.round(2)); print(m.forecast(3).round(2))",
+    "note": "Uses statsmodels: run locally if needed."
+  },
+  "check": [
+    {
+      "q": "In ARIMA(p, d, q), d is…",
+      "options": [
+        "The number of lagged errors",
+        "The number of differences",
+        "The seasonal period",
+        "The number of AR terms"
+      ],
+      "answer": 1,
+      "why": "The \"I\" (integrated) part."
+    },
+    {
+      "q": "AR(1) with φ = 0.5; today = 10. Forecast two steps ahead?",
+      "options": [
+        "5",
+        "2.5",
+        "10",
+        "0"
+      ],
+      "answer": 1,
+      "why": "0.5 × 0.5 × 10 = 2.5."
+    }
+  ],
+  "chapterMinutes": 17
+}

@@ -1,0 +1,400 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A nightclub bouncer decides in seconds: dress code met? On the guest list? Arrived with a group of ten? Each reason pushes him towards yes or no, some more strongly than others, and if the total crosses his line, you are in. In 1958 the psychologist Frank Rosenblatt built a machine that made decisions exactly like this, and that could **learn** how much each reason should count. He called it the **perceptron**. Every neural network today, including the ones behind chatbots, is built from descendants of this one idea.",
+  "sections": [
+    {
+      "heading": "The problem: can a machine learn a rule from examples?",
+      "blocks": [
+        {
+          "p": "In the 1950s computers followed hand-written instructions. If you wanted a machine to tell a \"good\" loan application from a \"bad\" one, someone had to write the rule: \"approve if income is above X and existing debt below Y\". Rosenblatt asked a bolder question: could a machine **discover the rule itself** just by seeing labelled examples and correcting its own mistakes?"
+        },
+        {
+          "p": "His inspiration was the brain. A biological neuron receives signals from other neurons; some excite it and some inhibit it. If the combined signal is strong enough, the neuron \"fires\". Earlier, in 1943, Warren McCulloch and Walter Pitts had described a simple mathematical neuron. Rosenblatt added the missing piece: a **learning rule** that adjusts the strength of each input."
+        },
+        {
+          "term": "Artificial neuron",
+          "def": "A tiny calculation: multiply each input by a weight, add them up with a bias, and pass the total through an activation function to produce an output."
+        },
+        {
+          "term": "Weight",
+          "def": "A number saying how much one input matters and in which direction. A large positive weight pushes the decision towards yes; a negative weight pushes it towards no."
+        },
+        {
+          "term": "Bias",
+          "def": "An extra number added to the weighted sum that shifts the decision line. It sets how easy or hard it is to say yes when all inputs are zero, like the bouncer's strictness on a given night."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Inputs** x₁, x₂, … (e.g. income, debt)",
+              "**Multiply by weights** w₁, w₂, …",
+              "**Add up + bias**: z = w·x + b",
+              "**Step activation**: 1 if z > 0, else 0",
+              "**Decision**: approve / decline"
+            ],
+            "caption": "One perceptron. Information flows left to right: weighted inputs are summed and a threshold turns the sum into a yes/no answer."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the bouncer who learns",
+      "blocks": [
+        {
+          "p": "Imagine a new bouncer with no idea which reasons matter. He starts with every reason counting zero, and the club manager tells him after each decision whether he got it right."
+        },
+        {
+          "steps": [
+            "**He makes a call** using his current sense of how much each reason counts.",
+            "**If he was right, he changes nothing.** No need to fix what works.",
+            "**If he wrongly turned someone away,** he slightly increases the importance of the reasons that guest had going for them.",
+            "**If he wrongly let someone in,** he slightly decreases the importance of the reasons that guest had.",
+            "**Over many nights,** the importance he gives each reason settles at values that sort guests correctly, if such values exist."
+          ],
+          "title": "Learning from mistakes only"
+        },
+        {
+          "p": "This \"only change when wrong, and nudge towards the right answer\" rule is the perceptron learning rule. It is simple enough to do with a pencil, which you will do shortly."
+        },
+        {
+          "think": {
+            "q": "If a guest wrongly turned away had \"on guest list = 0\" and \"dress code met = 1\", which importance should the bouncer increase?",
+            "a": "Only the dress-code importance (and the overall leniency, the bias). The guest-list input was 0, so it played no part in this decision and should not be credited or blamed. In the update rule, a weight changes in proportion to its input, so an input of 0 means no change."
+          }
+        },
+        {
+          "callout": "A perceptron draws a single straight line (or flat surface, in more dimensions) between yes and no. Everything it can and cannot do follows from that.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How the perceptron learns, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**Start** with all weights and the bias at zero (or small random numbers). Choose a learning rate η, for example 1.",
+            "**Take one training example** with inputs x and correct label t (1 or 0).",
+            "**Compute the output:** z = w·x + b; output o = 1 if z > 0, otherwise 0.",
+            "**Compute the error:** e = t − o. It is +1 (should have said yes), −1 (should have said no) or 0 (correct).",
+            "**Update:** each weight wⱼ ← wⱼ + η × e × xⱼ, and the bias b ← b + η × e.",
+            "**Loop through all examples** repeatedly. One full pass is an epoch. Stop when an entire epoch has no mistakes."
+          ],
+          "title": "The perceptron learning algorithm"
+        },
+        {
+          "term": "Epoch",
+          "def": "One complete pass through all the training examples. Training usually takes many epochs."
+        },
+        {
+          "term": "Linearly separable",
+          "def": "Data where a single straight line (or flat plane) can separate the two classes perfectly."
+        },
+        {
+          "p": "A reassuring result, the **perceptron convergence theorem** (proved in the early 1960s), says: if the data is linearly separable, this procedure is guaranteed to find a separating line in a finite number of updates. If the data is not separable, it never settles and keeps flipping forever."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "z = w_1 x_1 + w_2 x_2 + \\dots + w_n x_n + b = \\mathbf{w} \\cdot \\mathbf{x} + b",
+          "plain": "The neuron's score is each input times its weight, all added up, plus the bias. The dot notation w·x is just shorthand for that sum of products.",
+          "symbols": [
+            [
+              "x_j",
+              "input j (a feature)"
+            ],
+            [
+              "w_j",
+              "weight on input j"
+            ],
+            [
+              "b",
+              "bias"
+            ],
+            [
+              "z",
+              "the weighted sum, before activation"
+            ]
+          ]
+        },
+        {
+          "tex": "o = \\begin{cases} 1 & \\text{if } z > 0 \\\\ 0 & \\text{otherwise} \\end{cases}",
+          "plain": "The step activation: if the score is above zero, say yes; otherwise say no. There is no \"maybe\"; the output jumps from 0 to 1.",
+          "symbols": [
+            [
+              "o",
+              "output (prediction)"
+            ]
+          ]
+        },
+        {
+          "term": "Activation function",
+          "def": "The function applied to the weighted sum to produce the neuron's output. The perceptron uses a hard step; modern networks use smooth functions such as sigmoid or ReLU."
+        },
+        {
+          "tex": "w_j \\leftarrow w_j + \\eta\\,(t - o)\\,x_j, \\qquad b \\leftarrow b + \\eta\\,(t - o)",
+          "plain": "If the prediction was right, t − o = 0 and nothing changes. If the neuron said 0 but should have said 1, add a bit of each input to its weight, making the score bigger next time for similar inputs. If it said 1 but should have said 0, subtract.",
+          "symbols": [
+            [
+              "t",
+              "true label (1 or 0)"
+            ],
+            [
+              "\\eta",
+              "learning rate"
+            ],
+            [
+              "t - o",
+              "the error: +1, 0 or −1"
+            ]
+          ]
+        },
+        {
+          "p": "Geometrically, the equation w·x + b = 0 is a straight line in the space of inputs. Points on one side get score above zero (yes), points on the other side below zero (no). Each update tilts and shifts that line towards classifying the misclassified point correctly."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Teaching a perceptron the AND rule",
+            "setup": "Inputs (x₁, x₂) are 0 or 1; target is 1 only for (1, 1). Start with w = [0, 0], b = 0, η = 1. Present (0,0), (0,1), (1,0), (1,1) in that order each epoch.",
+            "steps": [
+              "Epoch 1: (0,0), (0,1), (1,0) all give z = 0 → output 0, correct. (1,1): z = 0 → output 0, target 1, error +1 → w = [1, 1], b = 1.",
+              "Epoch 2: (0,0): z = 1 → output 1, target 0, error −1 → w stays [1, 1] (inputs are 0), b = 0.",
+              "(0,1): z = 1 → output 1, error −1 → w = [1, 0], b = −1. (1,0): z = 0 → output 0, correct.",
+              "(1,1): z = 1 + 0 − 1 = 0 → output 0, error +1 → w = [2, 1], b = 0.",
+              "Epochs 3 to 5 make four more corrections. Epoch 6 makes no mistakes, ending with w = [2, 1], b = −2.",
+              "Check: (0,0) → −2, (0,1) → −1, (1,0) → 0, (1,1) → +1. Only (1,1) is above zero."
+            ],
+            "result": "After 10 updates over 5 epochs, the perceptron has found a line that implements AND. The point (1,0) sits exactly on the line (z = 0) and is classified 0 by the \"z > 0\" rule."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Step",
+              "Input",
+              "Target",
+              "z",
+              "Output",
+              "New w, b"
+            ],
+            "rows": [
+              [
+                "1",
+                "(1,1)",
+                "1",
+                "0",
+                "0",
+                "[1,1], 1"
+              ],
+              [
+                "2",
+                "(0,0)",
+                "0",
+                "1",
+                "1",
+                "[1,1], 0"
+              ],
+              [
+                "3",
+                "(0,1)",
+                "0",
+                "1",
+                "1",
+                "[1,0], −1"
+              ],
+              [
+                "4",
+                "(1,1)",
+                "1",
+                "0",
+                "0",
+                "[2,1], 0"
+              ],
+              [
+                "…",
+                "…",
+                "…",
+                "…",
+                "…",
+                "…"
+              ],
+              [
+                "10",
+                "(0,1)",
+                "0",
+                "1",
+                "1",
+                "[2,1], −2"
+              ]
+            ],
+            "caption": "Only the mistakes are listed, because correct answers change nothing. Each row nudges the weights towards fixing that one error."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: a loan-screening neuron (illustrative)",
+            "setup": "A lender scores applicants with two scaled inputs: x₁ = monthly income in ₹ lakh, x₂ = existing EMIs as a share of income. Current weights: w₁ = 0.8, w₂ = −2.0, bias b = −0.5. Learning rate η = 0.1.",
+            "steps": [
+              "Applicant A: income 1.5, EMI share 0.3 → z = 0.8 × 1.5 − 2.0 × 0.3 − 0.5 = 1.2 − 0.6 − 0.5 = 0.1 > 0 → approve.",
+              "Applicant B: income 1.0, EMI share 0.4 → z = 0.8 − 0.8 − 0.5 = −0.5 → decline.",
+              "Suppose evidence later shows applicants like B repay (target 1). Error = 1 − 0 = +1.",
+              "Update: w₁ = 0.8 + 0.1 × 1 × 1.0 = 0.9; w₂ = −2.0 + 0.1 × 1 × 0.4 = −1.96; b = −0.5 + 0.1 = −0.4.",
+              "New score for B: 0.9 − 1.96 × 0.4 − 0.4 = 0.9 − 0.784 − 0.4 = −0.284. Still declined, but closer to the line."
+            ],
+            "result": "The negative weight on EMI share encodes \"more existing debt, less likely to approve\". One correction moves the boundary a little; repeated corrections would approve B if the data supports it."
+          }
+        },
+        {
+          "example": {
+            "title": "The XOR wall",
+            "setup": "XOR outputs 1 when exactly one input is 1: (0,0) → 0, (0,1) → 1, (1,0) → 1, (1,1) → 0. Can any line separate the 1s from the 0s?",
+            "steps": [
+              "For (0,0) → 0 we need b ≤ 0.",
+              "For (0,1) → 1 we need w₂ + b > 0, and for (1,0) → 1 we need w₁ + b > 0.",
+              "Adding these two: w₁ + w₂ + 2b > 0, so w₁ + w₂ + b > −b ≥ 0.",
+              "But (1,1) → 0 needs w₁ + w₂ + b ≤ 0. Contradiction."
+            ],
+            "result": "No weights work. A single perceptron cannot represent XOR, and its learning rule cycles forever on this data."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "x₁",
+            "yLabel": "x₂",
+            "caption": "XOR: the two 1s (red) sit on one diagonal, the two 0s (blue) on the other. No single straight line puts both 1s on one side and both 0s on the other.",
+            "points": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                0,
+                1,
+                1
+              ],
+              [
+                1,
+                0,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Limits, history and what came next",
+      "blocks": [
+        {
+          "p": "In 1969 Marvin Minsky and Seymour Papert published the book \"Perceptrons\", which analysed carefully what single-layer perceptrons cannot compute, XOR being the famous example. The book is often cited as one reason enthusiasm and funding for neural-network research cooled for years."
+        },
+        {
+          "p": "The way out was known in principle: stack perceptrons in layers, so that hidden neurons create new features that make the problem separable. What was missing was a practical way to train the hidden layers. That arrived with **backpropagation**, popularised in 1986, and with smooth activation functions that make gradients possible. The next chapter, on multilayer perceptrons, picks up exactly there."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Perceptron",
+              "items": [
+                "Step activation: output 0 or 1",
+                "Updates only on mistakes",
+                "No probabilities",
+                "Never settles if data is not separable"
+              ]
+            },
+            "right": {
+              "title": "Logistic regression",
+              "items": [
+                "Sigmoid activation: output between 0 and 1",
+                "Updates on every example, by how wrong it is",
+                "Gives probabilities",
+                "Always settles at a best compromise"
+              ]
+            },
+            "caption": "Both draw a straight decision line. Logistic regression is the smooth, probabilistic cousin and is far more used in practice."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The perceptron in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "The Mark I Perceptron",
+            "story": "Rosenblatt's ideas were built into hardware at the Cornell Aeronautical Laboratory: the Mark I Perceptron, a room-sized machine that took input from a grid of light sensors and adjusted its weights using motor-driven potentiometers. It could learn to distinguish simple shapes and marks after training. Newspaper coverage at the time was wildly optimistic about thinking machines. The real legacy was more modest and more lasting: the weighted sum plus activation, and learning by correcting errors, remain the building blocks of modern deep learning."
+          }
+        },
+        {
+          "bullets": [
+            "**As a building block:** every neuron in a modern network is a perceptron with a smoother activation.",
+            "**Fast linear classifiers on huge, sparse data:** perceptron-style updates are still used for text classification and online learning, where data arrives as a stream.",
+            "**scikit-learn:** `sklearn.linear_model.Perceptron` implements it; it is equivalent to `SGDClassifier` with the perceptron loss."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls and practical advice",
+      "blocks": [
+        {
+          "bullets": [
+            "**Only straight-line boundaries.** If the classes are not linearly separable, use a multilayer network, a kernel method, or trees.",
+            "**No probabilities or confidence.** For business decisions that need a probability (expected loss, pricing), use logistic regression instead.",
+            "**Scale your inputs.** Large-valued features dominate the weighted sum and the updates. Standardise features first.",
+            "**Order matters on noisy data.** The final weights depend on the order of examples. Shuffle each epoch, and consider the averaged perceptron, which averages weights across updates for stability."
+          ]
+        },
+        {
+          "callout": "Treat the perceptron as a concept you must understand rather than a model you will often deploy. It makes every later neural-network idea easier.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is a perceptron the same as a neuron in a neural network?",
+      "a": "Almost. A modern neuron computes the same weighted sum plus bias, but uses a smooth activation such as ReLU or sigmoid instead of a hard step, so it can be trained with gradients."
+    },
+    {
+      "q": "What is the difference between a perceptron and logistic regression?",
+      "a": "Both use a weighted sum and a straight decision boundary. The perceptron outputs a hard 0 or 1 and learns only from mistakes; logistic regression outputs a probability and learns from every example by how wrong it was."
+    },
+    {
+      "q": "Why is there a bias term?",
+      "a": "Without a bias, the decision line must pass through the origin (all inputs zero). The bias lets the line shift so it can sit wherever the data needs it."
+    },
+    {
+      "q": "What learning rate should I use?",
+      "a": "For the classic perceptron with zero starting weights, the learning rate only rescales the weights and does not change the sequence of decisions, so η = 1 is common. With random starting weights, it does matter."
+    },
+    {
+      "q": "Does the perceptron always find the best line?",
+      "a": "No. If the data is separable it finds some separating line, not necessarily the one with the widest gap. Support vector machines look for the widest-margin line."
+    },
+    {
+      "q": "Why learn this if nobody uses it directly?",
+      "a": "Because weighted sums, activations, learning rates, epochs and updating by error all start here. Understanding one neuron makes multilayer networks and deep learning far less mysterious."
+    }
+  ]
+}

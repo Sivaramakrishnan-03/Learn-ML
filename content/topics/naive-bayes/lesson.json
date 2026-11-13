@@ -1,0 +1,72 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain the naive independence assumption",
+    "Apply Naive Bayes to text classification",
+    "Know when it works well despite the assumption"
+  ],
+  "why": "Naive Bayes powered early spam filters and remains a strong, very fast baseline for text classification: support tickets, reviews, intent detection.",
+  "explain": [
+    "Use **Bayes' theorem** to compute P(class | features). The \"naive\" part assumes features are **independent given the class**, so the likelihood becomes a simple product of per-feature probabilities.",
+    "In text, each word is a feature. P(spam | \"free\", \"winner\") ∝ P(spam) × P(\"free\" | spam) × P(\"winner\" | spam).",
+    "The independence assumption is obviously false (words co-occur), yet the **ranking** of classes is often right, so classification works well.",
+    "Variants: **Multinomial** (word counts), **Bernoulli** (word present/absent), **Gaussian** (continuous features). Use **Laplace smoothing** so that an unseen word does not zero out the whole product."
+  ],
+  "example": {
+    "title": "Is this email spam?",
+    "steps": [
+      "Prior: P(spam) = 0.4, P(ham) = 0.6",
+      "P(\"free\" | spam) = 0.30, P(\"free\" | ham) = 0.02",
+      "Spam score: 0.4 × 0.30 = 0.120; ham score: 0.6 × 0.02 = 0.012",
+      "Normalise: P(spam | \"free\") = 0.120 / 0.132 ≈ 0.91"
+    ],
+    "result": "One word shifts the belief from 40% to 91% spam. More words multiply in more evidence."
+  },
+  "mistakes": [
+    "Forgetting smoothing (zero probabilities).",
+    "Trusting its probabilities as calibrated: they tend to be extreme."
+  ],
+  "takeaways": [
+    "Bayes' theorem + independence assumption",
+    "Excellent fast baseline for text",
+    "Good rankings, poorly calibrated probabilities"
+  ],
+  "use": [
+    "Text classification baselines",
+    "Very small training sets",
+    "When speed matters"
+  ],
+  "avoid": [
+    "When calibrated probabilities matter",
+    "Strongly interacting features"
+  ],
+  "practice": {
+    "code": "from sklearn.feature_extraction.text import CountVectorizer\nfrom sklearn.naive_bayes import MultinomialNB\nfrom sklearn.pipeline import make_pipeline\ntexts = [\"free prize winner\", \"meeting at 10\", \"claim your free reward\", \"project update attached\"]\nlabels = [\"spam\", \"ham\", \"spam\", \"ham\"]\nm = make_pipeline(CountVectorizer(), MultinomialNB()).fit(texts, labels)\nprint(m.predict([\"free meeting reward\"]), m.predict_proba([\"free meeting reward\"]).round(2))"
+  },
+  "check": [
+    {
+      "q": "What is \"naive\" about Naive Bayes?",
+      "options": [
+        "It uses no data",
+        "It assumes features are independent given the class",
+        "It ignores the prior",
+        "It only works for two classes"
+      ],
+      "answer": 1,
+      "why": "The conditional independence assumption."
+    },
+    {
+      "q": "Why use Laplace smoothing?",
+      "options": [
+        "To speed up training",
+        "To avoid zero probabilities for unseen words",
+        "To scale features",
+        "To remove stop words"
+      ],
+      "answer": 1,
+      "why": "One zero would wipe out the whole product."
+    }
+  ],
+  "chapterMinutes": 16
+}

@@ -1,0 +1,378 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A consulting team presents a demand-forecasting model to a client's board: \"3% error on test data\". Six months after go-live the real error is 25%, warehouses are full of the wrong stock and nobody trusts the model. Nothing was wrong with the algorithm. The test was wrong: it let the model peek at the future. **Forecast validation** is the discipline of testing a forecast exactly as it will be used, so the number you show the board is the number the business will get.",
+  "sections": [
+    {
+      "heading": "The problem: you cannot test a forecast like an ordinary model",
+      "blocks": [
+        {
+          "p": "In ordinary machine learning you shuffle the rows, hold out a random 20% and measure accuracy on that. For time series this is a trap. If the test set contains March and the training set contains April, the model has, in effect, seen the future. Patterns from April quietly help it \"predict\" March, and the error looks far better than it will ever be in real life."
+        },
+        {
+          "term": "Backtest",
+          "def": "Testing a forecasting method on history by pretending to stand at an earlier date, forecasting forward using only data available then, and comparing with what actually happened."
+        },
+        {
+          "term": "Look-ahead leakage",
+          "def": "Any way that information from after the forecast date sneaks into the model or its inputs. It makes test results look better than real-world performance."
+        },
+        {
+          "term": "Forecast horizon",
+          "def": "How far ahead the forecast is made: 1 week ahead, 3 months ahead. Errors usually grow with the horizon, so you must test at the horizon the business actually needs."
+        },
+        {
+          "p": "There is a second problem: a number like \"12% error\" means nothing on its own. Is that good for this product? You only know by comparing with a simple **baseline** that requires no modelling at all. If your model cannot beat \"same as last year\", it is not adding value."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Random split (wrong for time series)",
+              "items": [
+                "Test months scattered through history",
+                "Model trains on months after the ones it predicts",
+                "Rolling features may include future values",
+                "Error looks optimistically low",
+                "No link to the real decision horizon"
+              ]
+            },
+            "right": {
+              "title": "Time-ordered backtest (right)",
+              "items": [
+                "Training data always ends before the test period",
+                "Repeated at several forecast dates",
+                "Features built only from past data",
+                "Error is realistic",
+                "Tested at the horizon the business uses"
+              ]
+            },
+            "caption": "The single most important rule in forecasting: training data must always come from before the period being forecast."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: paper trading",
+      "blocks": [
+        {
+          "p": "Imagine an investor who claims a brilliant trading strategy. How would you test it? Not by letting him look at a full year of price charts and then \"predicting\" points in the middle. You would make him **live through history**: on 1 January he sees only data up to 31 December and writes down his trades. Then you reveal January. Then he decides February, seeing only data to 31 January. And so on."
+        },
+        {
+          "steps": [
+            "**Freeze the clock** at a past date. Hide everything after it.",
+            "**Make the forecast** exactly as you would in real life, at the real horizon.",
+            "**Reveal the truth** for the forecast period and record the error.",
+            "**Move the clock forward** and repeat, so the result does not depend on one lucky or unlucky period."
+          ],
+          "title": "Living through history"
+        },
+        {
+          "p": "That is a **rolling-origin backtest**. The \"origin\" is the date you pretend to be standing on; it rolls forward through history. Averaging errors across several origins gives a fair, stable estimate of real-world accuracy."
+        },
+        {
+          "think": {
+            "q": "Why is one test period not enough, even if it is in the right order?",
+            "a": "One period may be unusual: a festival may fall in it, or a competitor may have run out of stock. Several origins spread across the year show both the typical error and how much it varies, which is what a planner needs to set safety stock."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How a rolling-origin backtest works",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Pick origins**: e.g. every 3 months",
+              "**Train** on data up to the origin only",
+              "**Forecast** the next h periods",
+              "**Score** against actuals and a baseline",
+              "**Roll** the origin forward and average"
+            ],
+            "caption": "The backtest loop. Every step uses only information available at the origin date."
+          }
+        },
+        {
+          "steps": [
+            "**Decide the horizon** the business needs: for example, 3 months ahead for production planning.",
+            "**Choose several origins** spread over at least one full season.",
+            "**At each origin, train on data up to that date only**, including any feature engineering and parameter tuning.",
+            "**Forecast the next h periods**, compute the errors, and do the same for one or two simple baselines.",
+            "**Average the errors** across origins, and look at the spread, not just the average."
+          ],
+          "title": "The procedure"
+        },
+        {
+          "p": "Two variants exist. In an **expanding window** the training set grows each time (all history up to the origin). In a **sliding window** it keeps a fixed length, which helps when old data no longer reflects the market. scikit-learn's `TimeSeriesSplit` implements the expanding version; its `max_train_size` option gives a sliding window, and `gap` leaves a buffer between training and test."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Fold",
+              "Train on months",
+              "Test on months",
+              "Train size"
+            ],
+            "rows": [
+              [
+                "1",
+                "0–23",
+                "24–26",
+                "24"
+              ],
+              [
+                "2",
+                "0–26",
+                "27–29",
+                "27"
+              ],
+              [
+                "3",
+                "0–29",
+                "30–32",
+                "30"
+              ],
+              [
+                "4",
+                "0–32",
+                "33–35",
+                "33"
+              ]
+            ],
+            "caption": "Expanding-window folds produced by `TimeSeriesSplit(n_splits=4, test_size=3)` on 36 months of data. Every test block lies after its training block, and the origin rolls forward 3 months each time."
+          }
+        },
+        {
+          "term": "Baseline (naive and seasonal naive)",
+          "def": "Forecasts that need no model. Naive: next value = last value. Seasonal naive: next value = same season last year (next October = last October). A model is only worth deploying if it beats these."
+        }
+      ]
+    },
+    {
+      "heading": "The math: measuring forecast error",
+      "blocks": [
+        {
+          "p": "Every error metric starts from the same ingredient, the forecast error for each period: actual minus forecast. The metrics differ in how they combine the errors, and each choice answers a different business question."
+        },
+        {
+          "tex": "\\text{MAE} = \\frac{1}{n}\\sum_{t=1}^{n} |y_t - \\hat y_t|",
+          "plain": "Mean absolute error: the average size of the miss, in the original units (units, ₹). Easy to explain: \"on average we are off by 10 units\".",
+          "symbols": [
+            [
+              "y_t",
+              "actual value"
+            ],
+            [
+              "\\hat y_t",
+              "forecast"
+            ],
+            [
+              "n",
+              "number of forecasts scored"
+            ]
+          ]
+        },
+        {
+          "tex": "\\text{RMSE} = \\sqrt{\\frac{1}{n}\\sum_{t=1}^{n} (y_t - \\hat y_t)^2}",
+          "plain": "Root mean squared error: squares the misses before averaging, so big misses count much more. Use it when large errors are disproportionately costly."
+        },
+        {
+          "tex": "\\text{MAPE} = \\frac{100\\%}{n}\\sum_{t=1}^{n} \\left| \\frac{y_t - \\hat y_t}{y_t} \\right|",
+          "plain": "Mean absolute percentage error: the average percentage miss. Popular, but it explodes when actuals are small and is undefined when an actual is zero."
+        },
+        {
+          "tex": "\\text{WAPE} = \\frac{\\sum_t |y_t - \\hat y_t|}{\\sum_t |y_t|}",
+          "plain": "Weighted absolute percentage error: total absolute miss divided by total actual volume. Big-selling items count more, small ones cannot blow it up. A favourite in retail and supply chains."
+        },
+        {
+          "term": "MASE",
+          "def": "Mean absolute scaled error: your model's MAE divided by the MAE of a naive forecast on the training data. Below 1 means better than naive; above 1 means worse. It works across products of any size."
+        },
+        {
+          "tex": "\\text{MASE} = \\frac{\\text{MAE}_{\\text{model}}}{\\frac{1}{T-m}\\sum_{t=m+1}^{T} |y_t - y_{t-m}|}",
+          "plain": "Divide the model's MAE on the test period by the average error a naive (m = 1) or seasonal naive (m = season length) forecast made on the training history.",
+          "symbols": [
+            [
+              "T",
+              "length of the training history"
+            ],
+            [
+              "m",
+              "1 for naive, or the season length for seasonal naive"
+            ]
+          ]
+        },
+        {
+          "p": "Finally, check **bias**: the sum of (forecast − actual) divided by total actuals. A model can have a decent WAPE while consistently under-forecasting, which causes repeated stock-outs."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "WAPE versus MAPE on four products",
+            "setup": "One week of forecasts for four SKUs. Actuals: 100, 80, 120, 10 units. Forecasts: 90, 88, 108, 20.",
+            "steps": [
+              "Absolute errors: |100 − 90| = 10, |80 − 88| = 8, |120 − 108| = 12, |10 − 20| = 10. Total = 40. MAE = 40 / 4 = 10 units.",
+              "Percentage errors: 10/100 = 10%, 8/80 = 10%, 12/120 = 10%, 10/10 = 100%. MAPE = (10 + 10 + 10 + 100) / 4 = 32.5%.",
+              "WAPE = total error / total actual = 40 / 310 ≈ 12.9%.",
+              "RMSE = √((100 + 64 + 144 + 100) / 4) = √102 ≈ 10.10 units.",
+              "Bias = (306 − 310) / 310 ≈ −1.3%: a slight overall under-forecast."
+            ],
+            "result": "MAPE says 32.5% because one tiny SKU missed by 10 units. WAPE says 12.9%, which reflects the business impact far better. Choose the metric before looking at the results."
+          }
+        },
+        {
+          "example": {
+            "title": "MASE: is the model better than naive?",
+            "setup": "Training history (monthly units): 200, 210, 190, 220, 230, 215, 240. Test actuals for the next 3 months: 250, 245, 260. Model forecasts: 242, 250, 251.",
+            "steps": [
+              "Naive one-step errors on training: |210 − 200| = 10, 20, 30, 10, 15, 25. Average = 110 / 6 ≈ 18.33.",
+              "Model errors on test: |250 − 242| = 8, |245 − 250| = 5, |260 − 251| = 9. MAE = 22 / 3 ≈ 7.33.",
+              "MASE = 7.33 / 18.33 = 0.40."
+            ],
+            "result": "MASE of 0.40 means the model's errors are about 40% of a typical naive one-step error. It is clearly adding value. A MASE above 1 would mean \"use the naive forecast instead\"."
+          }
+        },
+        {
+          "example": {
+            "title": "Backtesting a quarterly demand model (illustrative)",
+            "setup": "An auto-parts distributor tests a Holt-Winters model at a 3-month horizon from four origins, scoring WAPE for the model and for seasonal naive.",
+            "steps": [
+              "Window 1: model 12%, seasonal naive 18%.",
+              "Window 2: model 9%, seasonal naive 16%.",
+              "Window 3: model 15%, seasonal naive 21% (Diwali fell in a different month from the previous year).",
+              "Window 4: model 11%, seasonal naive 17%.",
+              "Averages: model (12 + 9 + 15 + 11) / 4 = 11.75%; baseline (18 + 16 + 21 + 17) / 4 = 18%."
+            ],
+            "result": "The model beats the baseline in every window, by about 6 points on average. Window 3 shows that festival timing hurts both methods, so a moving-holiday feature is the next improvement."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "W1 model",
+              "W1 naive",
+              "W2 model",
+              "W2 naive",
+              "W3 model",
+              "W3 naive",
+              "W4 model",
+              "W4 naive"
+            ],
+            "values": [
+              12,
+              18,
+              9,
+              16,
+              15,
+              21,
+              11,
+              17
+            ],
+            "highlight": 4,
+            "yLabel": "WAPE (%)",
+            "caption": "Backtest results by window. The model wins every time, but window 3 is worst for both, pointing to a shared cause (festival timing) rather than a model fault. Looking at windows separately reveals what an average hides."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing metrics and hunting for leakage",
+      "blocks": [
+        {
+          "p": "**Choose the metric that matches the decision.** Production planning across many SKUs: WAPE plus bias. Comparing products of very different sizes: MASE. When a big miss is a disaster (hospital beds, power): RMSE or high quantiles. Avoid MAPE when any actuals are small or zero."
+        },
+        {
+          "p": "**Hunt for leakage like an auditor.** Leakage rarely looks like cheating; it hides in feature engineering."
+        },
+        {
+          "bullets": [
+            "**Centred rolling windows.** A 7-day rolling mean centred on today uses the next three days. Use trailing windows only (`rolling(7)` on data shifted by the horizon).",
+            "**Revised data.** Economic figures and sales ledgers are often corrected later. Train on values \"as known at the time\" if you can.",
+            "**External forecasts versus actuals.** Using actual temperature as an input is leakage if, in production, you will only have a weather forecast.",
+            "**Tuning on the test set.** Choosing parameters by looking at backtest results, then reporting those same results, overstates accuracy. Keep a final hold-out period untouched.",
+            "**Scaling on all data.** Fitting a scaler or decomposition on the full history leaks future information into the past."
+          ]
+        },
+        {
+          "callout": "A useful test: for every input, ask \"Would I have known this value, exactly, at the moment I needed to make the forecast?\" If not, it is leakage.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Validation in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Rolling out a new demand model at a consumer-goods firm (illustrative)",
+            "story": "A data team builds a gradient-boosting model to replace the spreadsheet forecasts used by planners. Before any meeting with leadership, they run a backtest over 24 monthly origins at the 1, 2 and 3-month horizons that drive production. They score WAPE and bias against two baselines: seasonal naive and the planners' historical forecasts. The model wins on WAPE at all horizons but shows a consistent under-forecast for newly launched products, which the planners had handled well. The final process combines both: model forecasts for established products, planner judgement for launches. Because the backtest mirrored real use, accuracy after go-live stays within a point or two of the backtest figure."
+          }
+        },
+        {
+          "p": "Forecasting competitions follow the same principles. The well-known M5 competition (2020), built on Walmart sales data, scored entries on a hidden future period using a scaled error metric related to MASE, precisely so that products of different sizes could be compared fairly."
+        },
+        {
+          "bullets": [
+            "**Retail and FMCG:** weekly WAPE and bias by category, reviewed in sales-and-operations planning meetings.",
+            "**Energy:** day-ahead load forecasts backtested across seasons; errors at peak hours weighted most.",
+            "**Finance:** walk-forward testing of trading and risk models, the same idea under another name.",
+            "**Automotive:** parts demand backtested by horizon to set supplier lead-time buffers."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and good habits",
+      "blocks": [
+        {
+          "bullets": [
+            "**Random k-fold on time series.** The classic error. Use time-ordered splits.",
+            "**One lucky test window.** Always use several origins and report the spread.",
+            "**No baseline.** \"12% WAPE\" is meaningless until you know seasonal naive scores 18% (good) or 10% (bad).",
+            "**Wrong horizon.** A model scored on 1-step forecasts may be poor at 3 months ahead, which is what the factory needs.",
+            "**Optimising one metric blindly.** A model with the best MAE can still be biased low. Track bias alongside accuracy.",
+            "**Forgetting to monitor after go-live.** Patterns drift. Keep scoring forecasts against actuals every period and alert when error rises."
+          ]
+        },
+        {
+          "callout": "The goal of validation is not a flattering number. It is an honest estimate of how wrong the forecast will be, so the business can plan around that uncertainty with safety stock, flexible staffing or prediction intervals.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I ever use ordinary cross-validation for time series?",
+      "a": "Rarely. For pure autoregressive models with no leakage some research shows it can work, but the safe default is a time-ordered, rolling-origin backtest. It is what reviewers and clients expect."
+    },
+    {
+      "q": "How many backtest windows do I need?",
+      "a": "Enough to cover at least one full season, so every month or festival period appears in a test set. For monthly data, 6 to 12 origins is common; for weekly data, more."
+    },
+    {
+      "q": "Which single metric should I report to management?",
+      "a": "For volume planning, WAPE plus bias is usually clearest (\"we miss total volume by 11%, with no systematic under-forecast\"). Always show the baseline next to it."
+    },
+    {
+      "q": "What is a good WAPE?",
+      "a": "It depends entirely on the series. Aggregate national monthly sales may reach 5%; a single SKU in a single store, weekly, may be 40% and still be good. Judge it against the baseline and against what the decision needs."
+    },
+    {
+      "q": "What does a MASE of 1.2 mean?",
+      "a": "The model's average error is 20% larger than a naive forecast's typical error on the history. In plain words: the simple \"same as last time\" rule would do better."
+    },
+    {
+      "q": "What is the gap parameter in TimeSeriesSplit for?",
+      "a": "It leaves periods out between training and test. Use it when, in real life, data arrives with a delay (for example, last week's sales are only final on Wednesday) or when features use recent lags that would otherwise overlap the test period."
+    }
+  ]
+}

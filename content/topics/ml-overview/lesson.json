@@ -1,0 +1,73 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain what machine learning is in one sentence",
+    "Distinguish supervised, unsupervised and reinforcement learning",
+    "Tell regression from classification"
+  ],
+  "why": "Framing the problem correctly is the first decision in every ML project. Picking \"classification\" when you really need \"ranking\" or \"forecasting\" wastes months.",
+  "explain": [
+    "Traditional programming: **rules + data → answers**. Machine learning: **data + answers → rules**. You show examples and the algorithm learns the pattern.",
+    "**Supervised learning** has labelled examples: past loans with \"repaid / defaulted\". It predicts the label for new cases. If the label is a number it is **regression**; if it is a category it is **classification**.",
+    "**Unsupervised learning** has no labels: it finds structure, such as customer segments (clustering) or a compact summary of many columns (dimensionality reduction).",
+    "**Reinforcement learning** learns by trial and error with rewards: game-playing agents, robot control, ad bidding.",
+    "Vocabulary: **features** (inputs, X), **target / label** (output, y), **model** (the learned function), **training** (fitting it), **inference** (using it on new data)."
+  ],
+  "example": {
+    "title": "Frame four business questions",
+    "steps": [
+      "\"What price will this flat sell for?\" → supervised regression",
+      "\"Will this customer churn next month?\" → supervised classification",
+      "\"What natural groups of customers do we have?\" → unsupervised clustering",
+      "\"How should a robot arm move to pick a part?\" → reinforcement learning"
+    ],
+    "result": "The question type decides the family of models, metrics and validation you will use."
+  },
+  "mistakes": [
+    "Jumping to algorithms before defining the target and how success is measured.",
+    "Using ML where simple rules or a SQL query would do."
+  ],
+  "takeaways": [
+    "ML learns rules from examples",
+    "Supervised = labels (regression / classification); unsupervised = no labels",
+    "Features in, target out"
+  ],
+  "use": [
+    "There is a repeatable decision with lots of historical data",
+    "The rules are too complex to write by hand"
+  ],
+  "avoid": [
+    "A simple rule already works",
+    "There is no data, or the labels are unreliable",
+    "Decisions must be 100% explainable and the stakes are high (use simple models)"
+  ],
+  "practice": {
+    "code": "# The universal scikit-learn pattern — works for almost every model\nfrom sklearn.datasets import load_iris\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.tree import DecisionTreeClassifier\nX, y = load_iris(return_X_y=True)                 # features, target\nX_tr, X_te, y_tr, y_te = train_test_split(X, y, random_state=0)\nmodel = DecisionTreeClassifier().fit(X_tr, y_tr)  # training\nprint(model.score(X_te, y_te))                    # evaluation on unseen data"
+  },
+  "check": [
+    {
+      "q": "Predicting tomorrow's demand in units is…",
+      "options": [
+        "Classification",
+        "Regression",
+        "Clustering",
+        "Reinforcement learning"
+      ],
+      "answer": 1,
+      "why": "The target is a number."
+    },
+    {
+      "q": "Grouping customers without any labels is…",
+      "options": [
+        "Supervised",
+        "Unsupervised",
+        "Regression",
+        "Reinforcement"
+      ],
+      "answer": 1,
+      "why": "No labels → unsupervised (clustering)."
+    }
+  ],
+  "chapterMinutes": 17
+}

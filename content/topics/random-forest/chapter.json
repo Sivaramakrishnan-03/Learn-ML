@@ -1,0 +1,510 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A telecom company asks 500 analysts to predict which customers will leave next month. If every analyst reads the same single report first, they all reach the same conclusion and make the same mistakes. Now give each analyst a random handful of reports at every decision. Their opinions become more varied, and the group verdict becomes sharper. That small twist on bagging is the **random forest**, one of the most reliable models in all of machine learning.",
+  "sections": [
+    {
+      "heading": "The problem: bagged trees that think alike",
+      "blocks": [
+        {
+          "p": "In the bagging chapter you learned that averaging many trees reduces variance, but only down to a floor set by how **correlated** the trees are. If the trees all make similar mistakes, averaging cannot cancel them."
+        },
+        {
+          "p": "Why would bagged trees be similar? Imagine predicting customer churn with 30 features, one of which, \"days since last app login\", is far stronger than the rest. Every bootstrap sample still contains that pattern, so almost every tree asks about logins first. The trees end up with the same top branches and therefore similar errors."
+        },
+        {
+          "term": "Churn",
+          "def": "When a customer stops doing business with a company, for example cancelling a mobile plan or a subscription. Predicting churn lets the company try to keep the customer first."
+        },
+        {
+          "term": "Feature",
+          "def": "One input column that describes each row, such as age, monthly bill or days since last login. Also called a variable or predictor."
+        },
+        {
+          "p": "In 2001 Leo Breiman, the same statistician who proposed bagging, added one extra rule: **at every split, each tree may only choose from a random subset of the features**. Sometimes the star feature is not on the menu, so the tree has to find the next-best question. The trees become more diverse, their errors less correlated, and the average more accurate."
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "Days since last login > 20?",
+              "children": [
+                {
+                  "label": "Monthly bill > ₹800?",
+                  "edge": "yes",
+                  "children": [
+                    {
+                      "label": "Churn 72%",
+                      "edge": "yes"
+                    },
+                    {
+                      "label": "Churn 41%",
+                      "edge": "no"
+                    }
+                  ]
+                },
+                {
+                  "label": "Complaints in 90 days ≥ 2?",
+                  "edge": "no",
+                  "children": [
+                    {
+                      "label": "Churn 35%",
+                      "edge": "yes"
+                    },
+                    {
+                      "label": "Churn 6%",
+                      "edge": "no"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "One tree in a churn forest. In plain bagging, nearly every tree would start with the login question. In a random forest, many trees are forced to start with something else, such as complaints or contract type."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: a committee with blinkers",
+      "blocks": [
+        {
+          "p": "Think of a hiring committee of 100 interviewers deciding whether to hire a candidate. If they all read the same CV highlight first (\"went to a famous college\"), they anchor on it and their judgements cluster together. Now imagine each interviewer, at every stage of their thinking, is handed only a random few pages of the application."
+        },
+        {
+          "steps": [
+            "**Interviewer 1** sees the college and the coding test at the first stage, and asks about the coding test.",
+            "**Interviewer 2** sees work history and references, and asks about work history.",
+            "**Interviewer 3** sees the college and the references, and asks about references.",
+            "Each interviewer still forms a sensible opinion, but **from different angles**.",
+            "When the committee votes, idiosyncratic mistakes cancel and the shared truth survives."
+          ],
+          "title": "Why blinkers help a committee"
+        },
+        {
+          "p": "Each individual interviewer is slightly worse than one who sees everything. Yet the committee is better. That trade, slightly weaker members in exchange for much more independence, is the heart of the random forest."
+        },
+        {
+          "think": {
+            "q": "If you let each split see only 1 random feature, the trees become extremely diverse. Why is that not ideal?",
+            "a": "Each tree becomes too weak: often the single feature offered is useless for that split. Diversity helps only while each tree stays reasonably good. The number of features per split balances individual strength against independence."
+          }
+        },
+        {
+          "callout": "Random forest = bagging (random rows for each tree) + random features at each split. Two sources of randomness, one goal: trees that disagree in useful ways.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How a random forest is built, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**Choose the number of trees** (`n_estimators`, e.g. 300) and the number of features to consider per split (`max_features`, written m).",
+            "**For each tree, draw a bootstrap sample** of the rows, exactly as in bagging.",
+            "**Grow the tree.** At every node, pick m features at random, find the best split among only those m, and split.",
+            "**Keep growing** until leaves are pure or very small. Random forest trees are usually left deep and unpruned.",
+            "**Predict** by averaging the trees (regression) or averaging their class probabilities and picking the most likely class (classification)."
+          ],
+          "title": "The random forest recipe"
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Bootstrap sample** of rows for each tree",
+              "At each node, **pick m random features**",
+              "**Best split** among those m only",
+              "Grow deep trees, **repeat** for all trees",
+              "**Average / vote** across trees"
+            ],
+            "caption": "The only difference from bagging is the second box: a fresh random subset of features at every single split, not once per tree."
+          }
+        },
+        {
+          "term": "max_features (m)",
+          "def": "How many randomly chosen features a tree may look at when choosing each split. Smaller m means more diverse but individually weaker trees."
+        },
+        {
+          "p": "Common defaults: for classification, m = √p (the square root of the number of features p). For regression the textbook suggestion is about p/3. Be aware that scikit-learn's `RandomForestRegressor` now defaults to `max_features=1.0`, meaning all features, which is plain bagging; it is worth trying smaller values yourself."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "The variance formula from the bagging chapter is the reason random forests exist, so here it is again."
+        },
+        {
+          "tex": "\\operatorname{Var}(\\bar{f}) = \\rho\\,\\sigma^2 + \\frac{1 - \\rho}{B}\\,\\sigma^2",
+          "plain": "More trees (B) removes the second term. The first term, ρσ², stays. Random feature selection lowers ρ, the correlation between trees, which lowers the floor itself.",
+          "symbols": [
+            [
+              "\\rho",
+              "correlation between trees' errors"
+            ],
+            [
+              "\\sigma^2",
+              "variance of a single tree"
+            ],
+            [
+              "B",
+              "number of trees"
+            ]
+          ]
+        },
+        {
+          "p": "How often is the star feature hidden from a split? If there are p features and a split sees m of them chosen at random, the chance that one particular feature is **not** among them is:"
+        },
+        {
+          "tex": "P(\\text{feature excluded}) = \\frac{p - m}{p}",
+          "plain": "Out of p features, m are allowed. The share of splits where any given feature is left out is the number not chosen divided by the total.",
+          "symbols": [
+            [
+              "p",
+              "total number of features"
+            ],
+            [
+              "m",
+              "features considered at each split"
+            ]
+          ]
+        },
+        {
+          "p": "For classification, each tree's prediction is often turned into a probability by looking at the share of training rows of each class in the leaf. The forest averages these across trees:"
+        },
+        {
+          "tex": "\\hat{p}(\\text{class } c \\mid x) = \\frac{1}{B} \\sum_{b=1}^{B} \\hat{p}_b(c \\mid x)",
+          "plain": "The forest's probability for class c is the average of every tree's probability for class c.",
+          "symbols": [
+            [
+              "\\hat{p}_b",
+              "probability given by tree b"
+            ],
+            [
+              "x",
+              "the new case being predicted"
+            ]
+          ]
+        },
+        {
+          "term": "Gini impurity",
+          "def": "A score for how mixed the classes are in a node: 0 means every row is the same class; higher means more mixing. Trees pick splits that reduce impurity the most."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "How often is the star feature off the menu?",
+            "setup": "A churn dataset has p = 16 features. With the classification default m = √16 = 4, how often can a split not use \"days since last login\"?",
+            "steps": [
+              "Features not offered at a split: 16 − 4 = 12.",
+              "Chance the login feature is excluded: 12 / 16 = 0.75.",
+              "So in about 75% of splits, including the very first split of most trees, the tree must use some other feature.",
+              "With p = 100 and m = 10, the exclusion chance is 90 / 100 = 0.90."
+            ],
+            "result": "Even a dominant feature is unavailable most of the time, which forces trees to discover other useful patterns and makes them less alike."
+          }
+        },
+        {
+          "example": {
+            "title": "Lowering correlation beats adding trees",
+            "setup": "Single-tree variance σ² = 100. Plain bagged trees have correlation ρ = 0.6. A random forest on the same data has ρ = 0.2. Both use B = 500 trees.",
+            "steps": [
+              "Bagging: 0.6 × 100 + 0.4 × 100 / 500 = 60 + 0.08 = 60.08.",
+              "Random forest: 0.2 × 100 + 0.8 × 100 / 500 = 20 + 0.16 = 20.16.",
+              "Adding even a million more bagged trees could only bring bagging down to 60."
+            ],
+            "result": "The forest's variance is about one third of bagging's, achieved not by more trees but by more independent trees."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Single tree",
+              "Bagging (ρ = 0.6)",
+              "Random forest (ρ = 0.2)"
+            ],
+            "values": [
+              100,
+              60.08,
+              20.16
+            ],
+            "highlight": 2,
+            "yLabel": "prediction variance",
+            "caption": "Same number of trees, very different result. Decorrelating trees attacks the floor that bagging cannot get below."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: should we call this customer? (illustrative)",
+            "setup": "A broadband provider's forest has 500 trees. For one customer, 350 trees (on average across their leaf probabilities) point to churn. A retention call plus discount costs ₹500. The customer is worth ₹6,000 in future profit, and past campaigns save about 30% of customers who were going to leave.",
+            "steps": [
+              "Churn probability ≈ 350 / 500 = 0.70.",
+              "Expected value saved by calling = 0.70 × ₹6,000 × 0.30 = ₹1,260.",
+              "Cost of calling = ₹500.",
+              "Expected net benefit = ₹1,260 − ₹500 = ₹760 > 0, so call."
+            ],
+            "result": "The forest's probability, not just its yes/no label, turns into a rupee decision. A customer with probability 0.2 would give 0.2 × 6,000 × 0.3 = ₹360, below the cost, so no call."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Tuning and reading a forest",
+      "blocks": [
+        {
+          "p": "Random forests are famous for working well with little tuning. These are the settings that matter most:"
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Setting",
+              "What it controls",
+              "Typical starting point"
+            ],
+            "rows": [
+              [
+                "n_estimators",
+                "Number of trees",
+                "300–500; more never overfits, only slows"
+              ],
+              [
+                "max_features",
+                "Features tried per split",
+                "√p (classification), p/3 to p (regression)"
+              ],
+              [
+                "max_depth / min_samples_leaf",
+                "How deep trees grow",
+                "Unlimited depth; leaf size 1–5"
+              ],
+              [
+                "class_weight",
+                "Extra weight for rare classes",
+                "\"balanced\" for rare events like fraud"
+              ],
+              [
+                "oob_score",
+                "Free validation estimate",
+                "True"
+              ]
+            ],
+            "caption": "A short list of knobs. Defaults are a good first model; tune max_features and leaf size first."
+          }
+        },
+        {
+          "p": "**Feature importance.** A forest can tell you which features it relied on. The built-in version (`feature_importances_`) adds up how much each feature reduced impurity across all splits and trees."
+        },
+        {
+          "term": "Feature importance",
+          "def": "A score saying how much a model relied on each feature. It shows what the model uses, not necessarily what causes the outcome."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Days since login",
+              "Complaints",
+              "Contract type",
+              "Monthly bill",
+              "Tenure",
+              "Customer ID"
+            ],
+            "values": [
+              0.31,
+              0.22,
+              0.17,
+              0.14,
+              0.12,
+              0.04
+            ],
+            "highlight": 0,
+            "yLabel": "importance",
+            "caption": "Illustrative importances from a churn forest. Note that a meaningless high-cardinality column like Customer ID can still earn some impurity importance; drop such columns, and prefer permutation importance for a fairer check."
+          }
+        },
+        {
+          "callout": "Impurity-based importance is biased towards features with many distinct values (IDs, exact timestamps). Permutation importance, which measures how much accuracy drops when a column is shuffled, is more trustworthy. scikit-learn provides it as `sklearn.inspection.permutation_importance`.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Random forests in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Body-part recognition in Microsoft Kinect",
+            "story": "Microsoft's Kinect motion sensor for the Xbox needed to recognise, in real time, which body part each pixel of a depth image belonged to. The published research behind it (Shotton and colleagues, 2011) used randomised decision forests trained on a very large set of synthetic depth images. Forests suited the job because each tree is fast to evaluate, trees can run in parallel on a graphics chip, and averaging many trees made the per-pixel predictions robust to the huge variety of body shapes and poses."
+          }
+        },
+        {
+          "bullets": [
+            "**Banking and lending:** credit scoring and fraud flags, often as a strong benchmark before trying boosting.",
+            "**Manufacturing:** predicting machine failure from vibration, temperature and current sensors.",
+            "**Healthcare research:** ranking risk factors in patient data, using importance as a starting point for investigation.",
+            "**Remote sensing:** classifying land use (crops, forest, water) from satellite image bands."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "p": "Random forests are hard to break, but they have blind spots worth knowing before you put one in production."
+        },
+        {
+          "bullets": [
+            "**They cannot extrapolate.** A tree predicts an average of training rows in a leaf, so a forest can never predict beyond the range of targets it saw. If prices rise above anything in history, the forest stays stuck at the old maximum.",
+            "**Large and slower to predict.** Hundreds of deep trees can take hundreds of megabytes and add milliseconds per prediction.",
+            "**Probabilities can be poorly calibrated.** Forest probabilities tend to avoid 0 and 1. If you need precise probabilities, calibrate them (`CalibratedClassifierCV`).",
+            "**Usually beaten by tuned boosting on tabular data.** Gradient boosting libraries often edge out forests when carefully tuned, at the cost of more tuning effort."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "advertising spend (₹ lakh)",
+            "yLabel": "sales (₹ lakh)",
+            "caption": "Training data (blue) lies between spend 1 and 6. The forest's predictions (red) follow the trend inside that range, then go flat beyond spend 6. A linear model would continue the trend; a forest cannot.",
+            "points": [
+              [
+                1,
+                12,
+                0
+              ],
+              [
+                2,
+                15,
+                0
+              ],
+              [
+                3,
+                19,
+                0
+              ],
+              [
+                4,
+                22,
+                0
+              ],
+              [
+                5,
+                26,
+                0
+              ],
+              [
+                6,
+                29,
+                0
+              ],
+              [
+                1,
+                12.5,
+                1
+              ],
+              [
+                2,
+                15.5,
+                1
+              ],
+              [
+                3,
+                18.5,
+                1
+              ],
+              [
+                4,
+                22.5,
+                1
+              ],
+              [
+                5,
+                25.5,
+                1
+              ],
+              [
+                6,
+                28.5,
+                1
+              ],
+              [
+                7,
+                28.5,
+                1
+              ],
+              [
+                8,
+                28.5,
+                1
+              ],
+              [
+                9,
+                28.5,
+                1
+              ]
+            ]
+          }
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Random forest shines when…",
+              "items": [
+                "You want a strong model with little tuning",
+                "Data is tabular with mixed feature types",
+                "You want OOB error and feature importance",
+                "Robustness matters more than the last 1% of accuracy"
+              ]
+            },
+            "right": {
+              "title": "Consider instead…",
+              "items": [
+                "Maximum tabular accuracy → **gradient boosting / XGBoost / LightGBM**",
+                "Need to extrapolate trends → **linear or time-series models**",
+                "Need a tiny, fast model → **a single tree or logistic regression**",
+                "Images, text, audio → **neural networks**"
+              ]
+            },
+            "caption": "The random forest is the dependable all-rounder: rarely the very best, rarely bad."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can a random forest overfit?",
+      "a": "Adding trees does not cause overfitting; it only stabilises the average. Individual trees do overfit, and with very noisy data a forest of extremely deep trees can still fit noise. Increasing `min_samples_leaf` is the usual remedy."
+    },
+    {
+      "q": "Do I need to scale features for a random forest?",
+      "a": "No. Trees split on thresholds such as \"bill > ₹800\", and rescaling a column does not change which threshold separates the rows. That is one reason forests are so convenient."
+    },
+    {
+      "q": "How is a random forest different from bagging?",
+      "a": "Bagging randomises only the rows each tree sees. A random forest also randomises the features available at every split, which makes the trees less correlated and the average better."
+    },
+    {
+      "q": "Does a random forest handle missing values?",
+      "a": "Recent scikit-learn versions support missing values in random forests natively, but many tools and older versions do not. A simple, safe approach is to impute missing values and add a \"was missing\" indicator column."
+    },
+    {
+      "q": "Is feature importance the same as cause?",
+      "a": "No. It tells you what the model found useful for prediction. A feature can be important because it is correlated with the real cause. Causal questions need experiments or causal-inference methods."
+    },
+    {
+      "q": "Random forest or gradient boosting: which should I try first?",
+      "a": "Try a random forest first as a fast, robust baseline. Then try gradient boosting; if it wins clearly after tuning, use it. If the difference is small, the forest's simplicity and robustness may be worth more."
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Explain how regularisation reduces overfitting",
+    "Contrast Ridge (L2), Lasso (L1) and Elastic Net",
+    "Tune the penalty strength with CV"
+  ],
+  "why": "With many correlated features, ordinary regression overfits and gives unstable coefficients. Regularised regression is the standard fix in finance, marketing-mix models and genomics.",
+  "explain": [
+    "Add a **penalty** for large coefficients to the loss. The model must now balance fitting the data against keeping the coefficients small. Think of it as a **budget** on coefficient size.",
+    "**Ridge (L2)** penalises squared coefficients: it shrinks all of them smoothly towards zero but rarely to exactly zero. It is great with many correlated features.",
+    "**Lasso (L1)** penalises absolute values: it can push coefficients **exactly to zero**, so it performs automatic feature selection.",
+    "**Elastic Net** mixes the two. The penalty strength **α (lambda)** is tuned by cross-validation. **Always scale features first**, otherwise the penalty treats units unfairly."
+  ],
+  "formula": {
+    "tex": "\\min_\\beta \\; \\sum (y - X\\beta)^2 + \\lambda \\sum \\beta_j^2 \\;\\; (\\text{Ridge}) \\quad \\text{or} \\quad + \\lambda \\sum |\\beta_j| \\;\\; (\\text{Lasso})",
+    "plain": "Least squares + a penalty on coefficient size: squared for Ridge, absolute for Lasso."
+  },
+  "example": {
+    "title": "50 marketing features, 200 weeks of data",
+    "steps": [
+      "OLS: train R² 0.95, CV R² 0.41 (overfitting)",
+      "Ridge (α tuned by CV): CV R² 0.68",
+      "Lasso: CV R² 0.66, keeps only 9 of 50 features",
+      "Business prefers Lasso: 9 drivers are explainable"
+    ],
+    "result": "Regularisation trades a little training fit for much better generalisation, and Lasso adds simplicity."
+  },
+  "mistakes": [
+    "Forgetting to standardise features.",
+    "Choosing α by training error.",
+    "Over-trusting Lasso's pick among highly correlated features (it chooses somewhat arbitrarily)."
+  ],
+  "takeaways": [
+    "A penalty on coefficients fights overfitting",
+    "Ridge shrinks; Lasso selects",
+    "Scale features; tune α with CV"
+  ],
+  "use": [
+    "Many features relative to rows",
+    "Correlated predictors",
+    "You want a sparse, interpretable model (Lasso)"
+  ],
+  "avoid": [
+    "Unscaled features",
+    "When you need unbiased coefficient estimates for inference"
+  ],
+  "interview": [
+    "Why does L1 produce exact zeros but L2 does not?",
+    "What happens as λ → 0 and λ → ∞?"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_diabetes\nfrom sklearn.linear_model import RidgeCV, LassoCV\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nX, y = load_diabetes(return_X_y=True)\nlasso = make_pipeline(StandardScaler(), LassoCV(cv=5)).fit(X, y)\nprint(\"non-zero coefs:\", (lasso[-1].coef_ != 0).sum(), \"of\", X.shape[1])\nprint(\"ridge alpha:\", make_pipeline(StandardScaler(), RidgeCV(alphas=[0.1, 1, 10, 100])).fit(X, y)[-1].alpha_)"
+  },
+  "check": [
+    {
+      "q": "Which penalty can set coefficients exactly to zero?",
+      "options": [
+        "Ridge",
+        "Lasso",
+        "Neither",
+        "OLS"
+      ],
+      "answer": 1,
+      "why": "The L1 penalty has corners at zero."
+    },
+    {
+      "q": "As λ grows very large, Ridge coefficients…",
+      "options": [
+        "Grow",
+        "Shrink towards zero",
+        "Stay the same",
+        "Become random"
+      ],
+      "answer": 1,
+      "why": "The penalty dominates the loss."
+    }
+  ],
+  "chapterMinutes": 16
+}

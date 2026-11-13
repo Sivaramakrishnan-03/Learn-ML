@@ -1,0 +1,78 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Explain PCA as finding directions of maximum variance",
+    "Choose the number of components with explained variance",
+    "Use PCA for compression and visualisation"
+  ],
+  "why": "PCA compresses many correlated features into a few, which speeds up models, removes noise and lets you plot high-dimensional data. It is used in finance (yield-curve factors), genomics and image processing.",
+  "explain": [
+    "Photographing a teapot: some angles show its shape far better than others. PCA finds the **angle that shows the most variation** in your data, then the next best angle at right angles to it, and so on.",
+    "Each new axis is a **principal component**: a weighted combination of the original features. The first holds the most variance, the second the next most, and they are uncorrelated.",
+    "Keep enough components to explain, say, **90–95% of the variance** (check the cumulative explained-variance curve), and drop the rest as noise.",
+    "**Scale features first**, otherwise the feature with the biggest units dominates. Components are harder to interpret than the original features, so inspect the loadings to name them."
+  ],
+  "example": {
+    "title": "Compressing 20 survey questions",
+    "steps": [
+      "20 correlated satisfaction questions, 2,000 respondents",
+      "Explained variance: PC1 48%, PC2 21%, PC3 9% → 78% in three",
+      "PC1 loads on all questions → \"overall satisfaction\"",
+      "PC2 contrasts price questions vs service questions → \"value vs service\""
+    ],
+    "result": "Three interpretable scores replace 20 columns, ready for clustering or regression."
+  },
+  "mistakes": [
+    "Not scaling.",
+    "Fitting PCA on all data before the split (leakage).",
+    "Assuming high-variance directions are the most predictive (not guaranteed)."
+  ],
+  "takeaways": [
+    "Rotate to the directions of maximum variance",
+    "Keep components up to ~90–95% explained variance",
+    "Scale first; components are combinations of features"
+  ],
+  "use": [
+    "Many correlated numeric features",
+    "Visualising high-dimensional data in 2-D",
+    "Denoising and speed-ups"
+  ],
+  "avoid": [
+    "When interpretability of the original features is required",
+    "Non-linear structure (t-SNE / UMAP for visualisation)"
+  ],
+  "interview": [
+    "What do the eigenvalues represent in PCA?",
+    "Why scale before PCA?",
+    "PCA vs LDA?"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.decomposition import PCA\nfrom sklearn.preprocessing import StandardScaler\nimport numpy as np\nX, _ = load_breast_cancer(return_X_y=True)\np = PCA().fit(StandardScaler().fit_transform(X))\ncum = np.cumsum(p.explained_variance_ratio_)\nprint(cum[:6].round(3), \"components for 95%:\", int(np.argmax(cum >= 0.95)) + 1)"
+  },
+  "check": [
+    {
+      "q": "The first principal component is the direction of…",
+      "options": [
+        "Minimum variance",
+        "Maximum variance",
+        "The target",
+        "The mean"
+      ],
+      "answer": 1,
+      "why": "By construction."
+    },
+    {
+      "q": "Explained variance: 50%, 30%, 10%, 10%. How many components for at least 90%?",
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "answer": 2,
+      "why": "50 + 30 + 10 = 90."
+    }
+  ],
+  "chapterMinutes": 16
+}

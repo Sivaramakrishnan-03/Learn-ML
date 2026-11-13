@@ -1,0 +1,509 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "In 1973 the statistician Francis Anscombe published four small datasets. All four have the same averages, the same spread, the same correlation and the same best-fit line. Printed as summary statistics they are identical; drawn as pictures they could not be more different. Before a surgeon operates, they look at the X-ray. Before you model data, you plot it. That habit is called **exploratory data analysis**.",
+  "sections": [
+    {
+      "heading": "The problem: numbers alone can lie to you",
+      "blocks": [
+        {
+          "p": "A summary statistic squeezes many values into one number. That is useful, but squeezing throws information away. An average delivery time of 34 minutes could mean everyone waits about 34 minutes, or that most wait 30 and a few wait over an hour. These are different businesses with different problems."
+        },
+        {
+          "term": "Exploratory data analysis (EDA)",
+          "def": "Looking at data, mostly through charts and simple summaries, before building any model, to understand its shape, spot errors and form questions worth testing."
+        },
+        {
+          "p": "Anscombe's quartet makes the point unforgettable. In each of his four datasets, x has mean 9 and variance 11, y has mean 7.50 and variance about 4.12, the correlation is about 0.816 and the best-fit line is y = 3.00 + 0.500x. Yet one dataset is a cloud around a line, one is a smooth curve, one is a perfect line with a single outlier, and one is a vertical stack with one far-away point that creates the entire \"trend\"."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "x",
+            "yLabel": "y",
+            "line": {
+              "m": 0.5,
+              "b": 3
+            },
+            "caption": "Two of Anscombe's four datasets drawn together, with the best-fit line y = 3 + 0.5x that they share. Points from dataset I (blue) scatter loosely around the line; points from dataset II (red) follow a clear curve that a straight line describes badly. Identical statistics, different stories.",
+            "points": [
+              [
+                10,
+                8.04,
+                0
+              ],
+              [
+                8,
+                6.95,
+                0
+              ],
+              [
+                13,
+                7.58,
+                0
+              ],
+              [
+                9,
+                8.81,
+                0
+              ],
+              [
+                11,
+                8.33,
+                0
+              ],
+              [
+                14,
+                9.96,
+                0
+              ],
+              [
+                6,
+                7.24,
+                0
+              ],
+              [
+                4,
+                4.26,
+                0
+              ],
+              [
+                12,
+                10.84,
+                0
+              ],
+              [
+                7,
+                4.82,
+                0
+              ],
+              [
+                5,
+                5.68,
+                0
+              ],
+              [
+                10,
+                9.14,
+                1
+              ],
+              [
+                8,
+                8.14,
+                1
+              ],
+              [
+                13,
+                8.74,
+                1
+              ],
+              [
+                9,
+                8.77,
+                1
+              ],
+              [
+                11,
+                9.26,
+                1
+              ],
+              [
+                14,
+                8.1,
+                1
+              ],
+              [
+                6,
+                6.13,
+                1
+              ],
+              [
+                4,
+                3.1,
+                1
+              ],
+              [
+                12,
+                9.13,
+                1
+              ],
+              [
+                7,
+                7.26,
+                1
+              ],
+              [
+                5,
+                4.74,
+                1
+              ]
+            ]
+          }
+        },
+        {
+          "p": "In business, the same trap appears every day: a model trained on data containing a typo, a dashboard average dragged by a few huge orders, a \"trend\" created by one unusual month. A few minutes of plotting catch most of these."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the doctor's X-ray",
+      "blocks": [
+        {
+          "p": "A good doctor does not prescribe from a single number like body temperature. They look at the patient, order an X-ray, and compare with what healthy looks like. Each test answers a different question."
+        },
+        {
+          "steps": [
+            "**What does one variable look like on its own?** Like checking one organ: is it normal size, swollen, oddly shaped? This is a **histogram** or box plot.",
+            "**How do groups compare?** Like comparing a patient's results with others of the same age. This is a box plot or bar chart by category.",
+            "**Do two things move together?** Like noticing blood pressure rises with weight. This is a **scatter plot**.",
+            "**How does something change over time?** Like a temperature chart through a hospital stay. This is a line chart."
+          ],
+          "title": "Four questions, four kinds of picture"
+        },
+        {
+          "p": "EDA is not about pretty pictures for a board meeting. It is fast, rough, private looking: dozens of quick charts, most of which you throw away, until the data has no more surprises for you."
+        },
+        {
+          "think": {
+            "q": "A colleague reports, \"Average order value rose 12% this quarter.\" What single chart would you ask to see first, and why?",
+            "a": "A histogram (or box plot) of order values for both quarters. A 12% rise in the mean could come from every order growing slightly or from a handful of very large orders. Only the distribution tells you which, and the business response is completely different."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How to do EDA, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Profile** the table: rows, types, missing values",
+              "**One variable at a time**: histograms and counts",
+              "**Pairs**: scatter plots and grouped box plots",
+              "**Over time**: line charts of key measures",
+              "**Write down** surprises and questions"
+            ],
+            "caption": "A practical EDA routine. Each stage answers a different kind of question, and the last step matters most."
+          }
+        },
+        {
+          "p": "**Step 1: Profile.** `df.info()` and `df.describe()` tell you what you are dealing with before you draw anything."
+        },
+        {
+          "p": "**Step 2: One variable at a time.** For each numeric column, `df[\"price\"].plot.hist(bins=20)`. For each category, `df[\"city\"].value_counts().plot.bar()`. You are looking for the distribution's shape and for impossible values."
+        },
+        {
+          "term": "Distribution",
+          "def": "How the values of a variable are spread out: where most of them sit, how wide the spread is, and whether there are long tails or several peaks."
+        },
+        {
+          "term": "Histogram",
+          "def": "A chart that cuts the range of a number into equal-width intervals, called bins, and draws a bar for how many values fall in each bin. It shows the shape of a distribution."
+        },
+        {
+          "p": "**Step 3: Pairs.** Plot the target you care about against each important feature: `df.plot.scatter(x=\"area\", y=\"price\")`. Compare groups with `df.boxplot(column=\"price\", by=\"city\")`. The seaborn library adds one-liners such as `sns.pairplot(df)` that draw every pair at once."
+        },
+        {
+          "term": "Scatter plot",
+          "def": "A chart with one dot per row, placed by two numeric variables: one on the horizontal axis, one on the vertical. It reveals relationships, curves, clusters and outliers."
+        },
+        {
+          "p": "**Step 4: Over time.** If there is a date column, plot key measures by week or month. Seasonality, sudden jumps (a system change, a price change) and missing periods jump out immediately."
+        },
+        {
+          "p": "**Step 5: Write down what you saw.** \"Price has one value at ₹960 lakh\", \"Kochi has only 12 rows\", \"sales dropped to zero in the first week of April\". These notes drive the cleaning and modelling that follow."
+        }
+      ]
+    },
+    {
+      "heading": "Under the hood: choosing and reading charts",
+      "blocks": [
+        {
+          "p": "The most important skill is matching the chart to the question. The table below covers most EDA needs."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Question",
+              "Data types",
+              "Chart",
+              "pandas / seaborn"
+            ],
+            "rows": [
+              [
+                "Shape of one number?",
+                "1 numeric",
+                "Histogram",
+                "`df.x.plot.hist()`"
+              ],
+              [
+                "Outliers, spread?",
+                "1 numeric",
+                "Box plot",
+                "`df.boxplot(column=\"x\")`"
+              ],
+              [
+                "Compare groups?",
+                "numeric + category",
+                "Box plot by group",
+                "`sns.boxplot(x=\"g\", y=\"x\", data=df)`"
+              ],
+              [
+                "How many per category?",
+                "1 category",
+                "Bar chart",
+                "`df.g.value_counts().plot.bar()`"
+              ],
+              [
+                "Relationship?",
+                "2 numeric",
+                "Scatter plot",
+                "`df.plot.scatter(x=\"a\", y=\"b\")`"
+              ],
+              [
+                "Change over time?",
+                "date + numeric",
+                "Line chart",
+                "`df.set_index(\"date\").x.plot()`"
+              ]
+            ],
+            "caption": "Start from the question, then the data types, then the chart. Pie charts are missing on purpose: bar charts compare amounts more accurately."
+          }
+        },
+        {
+          "p": "**Reading a box plot.** A box plot is built from quartiles, the values that cut sorted data into four equal parts. The box runs from the first quartile (Q1) to the third (Q3), with a line at the median. The whiskers reach out to the furthest points that are not too far away, and anything beyond is drawn as a separate dot."
+        },
+        {
+          "term": "Quartiles and IQR",
+          "def": "Q1 is the value with 25% of the data below it, the median has 50% below, and Q3 has 75% below. The interquartile range (IQR) is Q3 − Q1: the width of the middle half of the data."
+        },
+        {
+          "tex": "\\text{lower fence} = Q_1 - 1.5 \\times \\text{IQR}, \\qquad \\text{upper fence} = Q_3 + 1.5 \\times \\text{IQR}",
+          "plain": "Points beyond these fences are drawn individually as possible outliers. The factor 1.5 is a convention from the statistician John Tukey, and it is matplotlib's default: wide enough that normal data rarely crosses it, narrow enough to flag the strange ones.",
+          "symbols": [
+            [
+              "Q_1, Q_3",
+              "first and third quartiles"
+            ],
+            [
+              "\\text{IQR}",
+              "interquartile range, Q3 − Q1"
+            ]
+          ]
+        },
+        {
+          "p": "**Reading a histogram.** The bin width changes what you see. Too few bins hide detail; too many make noise look like structure. Try two or three settings, such as 10, 20 and 50 bins, before concluding anything."
+        },
+        {
+          "tex": "\\text{bin width} = \\frac{\\max - \\min}{\\text{number of bins}}",
+          "plain": "Each bin covers an equal slice of the range. With prices from ₹20 lakh to ₹140 lakh and 6 bins, each bin is 20 lakh wide."
+        },
+        {
+          "term": "Skew",
+          "def": "A lopsided distribution. Right-skewed (positive skew) data has a long tail of large values, as with incomes, house prices and order values. In such data the mean sits above the median."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-Math.pow(Math.log(x), 2) / 0.5) / x",
+            "xMin": 0.05,
+            "xMax": 5,
+            "marks": [
+              {
+                "x": 1,
+                "label": "median"
+              },
+              {
+                "x": 1.13,
+                "label": "mean"
+              }
+            ],
+            "xLabel": "order value (₹ thousand)",
+            "yLabel": "share of orders",
+            "caption": "A right-skewed distribution, typical of order values and incomes. The long tail on the right pulls the mean above the median, so \"average order\" overstates what a typical customer spends."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "A box plot by hand: delivery times",
+            "setup": "Ten food-delivery times in minutes, already sorted: 22, 25, 27, 28, 30, 31, 33, 35, 38, 75.",
+            "steps": [
+              "Median: the middle of 10 values is the average of the 5th and 6th, (30 + 31) / 2 = 30.5.",
+              "Quartiles (NumPy's default method, which matches Excel's QUARTILE.INC): Q1 = 27.25, Q3 = 34.5.",
+              "IQR = 34.5 − 27.25 = 7.25.",
+              "Lower fence = 27.25 − 1.5 × 7.25 = 16.375. Upper fence = 34.5 + 1.5 × 7.25 = 45.375.",
+              "75 is above 45.375, so it is drawn as an outlier dot. Every other value lies inside the fences.",
+              "The mean is 344 / 10 = 34.4 minutes, almost 4 minutes above the median, purely because of that one order."
+            ],
+            "result": "The typical delivery takes about 30 minutes; one delivery took 75. A box plot shows both facts at a glance, while the mean alone blends them into a misleading 34.4."
+          }
+        },
+        {
+          "example": {
+            "title": "Building a histogram of flat prices",
+            "setup": "Sixteen flat prices in ₹ lakh: 28, 35, 42, 45, 48, 52, 55, 58, 61, 63, 67, 72, 78, 85, 96, 120. Use 6 bins of width 20 from 20 to 140.",
+            "steps": [
+              "20 to under 40: 28, 35 → 2 flats.",
+              "40 to under 60: 42, 45, 48, 52, 55, 58 → 6 flats.",
+              "60 to under 80: 61, 63, 67, 72, 78 → 5 flats.",
+              "80 to under 100: 85, 96 → 2 flats. 100 to under 120: none. 120 to 140: 120 → 1 flat.",
+              "Mean = 1,005 / 16 ≈ 62.8 lakh; median = (58 + 61) / 2 = 59.5 lakh."
+            ],
+            "result": "Most flats cluster between ₹40 and ₹80 lakh, with a thin tail to the right: a mildly right-skewed market, which is why the mean is above the median."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "20–40",
+              "40–60",
+              "60–80",
+              "80–100",
+              "100–120",
+              "120–140"
+            ],
+            "values": [
+              2,
+              6,
+              5,
+              2,
+              0,
+              1
+            ],
+            "highlight": 1,
+            "yLabel": "number of flats",
+            "caption": "The histogram from the example. The peak is ₹40–60 lakh; the empty bin and the lone flat at ₹120 lakh form the right tail. Check that single flat before trusting any average."
+          }
+        },
+        {
+          "example": {
+            "title": "Catching a typo before it ruins a model",
+            "setup": "A property portal is building a price model. The price histogram shows almost everything between ₹20 and ₹140 lakh, plus one bar at ₹960 lakh.",
+            "steps": [
+              "Scatter price against area: the ₹960 lakh flat has only 400 sq ft, while flats of that size elsewhere cost ₹25–35 lakh.",
+              "Open the original listing: the agent typed 960 instead of 96.",
+              "Effect on a linear regression: a single point that far from the rest pulls the fitted line towards it and distorts every prediction.",
+              "Fix the value (or remove the row if the true price cannot be confirmed), then re-plot."
+            ],
+            "result": "Two charts and five minutes protected the model from a single keystroke. This is the most common payoff of EDA."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Making charts that tell the truth",
+      "blocks": [
+        {
+          "p": "Once EDA turns into charts for other people, a few rules keep them honest and readable."
+        },
+        {
+          "bullets": [
+            "**Start bar charts at zero.** Bar length encodes the amount. A y-axis starting at 90 makes 95 look twice as big as 92.",
+            "**Label axes with units.** \"Revenue (₹ lakh)\" not \"rev\". A chart without units invites wrong conclusions.",
+            "**Prefer bars to pies.** People compare lengths far more accurately than angles, especially with more than three or four slices.",
+            "**Use colour for meaning.** Highlight the one bar that matters; keep the rest grey.",
+            "**Show the spread, not only the average.** A box plot or individual dots reveal what a bar of means hides."
+          ]
+        },
+        {
+          "think": {
+            "q": "A bar chart shows Branch A at 96% customer satisfaction and Branch B at 92%, with the y-axis running from 90% to 100%. B's bar looks one third as tall as A's. What is wrong?",
+            "a": "The truncated axis exaggerates the gap. Measured from 90, the bars are 6 and 2 units, a 3-to-1 ratio, when the real difference is 4 percentage points. Start the axis at zero or use a dot plot."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "EDA in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Warranty claims at a component supplier (illustrative)",
+            "story": "An automotive parts supplier wants to predict warranty claims for a pump. Before modelling, an analyst plots claims per month for each production plant. One plant shows a sharp step up starting in a single month. A histogram of the \"hours in service\" column reveals a spike at exactly 0 hours: one dealer system recorded unknown values as zero. A scatter of claim cost against vehicle age shows two clear bands, which turn out to be two pump variants that had been merged under one part number. None of these issues would have triggered an error message, and each would have quietly corrupted the model."
+          }
+        },
+        {
+          "bullets": [
+            "**Retail:** line charts of daily sales reveal festival peaks (Diwali, Onam, Pongal) that a forecasting model must account for.",
+            "**Finance:** histograms of transaction amounts show round-number spikes (₹10,000, ₹50,000) that matter for fraud rules.",
+            "**HR analytics:** box plots of salary by grade expose outliers and possible pay-equity questions.",
+            "**Model checking:** after training, a scatter of predicted against actual values shows where the model fails."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Skipping EDA.** The most common and most expensive mistake. It costs minutes to plot and weeks to debug a model built on bad data.",
+            "**Overplotting.** A scatter of a million points becomes a solid blob. Use transparency (`alpha=0.1`), sample the data, or use a hexbin or 2-D density plot.",
+            "**Seeing patterns in noise.** Plot enough charts and something will look interesting by chance. Treat EDA findings as questions to test, not conclusions.",
+            "**Looking at the test set.** Explore the training data; peeking at test data lets your choices leak into the evaluation."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Quick EDA tools",
+              "items": [
+                "**pandas .plot**: one-line charts from a DataFrame",
+                "**seaborn**: grouped box plots, pair plots, heatmaps",
+                "**matplotlib**: full control, the engine under both"
+              ]
+            },
+            "right": {
+              "title": "When you need more",
+              "items": [
+                "**Plotly**: interactive, zoomable charts",
+                "**Power BI / Tableau**: shareable dashboards",
+                "**ydata-profiling**: automatic EDA report for a whole table"
+              ]
+            },
+            "caption": "Use the quick tools while exploring; move to interactive or dashboard tools only when the audience is someone else."
+          }
+        },
+        {
+          "callout": "EDA is finished when the data has stopped surprising you, not when you have produced a fixed number of charts.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "matplotlib, seaborn or pandas plotting: which should I learn?",
+      "a": "Start with pandas `.plot` for speed, add seaborn for grouped and statistical charts, and learn just enough matplotlib to set titles, labels and figure size. All three work together."
+    },
+    {
+      "q": "How many bins should a histogram have?",
+      "a": "There is no single right answer. Defaults (often 10) are a start; try 20 and 50 too. Libraries also offer rules, such as `bins=\"auto\"` in NumPy and matplotlib, which adapts to the data."
+    },
+    {
+      "q": "Is a dot outside the whiskers an error?",
+      "a": "Not necessarily. It is unusual relative to the middle half of the data. It might be a typo, or a real and important case such as a fraud. Investigate before you remove anything."
+    },
+    {
+      "q": "Why not just compute correlations instead of drawing scatter plots?",
+      "a": "Because correlation only measures straight-line relationships and is sensitive to outliers. Anscombe's quartet has the same correlation, about 0.816, for a line, a curve and two outlier-driven shapes."
+    },
+    {
+      "q": "How long should EDA take?",
+      "a": "On a new dataset, often a few hours to a day. It feels slow, but it is where you discover the problems that would otherwise surface as a mysteriously bad model weeks later."
+    },
+    {
+      "q": "Can I automate EDA?",
+      "a": "Partly. Profiling tools produce a report with histograms, missing values and correlations for every column. They are a good start, but they cannot judge what is surprising for your business."
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain a derivative as a slope / rate of change",
+    "Compute simple derivatives such as of x² and 3x",
+    "Use the sign of a derivative to know which way is downhill"
+  ],
+  "why": "Training almost any ML model means \"change the parameters to reduce the error\". Derivatives tell you which direction reduces it, and by how much.",
+  "explain": [
+    "A **derivative** answers: if I nudge the input a tiny bit, how much does the output change? It is the **slope** of the curve at that point.",
+    "Your car's speedometer is a derivative: it shows how fast your position changes right now. Distance is the function; speed is its derivative.",
+    "A few rules cover most of ML: the derivative of a constant is 0; of 3x it is 3; of x² it is 2x; of xⁿ it is n·xⁿ⁻¹.",
+    "The **sign** is what matters for learning. A positive derivative means the function goes up if you increase x, so to go down you decrease x. A negative derivative means increase x. At a minimum, the derivative is **zero**: the curve is flat."
+  ],
+  "formula": {
+    "tex": "f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}",
+    "plain": "Slope = change in output ÷ change in input, as the change becomes tiny."
+  },
+  "example": {
+    "title": "Find the bottom of an error curve",
+    "steps": [
+      "Error E(w) = (w − 3)²: how wrong a model is for weight w",
+      "Derivative E'(w) = 2(w − 3)",
+      "At w = 5: E' = 2×2 = +4 → positive, so decrease w",
+      "At w = 1: E' = 2×(−2) = −4 → negative, so increase w",
+      "At w = 3: E' = 0 → flat, the minimum"
+    ],
+    "result": "The derivative pointed us to w = 3 from either side. Gradient descent automates exactly this."
+  },
+  "mistakes": [
+    "Confusing the value of a function with its slope: a high error can have a small slope (a flat plateau).",
+    "Thinking derivative = 0 always means minimum. It can also be a maximum or a saddle point."
+  ],
+  "takeaways": [
+    "Derivative = slope = rate of change",
+    "Positive slope → move left to go down; negative slope → move right",
+    "Slope zero → flat point (often the minimum we want)"
+  ],
+  "check": [
+    {
+      "q": "Derivative of f(x) = x² at x = 4?",
+      "options": [
+        "4",
+        "8",
+        "16",
+        "2"
+      ],
+      "answer": 1,
+      "why": "f'(x) = 2x, so 2×4 = 8."
+    },
+    {
+      "q": "At the current weight the derivative of the error is −2. To reduce the error you should…",
+      "options": [
+        "Decrease the weight",
+        "Increase the weight",
+        "Stop training",
+        "Square the weight"
+      ],
+      "answer": 1,
+      "why": "Negative slope means the error falls as the weight increases."
+    }
+  ],
+  "practice": {
+    "code": "import sympy as sp                # symbolic maths\nw = sp.symbols('w')\nE = (w - 3)**2\nprint(sp.diff(E, w))              # 2*w - 6"
+  },
+  "chapterMinutes": 15
+}

@@ -1,0 +1,481 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "A new customer walks into a car showroom in Pune. The salesperson has never met her, yet within two minutes has a good guess about which model she will buy. How? She looks like a few hundred customers the salesperson has served before: similar age, similar budget, arrived with a family, asked about boot space. \"People like her usually buy the SUV.\" That everyday habit of judging a new case by the most similar past cases is exactly what **k-Nearest Neighbours** does, with a calculator instead of a hunch.",
+  "sections": [
+    {
+      "heading": "The problem: predicting a label from similar past cases",
+      "blocks": [
+        {
+          "p": "Many business questions have the same shape. We have a history of past cases, each described by a few numbers and each with a known outcome. Now a new case arrives and we want to predict its outcome before it happens. Will this telecom customer leave next month? Will this loan applicant repay? Is this transaction fraud?"
+        },
+        {
+          "term": "Classification",
+          "def": "Predicting which category (class) something belongs to, such as \"churn\" or \"stay\", \"fraud\" or \"genuine\". The answer is a label, not a number."
+        },
+        {
+          "term": "Feature",
+          "def": "One measurable description of a case, such as monthly bill, age or number of complaints. A case is described by a list of features."
+        },
+        {
+          "term": "Training data",
+          "def": "The past cases where we already know the correct label. The model learns from them."
+        },
+        {
+          "p": "Most classifiers try to boil the training data down into a formula or a set of rules. k-Nearest Neighbours (k-NN for short) refuses to do that. It keeps every past case and, when a new one arrives, simply asks: **which past cases are most similar to this one, and what happened to them?**"
+        },
+        {
+          "p": "This makes k-NN the most intuitive classifier there is. It is also a useful baseline: if a fancy model cannot beat \"look at similar customers\", something is wrong with the fancy model."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "satisfaction score (0–10)",
+            "yLabel": "monthly bill (₹ hundred)",
+            "caption": "Past telecom customers: blue churned, red stayed. The churners cluster on the left (low satisfaction). A new customer landing among them would, by k-NN logic, probably churn too.",
+            "points": [
+              [
+                2,
+                8,
+                0
+              ],
+              [
+                3,
+                6,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                1.5,
+                4,
+                0
+              ],
+              [
+                2.5,
+                3,
+                0
+              ],
+              [
+                3.5,
+                7.5,
+                0
+              ],
+              [
+                7,
+                2,
+                1
+              ],
+              [
+                8,
+                3,
+                1
+              ],
+              [
+                6,
+                7,
+                1
+              ],
+              [
+                4,
+                9,
+                1
+              ],
+              [
+                8.5,
+                6,
+                1
+              ],
+              [
+                7.5,
+                8,
+                1
+              ],
+              [
+                9,
+                4.5,
+                1
+              ],
+              [
+                6.5,
+                4,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: ask the neighbours",
+      "blocks": [
+        {
+          "p": "Imagine you have just moved to a new city and want to know whether a restaurant is any good. You do not build a statistical model of restaurants. You ask the five people whose taste is closest to yours and go with the majority. If four of them loved it, you will probably love it too."
+        },
+        {
+          "steps": [
+            "**Remember everyone.** You know many people and what they thought of many restaurants.",
+            "**Find the people most like you.** Similar taste, similar budget, similar love of spice.",
+            "**Choose how many to ask.** Ask one friend and you are at the mercy of their odd moods. Ask fifty and you are back to the general public's opinion.",
+            "**Take a vote.** The majority opinion among your closest matches is your prediction."
+          ],
+          "title": "The neighbour-vote recipe"
+        },
+        {
+          "p": "That is the whole algorithm. The \"people like you\" are the nearest neighbours, \"how many to ask\" is the number **k**, and \"most like you\" is measured by a distance between feature lists."
+        },
+        {
+          "term": "Nearest neighbours",
+          "def": "The training cases closest to the new case when we measure distance using their features."
+        },
+        {
+          "think": {
+            "q": "Why might asking only your single most similar friend (k = 1) give you a worse answer than asking five?",
+            "a": "Any single person can be unusual: maybe they had one bad night at that restaurant. Asking five averages out these one-off quirks. Asking too many, though, brings in people whose taste is nothing like yours. That tension is the heart of choosing k."
+          }
+        },
+        {
+          "callout": "k-NN has no training step. It just stores the data. All the work happens at prediction time, which is why it is called a **lazy learner**.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Store** all training cases (after scaling)",
+              "New case arrives: **measure distance** to every stored case",
+              "**Sort** by distance and keep the k closest",
+              "**Vote**: majority label wins",
+              "Report label and **vote share** as a probability"
+            ],
+            "caption": "The k-NN prediction loop. Nothing is learned in advance; every prediction compares the new case with the stored history."
+          }
+        },
+        {
+          "p": "**Step 1: Scale the features.** Put every feature on a comparable scale, usually by **standardising** it. We will see in a worked example why skipping this ruins everything."
+        },
+        {
+          "term": "Standardising",
+          "def": "Rescaling a feature by subtracting its average and dividing by its standard deviation, so every feature has average 0 and a typical spread of 1. Income in rupees and age in years then become comparable."
+        },
+        {
+          "p": "**Step 2: Measure distance.** For the new case, compute its distance to every training case. The usual choice is the ordinary straight-line (Euclidean) distance, the one you would measure with a ruler on a chart."
+        },
+        {
+          "p": "**Step 3: Pick the k closest.** Sort the distances from smallest to largest and keep the first k cases."
+        },
+        {
+          "p": "**Step 4: Vote.** Count the labels among those k neighbours. The most common label is the prediction. The share of votes (say 3 out of 5) doubles as a rough probability. For predicting a number instead of a label, average the neighbours' values instead of voting."
+        },
+        {
+          "p": "A popular refinement is the **distance-weighted vote**: closer neighbours count more than farther ones, typically with weight 1 ÷ distance. In scikit-learn this is `weights=\"distance\"`."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "There are only two formulas in k-NN: one for distance, one for the vote."
+        },
+        {
+          "tex": "d(x, z) = \\sqrt{\\sum_{j=1}^{p} (x_j - z_j)^2}",
+          "plain": "For each feature, take the difference between the two cases, square it, add all the squares up, then take the square root. With two features this is Pythagoras' theorem.",
+          "symbols": [
+            [
+              "x, z",
+              "the two cases being compared"
+            ],
+            [
+              "p",
+              "the number of features"
+            ],
+            [
+              "x_j",
+              "the value of feature j for case x"
+            ]
+          ]
+        },
+        {
+          "p": "Why square the differences? Squaring makes every difference positive (being ₹200 below or above counts the same) and lets a large gap in one feature count heavily. The square root at the end brings the result back to the original units."
+        },
+        {
+          "term": "Euclidean distance",
+          "def": "The straight-line distance between two points, computed with the formula above. Other options exist, such as Manhattan distance (add absolute differences, like walking city blocks)."
+        },
+        {
+          "tex": "\\hat{y} = \\arg\\max_{c} \\sum_{i \\in N_k(x)} \\mathbf{1}[y_i = c]",
+          "plain": "Look at the k nearest neighbours of x. For each class c, count how many of them have that label. Predict the class with the biggest count.",
+          "symbols": [
+            [
+              "\\hat{y}",
+              "the predicted label"
+            ],
+            [
+              "N_k(x)",
+              "the set of the k nearest training cases to x"
+            ],
+            [
+              "\\mathbf{1}[y_i = c]",
+              "1 if neighbour i has label c, otherwise 0"
+            ],
+            [
+              "\\arg\\max_c",
+              "\"the class c that makes this largest\""
+            ]
+          ]
+        },
+        {
+          "tex": "P(c \\mid x) \\approx \\frac{1}{k} \\sum_{i \\in N_k(x)} \\mathbf{1}[y_i = c]",
+          "plain": "The estimated probability of class c is just the fraction of the k neighbours that belong to c."
+        },
+        {
+          "callout": "With k = 5 the only possible probabilities are 0, 0.2, 0.4, 0.6, 0.8 and 1. k-NN probabilities are coarse, which matters if you need to rank customers finely.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Will this telecom customer churn?",
+            "setup": "Seven past customers, described by satisfaction score (0–10) and monthly bill (₹ hundred). Both features already sit on similar 0–10 scales. A (2, 8) churned, B (3, 6) churned, C (7, 2) stayed, D (8, 3) stayed, E (5, 5) churned, F (6, 7) stayed, G (4, 9) stayed. New customer Q = (4, 6).",
+            "steps": [
+              "Distance to B: √((3−4)² + (6−6)²) = √1 = 1.00.",
+              "Distance to E: √((5−4)² + (5−6)²) = √2 ≈ 1.41. To F: √(2² + 1²) = √5 ≈ 2.24. To A: √(2² + 2²) = √8 ≈ 2.83. To G: √(0² + 3²) = 3.00. To C and D: √25 = 5.00 each.",
+              "Sorted: B (churn), E (churn), F (stay), A (churn), G (stay), then C and D (stay).",
+              "k = 1: only B votes → predict churn.",
+              "k = 3: B, E churn; F stays → 2 votes to 1 → churn, probability 2/3 ≈ 0.67.",
+              "k = 5: B, E, A churn; F, G stay → 3 to 2 → churn, probability 0.6.",
+              "k = 7 (everyone): 3 churn, 4 stay → predict stay."
+            ],
+            "result": "For sensible k the answer is churn, but with k = 7 the far-away loyal customers outvote the close churners. Too large a k drowns local evidence in the overall majority."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "satisfaction score",
+            "yLabel": "monthly bill (₹ hundred)",
+            "caption": "The worked example. Blue churned, red stayed, green is the new customer Q at (4, 6). Its three nearest neighbours are B, E and F; two of the three churned.",
+            "points": [
+              [
+                2,
+                8,
+                0
+              ],
+              [
+                3,
+                6,
+                0
+              ],
+              [
+                7,
+                2,
+                1
+              ],
+              [
+                8,
+                3,
+                1
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                7,
+                1
+              ],
+              [
+                4,
+                9,
+                1
+              ],
+              [
+                4,
+                6,
+                2
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "A distance-weighted vote",
+            "setup": "Same customer Q with k = 5, but each neighbour now votes with weight 1 ÷ distance.",
+            "steps": [
+              "Churn weights: B = 1/1.00 = 1.000, E = 1/1.41 ≈ 0.707, A = 1/2.83 ≈ 0.354. Total ≈ 2.061.",
+              "Stay weights: F = 1/2.24 ≈ 0.447, G = 1/3.00 ≈ 0.333. Total ≈ 0.781.",
+              "Weighted churn share = 2.061 / (2.061 + 0.781) ≈ 0.73."
+            ],
+            "result": "The plain vote said 0.6; the weighted vote says about 0.73, because the two closest neighbours both churned. Weighting rewards closeness and makes the answer less sensitive to the exact choice of k."
+          }
+        },
+        {
+          "example": {
+            "title": "Why scaling is mandatory: a bank cross-sell (illustrative)",
+            "setup": "A bank predicts whether a customer will accept a credit-card offer from annual income (₹) and number of products already held. New customer: ₹6,00,000 income, 1 product. Neighbour X: ₹6,10,000, 5 products. Neighbour Y: ₹6,60,000, 1 product.",
+            "steps": [
+              "Unscaled distance to X: √(10,000² + 4²) ≈ 10,000.0008. To Y: √(60,000² + 0²) = 60,000.",
+              "So X looks six times closer, even though X holds five products and our customer holds one. The 4-product gap adds only 0.0008 to the distance.",
+              "Standardise with income SD ₹2,00,000 and products SD 1.5. X: income gap 10,000/2,00,000 = 0.05, products gap 4/1.5 ≈ 2.67, distance ≈ 2.67.",
+              "Y: income gap 60,000/2,00,000 = 0.30, products gap 0, distance 0.30."
+            ],
+            "result": "After scaling, Y is clearly the closer, more relevant neighbour. Without scaling, whichever feature has the biggest numbers silently decides everything."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing k and other settings",
+      "blocks": [
+        {
+          "p": "k is the one setting that matters most. It controls a trade-off you will meet in every model: following the data closely versus smoothing out noise."
+        },
+        {
+          "term": "Bias–variance trade-off",
+          "def": "A flexible model follows every wiggle in the training data (low bias, high variance: it changes a lot with new data). A rigid model is stable but misses real patterns (high bias, low variance). Good models sit in between."
+        },
+        {
+          "bullets": [
+            "**Small k (1–3):** the boundary between classes is jagged and bends around single noisy points. Training accuracy looks wonderful; test accuracy disappoints.",
+            "**Large k:** the boundary becomes smooth. Too large, and the model just predicts the majority class everywhere.",
+            "**Odd k for two classes** avoids tied votes.",
+            "**Choose k by cross-validation:** try k = 1, 3, 5 … 51, measure accuracy on held-out data, and pick the best."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "k=1",
+              "k=3",
+              "k=5",
+              "k=9",
+              "k=15",
+              "k=31",
+              "k=61"
+            ],
+            "values": [
+              84,
+              88,
+              90,
+              91,
+              90,
+              87,
+              82
+            ],
+            "highlight": 3,
+            "yLabel": "validation accuracy %",
+            "caption": "A typical validation curve (illustrative). Accuracy rises as k grows from 1 because noise is averaged out, peaks around k = 9, then falls as distant, irrelevant neighbours join the vote."
+          }
+        },
+        {
+          "p": "Two other choices matter. The **distance measure**: Euclidean is the default; Manhattan can be more robust when some features have occasional large jumps. And the **weighting**: uniform votes or distance-weighted votes. Both can be tuned by cross-validation together with k."
+        }
+      ]
+    },
+    {
+      "heading": "k-NN in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Similar-customer churn alerts at a telecom operator (illustrative)",
+            "story": "A mobile operator in India wants its retention team to call customers at risk of leaving. Each customer is described by standardised features: tenure, data usage trend, recharge gaps, dropped-call complaints and plan price. For each active customer, k-NN with k = 15 finds the most similar customers from last year and reports the share who left. Customers with a churn share above 0.6 go on the call list, and the agent sees the reason in plain language: \"11 of the 15 most similar customers left within two months\". Agents trust the list because it is explainable. The team later moves to gradient boosting for accuracy but keeps k-NN's \"similar customers\" view as an explanation screen."
+          }
+        },
+        {
+          "bullets": [
+            "**Recommendations:** \"customers similar to you bought…\" is a nearest-neighbour idea at heart.",
+            "**Vector search in AI assistants:** retrieval systems find the stored text chunks whose embeddings are nearest to a question. That is k-NN on embeddings.",
+            "**Manufacturing quality:** compare a new batch's sensor profile with past batches; if its nearest neighbours were rejects, inspect it.",
+            "**Missing-value filling:** `KNNImputer` fills a gap with the average of the most similar rows."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Forgetting to scale.** The single most common k-NN bug, as the bank example showed.",
+            "**Slow predictions on big data.** Each prediction compares with every stored case: one million customers × 20 features is 20 million calculations per prediction. Tree indexes (`algorithm=\"kd_tree\"`) or approximate search libraries help.",
+            "**The curse of dimensionality.** With hundreds of features, every point ends up roughly equally far from every other, so \"nearest\" stops meaning \"similar\". Reduce features first (feature selection or PCA).",
+            "**Irrelevant features add noise.** A random column like customer ID number still adds to distances. k-NN cannot ignore it; you must remove it.",
+            "**Imbalanced classes.** If 95% of cases are \"genuine\", most neighbourhoods are dominated by them and rare fraud gets outvoted. Use distance weighting, resampling or a different model."
+          ]
+        },
+        {
+          "term": "Curse of dimensionality",
+          "def": "The collection of problems that appear when data has many features: space becomes so vast that points are sparse and distances lose their meaning."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "k-NN works well when…",
+              "items": [
+                "Few features (roughly under 20), all relevant",
+                "Features are numeric and scaled",
+                "Dataset is small to medium",
+                "Boundaries are irregular and local",
+                "You want \"similar cases\" explanations"
+              ]
+            },
+            "right": {
+              "title": "Choose something else when…",
+              "items": [
+                "Many features or text → **logistic regression** or **Naive Bayes**",
+                "Need fast predictions on millions of rows → **trees** or **linear models**",
+                "Need top tabular accuracy → **gradient boosting**",
+                "Need readable rules → **decision tree**",
+                "Heavy class imbalance → weighted models"
+              ]
+            },
+            "caption": "k-NN is a great first baseline and explanation tool, rarely the final production model for large data."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does k-NN learn anything during training?",
+      "a": "Not really. Training just stores the (scaled) data. All the work is done when you ask for a prediction, which is why it is called a lazy learner."
+    },
+    {
+      "q": "How do I choose k?",
+      "a": "By cross-validation. Try a range of odd values, measure held-out accuracy, and pick the best. A common starting guess is around the square root of the number of training rows, but always validate."
+    },
+    {
+      "q": "Can k-NN handle categorical features like city?",
+      "a": "Not directly, because distance needs numbers. You can one-hot encode categories, but they then add equal-sized jumps to distances, which may not reflect real similarity. Trees often handle such data more naturally."
+    },
+    {
+      "q": "Is k-NN the same as k-means?",
+      "a": "No. They only share the letter k. k-NN is supervised classification where k is the number of neighbours that vote. K-means is unsupervised clustering where k is the number of groups."
+    },
+    {
+      "q": "Can k-NN predict numbers, such as a house price?",
+      "a": "Yes. `KNeighborsRegressor` averages the neighbours' values instead of voting. The same advice about scaling and choosing k applies."
+    },
+    {
+      "q": "Why is my k = 1 model 100% accurate on training data?",
+      "a": "Because each training point's nearest neighbour is itself. That number is meaningless; always judge k-NN on data it has not seen."
+    }
+  ]
+}

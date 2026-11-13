@@ -1,0 +1,413 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A lending team builds a default-prediction model and celebrates: 99% accuracy on the test set. Three months after launch it performs no better than guessing. The post-mortem finds the culprit in the data, not the algorithm: one column was only filled in after a loan had already gone bad. **Data cleaning** is the unglamorous work of finding such problems, along with gaps, duplicates and typos, before they silently ruin a model.",
+  "sections": [
+    {
+      "heading": "The problem: real data is messy",
+      "blocks": [
+        {
+          "p": "Data collected by real systems and real people is never tidy. Forms are left blank, the same customer is entered twice, someone types 250 into the age field, a sensor reports -999 when it loses power, and a column that looks useful turns out to be recorded after the event you want to predict."
+        },
+        {
+          "term": "Data cleaning",
+          "def": "Finding and fixing problems in a dataset (missing values, duplicates, impossible values, inconsistent formats, leaked information) so that analysis and models reflect reality."
+        },
+        {
+          "p": "Models cannot tell a typo from a fact. They learn whatever is in the table. That is why the saying \"garbage in, garbage out\" is repeated so often, and why practitioners commonly report that preparing data takes more of a project than modelling does."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "cust_id",
+              "age",
+              "city",
+              "income (₹ L)",
+              "Problem"
+            ],
+            "rows": [
+              [
+                "101",
+                "34",
+                "Chennai",
+                "12",
+                "Clean"
+              ],
+              [
+                "102",
+                "",
+                "Pune",
+                "9",
+                "Missing age"
+              ],
+              [
+                "103",
+                "250",
+                "Mumbai",
+                "15",
+                "Impossible age"
+              ],
+              [
+                "104",
+                "41",
+                "chennai ",
+                "-999",
+                "Inconsistent text; code for unknown"
+              ],
+              [
+                "101",
+                "34",
+                "Chennai",
+                "12",
+                "Duplicate of first row"
+              ]
+            ],
+            "caption": "Five rows, five kinds of trouble. Each one would silently distort averages and models if left untreated."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: washing vegetables",
+      "blocks": [
+        {
+          "p": "A good cook does not throw vegetables straight from the market into the pot. They wash off the soil, pick out the bruised pieces, check nothing foreign is mixed in, and make sure they have the right quantities. Skip that step and no recipe, however clever, will save the dish."
+        },
+        {
+          "steps": [
+            "**Look before you cut.** Inspect what arrived: how much, what condition. In data: profile every column.",
+            "**Remove what does not belong.** A stone in the lentils. In data: duplicates and impossible values.",
+            "**Decide what to do with the imperfect.** A slightly bruised tomato can be trimmed; a rotten one goes. In data: fill some gaps, flag others, drop a few rows.",
+            "**Check the ingredient is the right one.** Coriander, not parsley. In data: make sure every feature would truly be known at the moment of prediction."
+          ],
+          "title": "The kitchen routine"
+        },
+        {
+          "callout": "Cleaning is not about making data look perfect. It is about making it **honest**: every fix should move the table closer to the real world, and every fix should be written down.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How to clean data, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Profile**: types, missing counts, ranges",
+              "**Fix formats**: numbers, dates, text",
+              "**Remove duplicates** on business keys",
+              "**Treat missing values and outliers**",
+              "**Check for leakage**, then split and fit"
+            ],
+            "caption": "A dependable cleaning order. Fitting any statistic, such as a median for filling gaps, happens on training data only."
+          }
+        },
+        {
+          "p": "**Step 1: Profile.** `df.info()`, `df.describe()` and `df.isna().sum()` show types, ranges and gaps. `value_counts()` on text columns reveals spelling variants."
+        },
+        {
+          "p": "**Step 2: Fix formats.** Convert text to numbers (`pd.to_numeric`), parse dates (`pd.to_datetime`), and standardise text (`str.strip().str.title()` turns \"chennai \" into \"Chennai\"). Replace special codes like -999 or 9999 with proper missing values."
+        },
+        {
+          "p": "**Step 3: Duplicates.** `df.duplicated(subset=\"cust_id\").sum()` counts repeats of a business key. Decide which copy to keep (often the latest) and drop the rest."
+        },
+        {
+          "p": "**Step 4: Missing values and outliers.** Decide column by column, using the rules in the next sections."
+        },
+        {
+          "term": "Missing value",
+          "def": "A cell with no recorded value. pandas shows it as NaN (or NaT for dates). It may mean \"unknown\", \"not applicable\" or \"zero\", and those are very different."
+        },
+        {
+          "term": "Imputation",
+          "def": "Filling a missing value with a sensible estimate, such as the column's median or most frequent value, so the row can still be used."
+        },
+        {
+          "p": "**Step 5: Leakage check, then split.** For every column ask, \"Would I know this value at the moment I make the prediction?\" Then split into training and test sets, and fit any imputer on the training set only."
+        },
+        {
+          "term": "Data leakage",
+          "def": "When information that would not be available at prediction time sneaks into the training data, making test results look far better than real-world performance."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly: medians, fences and z-scores",
+      "blocks": [
+        {
+          "p": "Three small formulas do most of the numeric work in cleaning. Each has a reason for being there."
+        },
+        {
+          "tex": "\\text{missing rate} = \\frac{\\text{number of missing cells in a column}}{\\text{number of rows}}",
+          "plain": "The share of a column that is empty. A rough guide: under 5% is usually safe to impute; 5–40% needs thought and often a \"was missing\" flag; above that, ask whether the column is usable at all."
+        },
+        {
+          "p": "**Why the median for filling gaps?** The median is the middle value when the data is sorted, so a few extreme values cannot drag it. The mean adds every value, so one billionaire moves it a lot. For skewed columns like income, the median is the safer fill."
+        },
+        {
+          "term": "Outlier",
+          "def": "A value far from most of the others. It can be an error (age 250), a code (-999), or a real and important rare case (a fraudulent transaction). It is a reason to investigate, not automatically to delete."
+        },
+        {
+          "term": "Quartiles and IQR",
+          "def": "Sort the values and cut them into four equal parts. Q1 has 25% of values below it, Q3 has 75% below it. The interquartile range (IQR) is Q3 − Q1, the width of the middle half of the data."
+        },
+        {
+          "tex": "x < Q_1 - 1.5\\,\\text{IQR} \\quad \\text{or} \\quad x > Q_3 + 1.5\\,\\text{IQR}",
+          "plain": "The IQR rule flags values that sit far outside the middle half of the data. Because quartiles, like the median, are not dragged by extremes, the rule still works when the outliers themselves are large.",
+          "symbols": [
+            [
+              "Q_1, Q_3",
+              "the 25th and 75th percentiles"
+            ],
+            [
+              "\\text{IQR}",
+              "Q3 − Q1, the width of the middle half"
+            ]
+          ]
+        },
+        {
+          "term": "Standard deviation and z-score",
+          "def": "The standard deviation measures the typical distance of values from their mean. A z-score expresses one value as \"how many standard deviations above or below the mean\" it sits."
+        },
+        {
+          "tex": "z = \\frac{x - \\bar{x}}{s}",
+          "plain": "The z-score measures how many standard deviations a value is from the mean. A common rule flags |z| > 3. But the mean and standard deviation are themselves inflated by outliers, so in small samples this rule can miss the very value it should catch, as the second worked example shows.",
+          "symbols": [
+            [
+              "\\bar{x}",
+              "the column mean"
+            ],
+            [
+              "s",
+              "the column standard deviation"
+            ]
+          ]
+        },
+        {
+          "think": {
+            "q": "Why might \"was this value missing?\" be a useful feature in itself?",
+            "a": "Because missingness often carries information. Applicants who leave income blank may be self-employed; patients with no recorded test may be the healthy ones who were never tested. A 0/1 \"was missing\" flag lets the model use that signal."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Mean or median? Filling missing incomes",
+            "setup": "Seven loan applicants' annual incomes in ₹ lakh: 6, 8, missing, 9, 12, missing, 95. The 95 belongs to a business owner and has been verified.",
+            "steps": [
+              "Observed values: 6, 8, 9, 12, 95 (five values).",
+              "Mean = (6 + 8 + 9 + 12 + 95) / 5 = 130 / 5 = ₹26 lakh.",
+              "Median = middle of the sorted five = ₹9 lakh.",
+              "Filling with the mean claims both unknown applicants earn ₹26 lakh, more than four of the five known applicants. Filling with the median gives ₹9 lakh, a typical value.",
+              "Also add a column income_missing = 1 for those two rows, 0 otherwise, so the model can learn whether missing income itself predicts risk."
+            ],
+            "result": "Use the median for skewed money columns, and keep a missing-flag. One verified high earner made the mean almost three times the median."
+          }
+        },
+        {
+          "example": {
+            "title": "Spotting a faulty sensor reading",
+            "setup": "Ten spindle temperatures (°C) from a CNC machine: 62, 63, 64, 64, 65, 66, 67, 68, 71, 140.",
+            "steps": [
+              "Quartiles: Q1 = 64, median = 65.5, Q3 = 67.75. IQR = 3.75.",
+              "Upper fence = 67.75 + 1.5 × 3.75 = 73.375. The reading 140 is far above it → flagged.",
+              "z-score check: mean = 73.0, standard deviation (pandas default) ≈ 23.7. z for 140 = (140 − 73) / 23.7 ≈ 2.83, below the usual cut-off of 3 → not flagged!",
+              "Why: the 140 itself inflated the standard deviation from under 3 to 23.7, hiding itself. With only ten values, no point can even reach z = 3 under this formula.",
+              "Investigation: the maintenance log shows a sensor reconnection at that moment. Replace 140 with missing and impute or interpolate."
+            ],
+            "result": "Quartile-based rules are robust to the outliers they are hunting; mean-based z-scores can be fooled, especially in small samples."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "62",
+              "63",
+              "64",
+              "64",
+              "65",
+              "66",
+              "67",
+              "68",
+              "71",
+              "140"
+            ],
+            "values": [
+              62,
+              63,
+              64,
+              64,
+              65,
+              66,
+              67,
+              68,
+              71,
+              140
+            ],
+            "highlight": 9,
+            "yLabel": "°C",
+            "caption": "The ten temperature readings. Nine sit between 62 and 71 °C; the last is roughly double. The IQR fence at 73.4 °C catches it; a z > 3 rule does not."
+          }
+        },
+        {
+          "example": {
+            "title": "Cleaning a loan file before modelling (illustrative)",
+            "setup": "An NBFC has 10,000 past personal-loan applications with a default label. Profiling shows: income missing in 600 rows, 150 repeated application IDs, and a column \"days_past_due\".",
+            "steps": [
+              "Missing rate for income = 600 / 10,000 = 6%. Most blanks are self-employed applicants, so the gaps are not random: add income_missing and impute the median (fitted on training rows only).",
+              "Duplicates: 150 repeated IDs come from re-submitted forms. Keep the latest of each: 10,000 − 150 = 9,850 rows remain.",
+              "Leakage: days_past_due is only filled after repayments begin, that is, after the outcome starts. It must be removed.",
+              "Re-train: test accuracy falls from a suspicious 99% to a believable 82%."
+            ],
+            "result": "The lower score is good news: it is an honest estimate of how the model will perform on new applicants."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Why is it missing? Leakage and other judgement calls",
+      "blocks": [
+        {
+          "p": "Before filling a gap, ask why it exists. Statisticians distinguish three situations, and the right treatment depends on which one you face."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Type",
+              "Meaning",
+              "Example",
+              "Typical treatment"
+            ],
+            "rows": [
+              [
+                "Completely at random",
+                "Gaps unrelated to anything",
+                "A form page lost in scanning",
+                "Simple imputation or drop rows"
+              ],
+              [
+                "At random (given other columns)",
+                "Gaps explained by recorded data",
+                "Older customers skip the email field",
+                "Impute using other columns"
+              ],
+              [
+                "Not at random",
+                "Gaps depend on the missing value itself",
+                "High earners decline to state income",
+                "Add a missing flag; get better data"
+              ]
+            ],
+            "caption": "The three kinds of missingness, from easiest to hardest. The last is common in business data and cannot be fixed by imputation alone."
+          }
+        },
+        {
+          "p": "**Leakage hunting.** Leakage rarely looks suspicious; it looks helpful. Warning signs: a single feature that predicts almost perfectly, test scores far above what experts expected, or a column whose name mentions an outcome (\"collections\", \"discharge\", \"refund_status\"). Ask for every column when, in the real process, its value becomes known."
+        },
+        {
+          "bullets": [
+            "**Target leakage:** the feature is a consequence of the outcome, such as days past due in a default model.",
+            "**Train-test contamination:** statistics such as the median or scaling parameters computed on all data, including the test rows. Fix it by splitting first and using scikit-learn pipelines.",
+            "**Time leakage:** using future information, like next month's price, to predict this month's demand."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Data cleaning in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Merging plant data at a component maker (illustrative)",
+            "story": "A manufacturer with three plants wants one model for scrap rate. Plant A logs temperature in Celsius, plant B in Fahrenheit; plant C records shift as \"1/2/3\" while the others use \"Morning/Evening/Night\". Plant B's machine IDs have a trailing space, so a join to the machine master silently drops many of its rows. Each plant also uses 0 to mean \"sensor offline\". After converting units, mapping shift codes, stripping IDs and turning the zeros into missing values with a flag, the merged table recovers the lost rows, and the scrap model's errors are no longer concentrated in plant B."
+          }
+        },
+        {
+          "bullets": [
+            "**Retail:** returns recorded as negative quantities must be separated from sales before forecasting demand.",
+            "**Banking:** the same customer under slightly different names across branches needs record matching before any customer-level model.",
+            "**Healthcare:** lab values in different units (mg/dL vs mmol/L) must be converted before comparison.",
+            "**Surveys:** \"prefer not to say\" should become its own category, not a missing value."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Dropping rows or columns",
+              "items": [
+                "Simple and transparent",
+                "Fine when gaps are few and random",
+                "Loses information; can shrink data fast",
+                "Biased if missingness is not random"
+              ]
+            },
+            "right": {
+              "title": "Imputing values",
+              "items": [
+                "Keeps every row",
+                "Median or most-frequent is a solid default",
+                "KNNImputer or IterativeImputer use other columns",
+                "Must be fitted on training data only"
+              ]
+            },
+            "caption": "Neither choice is always right. Dropping every row with any blank can quietly throw away half a dataset; imputing without a flag can hide a useful signal."
+          }
+        },
+        {
+          "bullets": [
+            "**Cleaning before splitting.** Computing medians or caps on all data leaks test information. Split first; put imputers inside a pipeline.",
+            "**Deleting real outliers.** In fraud or failure prediction, the extreme cases are the whole point.",
+            "**Undocumented fixes.** Every change should live in code, so it can be reviewed and rerun on new data.",
+            "**Cleaning data the model will never see clean.** If production data will contain -999, the same cleaning code must run in production too."
+          ]
+        },
+        {
+          "callout": "The best cleaning is upstream: a drop-down list instead of free text, a mandatory field, a unit stated on the form. Feed issues back to the data owners so next month's file is cleaner.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I just drop rows with missing values?",
+      "a": "Only if few rows are affected and the gaps look random. `df.dropna()` drops a row if any column is blank, which can remove a large share of data across many columns. Imputing with a missing-flag is often better."
+    },
+    {
+      "q": "Mean, median or mode for filling gaps?",
+      "a": "Median for numeric columns, especially skewed ones like income or price. Mean only for symmetric data without outliers. Most frequent value (mode) for categories, or a new \"Unknown\" category."
+    },
+    {
+      "q": "How do I know if an outlier is an error?",
+      "a": "Check whether it is physically possible, look at the original record or source system, and ask the people who produce the data. Impossible values are errors; rare but possible values usually stay."
+    },
+    {
+      "q": "What is the simplest way to avoid leakage?",
+      "a": "Two habits: for every feature, confirm it is known at prediction time; and split the data before any fitting, doing all imputation and scaling inside a scikit-learn Pipeline."
+    },
+    {
+      "q": "Can tree models handle missing values on their own?",
+      "a": "Some can. scikit-learn's HistGradientBoosting models, XGBoost and LightGBM accept NaN directly and learn which branch missing values should follow. Many other models, such as linear regression, raise an error."
+    },
+    {
+      "q": "How clean is clean enough?",
+      "a": "When remaining problems no longer change your conclusions or model scores in a meaningful way. Perfect data does not exist; honest, documented data does."
+    }
+  ]
+}

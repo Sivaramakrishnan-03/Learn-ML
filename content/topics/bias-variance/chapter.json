@@ -1,0 +1,406 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "Two analysts forecast quarterly sales for a car-parts supplier. The first draws a straight line through ten years of data and is always a bit wrong, in the same direction, every festive season. The second builds an elaborate model that matches every past wiggle perfectly, then misses the next quarter by a mile. Both have failed, in opposite ways. The **bias–variance trade-off** names these two failures and explains why the best model sits between them.",
+  "sections": [
+    {
+      "heading": "The problem: too simple or too clever",
+      "blocks": [
+        {
+          "p": "Every model has a level of **complexity**: how many patterns, bends and exceptions it is allowed to learn. A straight line is simple. A decision tree that asks thirty questions in a row is complex. Picking the right complexity is the single most common decision in machine learning, and it is where most models go wrong."
+        },
+        {
+          "term": "Model complexity",
+          "def": "How flexible a model is: how many shapes it can bend into. More features, deeper trees, higher-degree curves and more neural network layers all mean more complexity."
+        },
+        {
+          "p": "A model that is too simple misses real patterns. It is wrong on the data it learned from and wrong on new data, in a consistent way. A model that is too complex learns the real patterns **and** the accidental noise in its particular training sample. It looks brilliant on the past and disappoints on the future."
+        },
+        {
+          "term": "Underfitting",
+          "def": "The model is too simple to capture the real pattern. Errors are high on training data and on test data alike."
+        },
+        {
+          "term": "Overfitting",
+          "def": "The model has memorised quirks of the training data that do not repeat. Training error is very low, but test error is much higher."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "years of service of a machine",
+            "yLabel": "annual maintenance cost (₹ thousand)",
+            "line": {
+              "m": 5.47,
+              "b": -10.67
+            },
+            "caption": "Underfitting in a picture. Maintenance cost rises faster and faster with age (a curve), but a straight line is forced through it. Notice the pattern of misses: the line is too low at both ends and too high in the middle. Misses that follow a pattern are the signature of bias.",
+            "points": [
+              [
+                1,
+                1.2
+              ],
+              [
+                2,
+                2.1
+              ],
+              [
+                3,
+                4.8
+              ],
+              [
+                4,
+                8.3
+              ],
+              [
+                5,
+                12.1
+              ],
+              [
+                6,
+                18.4
+              ],
+              [
+                7,
+                24.2
+              ],
+              [
+                8,
+                32.5
+              ],
+              [
+                9,
+                40.1
+              ],
+              [
+                10,
+                50.6
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the tailor and the dartboard",
+      "blocks": [
+        {
+          "p": "Picture a tailor making clothes. One tailor sells a single **one-size-fits-all** shirt. It never fits anyone well: too loose on some, too tight on others, and always wrong in a predictable way. That is **bias**."
+        },
+        {
+          "p": "Another tailor measures you while you stand in one exact pose and makes a suit that fits that pose perfectly. The moment you sit down or raise an arm, it pulls and tears. Measure you on a different day and you get a noticeably different suit. That is **variance**: the result depends too much on the particular moment it was measured."
+        },
+        {
+          "p": "The good tailor makes a suit that fits your shape and still lets you move. It is not perfect in any one pose, but it is good in all of them."
+        },
+        {
+          "steps": [
+            "**Imagine training the same kind of model many times**, each time on a different random sample of past data.",
+            "**Each trained model is one dart** thrown at the bullseye, which is the true answer for some new case.",
+            "**Bias** is how far the centre of the cluster of darts is from the bullseye. A biased thrower is consistently off to one side.",
+            "**Variance** is how scattered the darts are around their own centre. A high-variance thrower is all over the board, even if they are right on average.",
+            "**The best thrower** keeps both small: darts grouped tightly and centred on the bullseye."
+          ],
+          "title": "The dartboard picture"
+        },
+        {
+          "term": "Bias",
+          "def": "Error from wrong simplifying assumptions. If you retrained the model on many different samples, bias is how far its average prediction would still be from the truth."
+        },
+        {
+          "term": "Variance",
+          "def": "Error from sensitivity to the particular training sample. It measures how much the model's predictions would change if you retrained it on different data."
+        },
+        {
+          "think": {
+            "q": "If you collect ten times more training data, which of the two errors do you expect to shrink?",
+            "a": "Mainly variance. With more data, a flexible model has less room to chase accidental noise, so its predictions vary less from sample to sample. Bias does not shrink: a straight line stays a straight line however much data you give it."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How to diagnose it, step by step",
+      "blocks": [
+        {
+          "p": "You cannot see bias and variance directly, but you can see their fingerprints by comparing two numbers: the error on training data and the error on validation or test data."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Train** the model and measure training error",
+              "**Measure** validation error on unseen rows",
+              "**Both high?** → high bias (underfitting)",
+              "**Train low, validation much higher?** → high variance (overfitting)",
+              "**Both low and close?** → good fit"
+            ],
+            "caption": "The standard diagnosis. Two numbers, compared side by side, tell you which way to move."
+          }
+        },
+        {
+          "steps": [
+            "Decide what \"good\" error looks like for the business: a human expert's error, or the error of the current process. This is your benchmark.",
+            "Compute training error. If it is far above the benchmark, the model cannot even fit the past: **bias**.",
+            "Compute validation error. If it is far above training error, the model does not transfer: **variance**.",
+            "Fix the bigger problem first, then re-check both numbers."
+          ],
+          "title": "Diagnosis in four steps"
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Training error",
+              "Validation error",
+              "Diagnosis",
+              "First things to try"
+            ],
+            "rows": [
+              [
+                "High",
+                "High (similar)",
+                "High bias",
+                "More features, more flexible model, less regularisation"
+              ],
+              [
+                "Low",
+                "Much higher",
+                "High variance",
+                "More data, simpler model, more regularisation, ensembles"
+              ],
+              [
+                "High",
+                "Even higher",
+                "Both",
+                "Better features first, then control complexity"
+              ],
+              [
+                "Low",
+                "Low (similar)",
+                "Good fit",
+                "Confirm once on the test set"
+              ]
+            ],
+            "caption": "Read across a row: the gap between the two errors points to variance; the level of training error points to bias."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "For squared error there is an exact and beautiful result. Take one new case whose true value is y. Imagine training your model again and again on fresh samples and recording its prediction each time. The average squared error of those predictions splits into three parts."
+        },
+        {
+          "tex": "\\mathbb{E}\\big[(y - \\hat f(x))^2\\big] = \\underbrace{\\big(\\mathbb{E}[\\hat f(x)] - f(x)\\big)^2}_{\\text{Bias}^2} + \\underbrace{\\mathbb{E}\\big[(\\hat f(x) - \\mathbb{E}[\\hat f(x)])^2\\big]}_{\\text{Variance}} + \\sigma^2",
+          "plain": "Expected squared error = (how far the average prediction is from the truth)² + (how much predictions scatter around their own average) + noise that no model can remove.",
+          "symbols": [
+            [
+              "\\mathbb{E}[\\cdot]",
+              "the average over many imagined training samples"
+            ],
+            [
+              "f(x)",
+              "the true underlying value for input x"
+            ],
+            [
+              "\\hat f(x)",
+              "the model's prediction for x"
+            ],
+            [
+              "\\sigma^2",
+              "irreducible noise: randomness in y that no input explains"
+            ]
+          ]
+        },
+        {
+          "p": "Why is bias squared? Because errors in either direction are bad, and squaring treats an overestimate of 9 and an underestimate of 9 the same. Why does variance appear at all? Because you only ever get **one** training sample. If your model would give very different answers on a different sample, you are relying on luck."
+        },
+        {
+          "p": "The third term, noise, is a humbling reminder. Two customers with identical recorded details may still behave differently. No model can predict that part, so the error never reaches zero on real data."
+        },
+        {
+          "term": "Irreducible error",
+          "def": "The part of the error caused by randomness or by information you did not record. No model, however clever, can remove it."
+        },
+        {
+          "p": "The **trade-off** is this: making a model more flexible usually lowers bias and raises variance. Total error therefore falls at first, reaches a minimum, and rises again. That minimum is the sweet spot you are looking for."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "3*Math.exp(-0.35*x)+0.1",
+            "fn2": "3*Math.exp(-0.35*x)+0.2+0.03*x*x",
+            "xMin": 0,
+            "xMax": 10,
+            "marks": [
+              {
+                "x": 4.1,
+                "label": "sweet spot"
+              }
+            ],
+            "legend": [
+              "training error",
+              "validation error"
+            ],
+            "xLabel": "model complexity",
+            "yLabel": "error",
+            "caption": "Training error keeps falling as complexity grows. Validation error falls, bottoms out (here near complexity 4) and then climbs as the model starts memorising noise. Choose complexity where validation error is lowest, never where training error is lowest."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Bias and variance with real numbers",
+            "setup": "The true maintenance cost of one machine is ₹50 thousand. Three types of model are each trained on five different random samples of history and asked to predict this machine. Their predictions (₹ thousand): Model A 40, 42, 41, 39, 43. Model B 35, 65, 50, 58, 42. Model C 47, 52, 49, 51, 46.",
+            "steps": [
+              "Model A: average prediction = 205 / 5 = 41. Bias = 41 − 50 = −9, so bias² = 81. Deviations from 41 are −1, 1, 0, −2, 2; variance = (1 + 1 + 0 + 4 + 4) / 5 = 2. Total = 81 + 2 = 83.",
+              "Check Model A directly: squared misses are 100, 64, 81, 121, 49, whose average is 415 / 5 = 83. The decomposition matches.",
+              "Model B: average = 250 / 5 = 50, so bias² = 0. Deviations are −15, 15, 0, 8, −8; variance = (225 + 225 + 0 + 64 + 64) / 5 = 115.6. Total = 115.6.",
+              "Model C: average = 245 / 5 = 49, bias² = 1. Deviations are −2, 3, 0, 2, −3; variance = (4 + 9 + 0 + 4 + 9) / 5 = 5.2. Total = 6.2."
+            ],
+            "result": "A is consistently wrong (high bias), B is right on average but wildly unstable (high variance), C has a little of each and by far the lowest total error. Being unbiased is not enough; stability matters just as much."
+          }
+        },
+        {
+          "example": {
+            "title": "Three decision trees on loan data (business case, illustrative)",
+            "setup": "A lender trains decision trees of different depths to predict loan default and measures accuracy on training and validation data.",
+            "steps": [
+              "Depth 1 (one question): train 70%, validation 69%. Both low and close: **high bias**.",
+              "Depth 4: train 86%, validation 83%. Both good, small gap: **good balance**.",
+              "Depth 15: train 100%, validation 72%. A 28-point gap: **high variance**. The tree has carved out a rule for almost every individual borrower.",
+              "Choose depth 4, the depth with the best validation accuracy."
+            ],
+            "result": "The deepest tree had the best training score and the second-worst validation score. Training accuracy is not a reason to celebrate."
+          }
+        },
+        {
+          "example": {
+            "title": "Reading a straight line that underfits",
+            "setup": "Using the machine-age data in the first diagram, a straight line fitted by least squares is cost ≈ 5.47 × age − 10.67.",
+            "steps": [
+              "At age 1: actual 1.2, line gives 5.47 − 10.67 = −5.2, a miss of +6.4. The line even predicts a negative cost.",
+              "At age 5: actual 12.1, line gives 27.35 − 10.67 = 16.68, a miss of −4.6.",
+              "At age 10: actual 50.6, line gives 54.7 − 10.67 = 44.03, a miss of about +6.6.",
+              "The misses go plus, minus, plus in a smooth wave: the model is systematically wrong in a predictable shape."
+            ],
+            "result": "Patterned misses mean bias. Adding a squared-age feature (a curve) removes most of the pattern. More rows of the same data would not."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Remedies: moving along the trade-off",
+      "blocks": [
+        {
+          "p": "Once you know which problem you have, the remedies are well known. The important thing is not to apply the wrong one: adding complexity to an overfitting model makes it worse."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "To reduce bias (underfitting)",
+              "items": [
+                "Add informative features (ratios, seasonality, history)",
+                "Use a more flexible model (tree ensemble instead of a line)",
+                "Allow more depth or more polynomial terms",
+                "Reduce regularisation strength",
+                "Train longer (neural networks)"
+              ]
+            },
+            "right": {
+              "title": "To reduce variance (overfitting)",
+              "items": [
+                "Collect more training data",
+                "Use a simpler model or limit depth",
+                "Increase regularisation (Ridge, Lasso, dropout)",
+                "Average many models (bagging, random forests)",
+                "Remove noisy or irrelevant features"
+              ]
+            },
+            "caption": "Diagnose first, then pick from the matching column. The columns pull in opposite directions."
+          }
+        },
+        {
+          "term": "Regularisation",
+          "def": "A penalty added during training that discourages extreme or overly complicated fits, for example by keeping coefficients small. It deliberately adds a little bias to remove a lot of variance."
+        },
+        {
+          "p": "A useful check is the **learning curve**: plot training and validation error against the number of training rows. If the two curves have already met at a high error, more data will not help and you need a richer model. If there is still a wide gap that narrows as rows are added, more data is likely to pay off."
+        },
+        {
+          "callout": "Ensembles such as random forests are popular because they attack variance directly: averaging many high-variance trees cancels out much of their individual wobble while keeping their low bias.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Forecasting spare-parts demand at an automotive supplier (illustrative)",
+            "story": "A supplier forecasts weekly demand for 4,000 spare parts. The first model, a single average per part, has similar error on past and recent weeks but misses every seasonal peak: classic bias. The team switches to gradient boosting with 200 features and gets a near-perfect fit on history, but recent-week error rises: variance. The final model keeps 35 well-understood features (season, model-year mix of vehicles on the road, recent demand), limits tree depth, and uses early stopping. Its training and validation errors are close and both lower than the simple average. The lesson the team writes in its playbook: compare the two errors every time, and fix the larger gap first."
+          }
+        },
+        {
+          "bullets": [
+            "**Credit scoring:** regulators prefer simpler, stable models, accepting a little bias for low variance and explainability.",
+            "**Image recognition:** very large networks would overfit badly but are kept in check with huge datasets, data augmentation and regularisation.",
+            "**Marketing response models:** small campaign datasets push teams towards simpler models because variance is the bigger danger."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Judging by training error.** It always improves with complexity, so it can never tell you when to stop.",
+            "**Using the test set to choose complexity.** That leaks the test set into your decisions. Use a validation set or cross-validation.",
+            "**Believing more data fixes everything.** It mainly reduces variance. A biased model stays biased.",
+            "**Ignoring noise.** If the best possible error is high because outcomes are random, no amount of tuning will reach the target. Set expectations against a sensible benchmark.",
+            "**Treating the trade-off as a law for every model.** Very large neural networks sometimes show validation error falling again beyond the classic U-shape (often called \"double descent\"). The diagnosis by training versus validation error still applies."
+          ]
+        },
+        {
+          "callout": "The bias–variance trade-off is a way of thinking, not a single number you compute in practice. Use it to decide which direction to move, and let validation error confirm the move helped.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is overfitting or underfitting more common?",
+      "a": "With modern flexible models (trees, boosting, neural networks) and modest data, overfitting is the more common problem. With very simple models on rich data, underfitting is common."
+    },
+    {
+      "q": "How big a gap between training and validation error is too big?",
+      "a": "There is no universal cut-off. A gap of a point or two is normal. A gap that is large compared with the improvement you are trying to achieve, say 10 points of accuracy, is a strong sign of variance."
+    },
+    {
+      "q": "Can a model have high bias and high variance at the same time?",
+      "a": "Yes. A model with poor features can be both systematically wrong and unstable. Improve the features first, then control complexity."
+    },
+    {
+      "q": "Does regularisation always help?",
+      "a": "No. It reduces variance by adding bias. If the model is already underfitting, more regularisation makes it worse. Tune its strength with cross-validation."
+    },
+    {
+      "q": "Where does noise come from?",
+      "a": "From things you did not or could not measure: a customer's mood, a sudden policy change, measurement error. Better data collection can reduce it; better modelling cannot."
+    },
+    {
+      "q": "Why is it called a trade-off?",
+      "a": "Because for a fixed amount of data, the usual ways of reducing bias (more flexibility) increase variance and vice versa. You balance the two to make the total smallest."
+    }
+  ]
+}

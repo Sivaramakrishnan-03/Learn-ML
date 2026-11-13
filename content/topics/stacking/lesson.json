@@ -1,0 +1,69 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain stacking with a meta-model",
+    "Build out-of-fold predictions correctly",
+    "Judge when stacking is worth the complexity"
+  ],
+  "why": "Stacking squeezes out the last bit of accuracy by combining different model types. It is common in competitions, rarer in production because of its complexity.",
+  "explain": [
+    "Train several **diverse base models** (logistic regression, random forest, gradient boosting, k-NN).",
+    "Use their predictions as features for a **meta-model** (often logistic or ridge regression) that learns **which model to trust when**.",
+    "The base-model predictions used for training the meta-model must be **out-of-fold** (made on data each base model did not see). Otherwise the meta-model learns from overfit predictions.",
+    "**Blending** is a simpler variant using one hold-out set. Gains are typically small (0.5–2%), so weigh them against maintenance cost."
+  ],
+  "example": {
+    "title": "Credit default ensemble (AUC)",
+    "steps": [
+      "Logistic regression 0.80, random forest 0.84, LightGBM 0.86",
+      "Simple average of the three: 0.865",
+      "Stacked with a logistic meta-model: 0.871",
+      "Production decision: keep LightGBM alone (0.86) for simplicity"
+    ],
+    "result": "Stacking won, but by too little to justify three models in production. A judgement call worth making explicitly."
+  },
+  "mistakes": [
+    "Training the meta-model on in-sample predictions (leakage).",
+    "Stacking very similar models (no diversity, no gain)."
+  ],
+  "takeaways": [
+    "A meta-model combines diverse base models",
+    "Out-of-fold predictions are essential",
+    "Small gains, higher complexity"
+  ],
+  "use": [
+    "Competitions, high-value predictions where every 0.1% matters"
+  ],
+  "avoid": [
+    "When latency, maintainability or explainability matter more"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.ensemble import StackingClassifier, RandomForestClassifier, HistGradientBoostingClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import cross_val_score\nX, y = load_breast_cancer(return_X_y=True)\nst = StackingClassifier([(\"lr\", make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))),\n                         (\"rf\", RandomForestClassifier(200, random_state=0)),\n                         (\"gb\", HistGradientBoostingClassifier(random_state=0))],\n                        final_estimator=LogisticRegression(), cv=5)\nprint(cross_val_score(st, X, y, cv=5, scoring=\"roc_auc\").mean().round(4))"
+  },
+  "check": [
+    {
+      "q": "Why must the meta-model be trained on out-of-fold predictions?",
+      "options": [
+        "Speed",
+        "To avoid learning from overfit in-sample predictions",
+        "To reduce features",
+        "It is optional"
+      ],
+      "answer": 1,
+      "why": "In-sample predictions look unrealistically good."
+    },
+    {
+      "q": "Stacking works best when base models are…",
+      "options": [
+        "Identical",
+        "Diverse",
+        "All linear",
+        "Untrained"
+      ],
+      "answer": 1,
+      "why": "Different models make different errors."
+    }
+  ],
+  "chapterMinutes": 15
+}

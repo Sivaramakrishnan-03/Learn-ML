@@ -1,0 +1,72 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Know what XGBoost, LightGBM and CatBoost add",
+    "Pick one for a given dataset",
+    "Apply a sensible tuning recipe"
+  ],
+  "why": "These libraries are the industrial standard for tabular ML at banks, insurers, e-commerce and ride-hailing companies, and a fixture of competition leaderboards.",
+  "explain": [
+    "**XGBoost** adds regularisation to boosting (penalties on leaf weights), efficient handling of missing values, and parallel tree building.",
+    "**LightGBM** grows trees leaf-wise using histograms: very fast on large data. **CatBoost** handles categorical features natively with ordered target statistics, which needs little preprocessing and is robust against leakage.",
+    "All support early stopping, GPU training, monotonic constraints (for example \"risk must not fall as debt rises\", important for regulators) and SHAP explanations.",
+    "Tuning recipe: fix learning rate 0.05 → find n_estimators with early stopping → tune depth / num_leaves and min_child_weight → tune subsample and colsample → lower the learning rate and retrain."
+  ],
+  "example": {
+    "title": "Choosing a library",
+    "steps": [
+      "10M rows, mostly numeric, speed matters → LightGBM",
+      "Many high-cardinality categories (merchant ID, city) → CatBoost",
+      "Medium data, mature ecosystem, monotonic constraints → XGBoost",
+      "Always compare against a tuned random forest and logistic regression baseline"
+    ],
+    "result": "The differences are usually small. Data quality and features matter more than the library choice."
+  },
+  "mistakes": [
+    "Tuning dozens of parameters before getting the features right.",
+    "Skipping early stopping.",
+    "Ignoring calibration when probabilities are used for pricing."
+  ],
+  "takeaways": [
+    "Regularised, fast, production-grade boosting",
+    "LightGBM = speed; CatBoost = categories; XGBoost = all-rounder",
+    "Early stopping + SHAP are standard practice"
+  ],
+  "use": [
+    "Tabular data where accuracy matters"
+  ],
+  "avoid": [
+    "Images, audio, free text (deep learning)",
+    "Very small data"
+  ],
+  "practice": {
+    "code": "# pip install xgboost lightgbm catboost  (run locally)\nimport xgboost as xgb\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split\nX, y = load_breast_cancer(return_X_y=True)\nX_tr, X_va, y_tr, y_va = train_test_split(X, y, random_state=0)\nm = xgb.XGBClassifier(n_estimators=2000, learning_rate=0.05, max_depth=4, early_stopping_rounds=50, eval_metric=\"auc\")\nm.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], verbose=False)\nprint(m.best_iteration, m.best_score)",
+    "note": "Needs the xgboost package: run locally."
+  },
+  "check": [
+    {
+      "q": "Which library handles high-cardinality categorical features natively and robustly?",
+      "options": [
+        "XGBoost (older versions)",
+        "CatBoost",
+        "scikit-learn trees",
+        "k-means"
+      ],
+      "answer": 1,
+      "why": "CatBoost uses ordered target statistics."
+    },
+    {
+      "q": "A \"monotonic constraint\" is useful when…",
+      "options": [
+        "Data is missing",
+        "Business logic requires the prediction to only increase with a feature",
+        "Training is slow",
+        "There are many classes"
+      ],
+      "answer": 1,
+      "why": "For example, risk must not decrease as debt increases."
+    }
+  ],
+  "chapterMinutes": 15
+}

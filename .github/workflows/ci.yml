@@ -1,0 +1,61 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Typecheck, unit tests, content validation, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run validate
+      - run: npm run build
+      - run: npm run build:single
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LearnPath-ML-single-file
+          path: LearnPath-ML.html
+          retention-days: 30
+
+  snippets:
+    name: Run every Python snippet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13', cache: pip, cache-dependency-path: requirements-snippets.txt }
+      - run: pip install -r requirements-snippets.txt
+      - run: npm ci
+      - run: npm run snippets
+
+  animations:
+    name: Browser test of every animation
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Check all animations
+        env: { SHOTS_DIR: anim-shots }
+        run: |
+          npx vite preview --port 4180 --strictPort &
+          npx wait-on -t 60000 http://localhost:4180
+          IDS=$(ls src/anim/*.tsx | xargs -n1 basename | sed 's/\.tsx$//' | grep -v '^_')
+          node scripts/check-anim.cjs 4180 $IDS
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: animation-screenshots, path: anim-shots, retention-days: 7 }

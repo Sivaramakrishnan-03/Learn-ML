@@ -1,0 +1,401 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A logistics company runs a fleet of company cars between Chennai and Bengaluru and wants to tell its drivers the most fuel-efficient cruising speed. Test-track data shows that fuel use is high at 40 km/h, drops to a low around 80 km/h, then climbs again at 120 km/h. A straight line through that data says speed hardly matters, which is plainly wrong. **Polynomial regression** lets the line bend, finds the sweet spot, and still uses everything you learned about linear regression.",
+  "sections": [
+    {
+      "heading": "The problem: when the relationship curves",
+      "blocks": [
+        {
+          "p": "Linear regression assumes that each extra unit of x changes y by the same amount. Many business relationships do not behave like that. Fuel use first falls and then rises with speed. Sales rise with discount, but each extra percentage point brings less than the one before. Crop yield rises with fertiliser up to a point and then falls as the soil is overloaded."
+        },
+        {
+          "p": "Forcing a straight line through such data gives a model that is wrong in a systematic way: too high in the middle, too low at both ends, or the reverse. The residual plot shows a clear U or arch instead of a shapeless band."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "0.0012857*x*x - 0.20171*x + 13.5",
+            "fn2": "0.004*x + 6.3",
+            "xMin": 30,
+            "xMax": 130,
+            "marks": [
+              {
+                "x": 78.4,
+                "label": "best speed ≈ 78 km/h"
+              }
+            ],
+            "xLabel": "speed (km/h)",
+            "yLabel": "litres per 100 km",
+            "legend": [
+              "quadratic fit",
+              "straight-line fit"
+            ],
+            "caption": "Two models fitted to the same five test-track readings (7.5, 6.0, 5.6, 6.2, 7.8 litres at 40 to 120 km/h). The straight line is almost flat (R² ≈ 0.02) and says speed barely matters. The curved quadratic (R² ≈ 0.9997) captures the U-shape and its minimum near 78 km/h."
+          }
+        },
+        {
+          "term": "Polynomial",
+          "def": "An expression built from powers of a variable, such as 13.5 − 0.2x + 0.0013x². The highest power is called the degree: degree 1 is a straight line, degree 2 a single bend (a U or an arch), degree 3 can bend twice."
+        },
+        {
+          "p": "Polynomial regression answers the question: **can we capture this curve while keeping the simplicity and interpretability of linear regression?** The answer is yes, with one clever trick."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: bending the ruler",
+      "blocks": [
+        {
+          "p": "Go back to the ruler on the pinboard from the linear regression chapter. A wooden ruler cannot follow a U-shaped row of pins. Now swap it for a flexible plastic strip. You can bend it into a gentle U and lay it through the pins much more closely."
+        },
+        {
+          "steps": [
+            "**A stiff ruler (degree 1)** can only tilt. It misses any curve.",
+            "**A slightly flexible strip (degree 2)** can bend once. Good for one valley or one peak.",
+            "**A more flexible strip (degree 3 or 4)** can bend two or three times.",
+            "**A strip as floppy as cooked noodles (degree 15)** can be pushed through every single pin, wiggling wildly in between."
+          ],
+          "title": "More flexibility, closer fit, more danger"
+        },
+        {
+          "p": "The last case is the trap. A noodle that passes through every pin has learned the exact position of each pin, including the random wobble in the measurements. Put in a new pin and the noodle is likely to be far from it. That is **overfitting**."
+        },
+        {
+          "term": "Overfitting",
+          "def": "When a model fits the training data so closely that it learns the random noise as well as the real pattern, and so predicts new data badly. The opposite, a model too simple to capture the pattern, is underfitting."
+        },
+        {
+          "think": {
+            "q": "If a degree-4 polynomial passes exactly through all five fuel readings (zero training error), why not use it?",
+            "a": "Because five points are only five noisy measurements. A curve that matches them perfectly has also matched the noise, so it will usually predict a sixth reading worse than a smoother curve. Zero training error is a warning sign, not a goal."
+          }
+        },
+        {
+          "callout": "The goal is the gentlest bend that captures the real shape. Flexibility is a dial to be set by testing on new data, not turned to maximum.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "p": "Here is the clever trick. Instead of inventing a new algorithm for curves, we invent **new columns**. Alongside speed we add speed² (and perhaps speed³). Then we run ordinary multiple regression on those columns. The model is still a weighted sum, so all the least-squares machinery works unchanged."
+        },
+        {
+          "term": "Feature engineering",
+          "def": "Creating new input columns from existing ones (squares, ratios, logs, date parts) so that a simple model can capture a more complex pattern."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Start** with feature x",
+              "**Add columns** x², x³ … up to degree d",
+              "**Scale** the columns",
+              "**Fit** ordinary least squares on all columns",
+              "**Pick d** with the lowest cross-validated error"
+            ],
+            "caption": "Polynomial regression is multiple regression on powers of x. In scikit-learn this is `PolynomialFeatures` followed by `LinearRegression`."
+          }
+        },
+        {
+          "p": "**Step 1: Create the powers.** For speed 80, the new row is (80, 6,400) for degree 2, or (80, 6,400, 512,000) for degree 3."
+        },
+        {
+          "p": "**Step 2: Scale.** Powers grow fast: 120¹⁰ is about 6 × 10²⁰. Columns of such different sizes make the computer’s arithmetic unstable. Standardising before (or after) creating powers keeps the numbers tame."
+        },
+        {
+          "p": "**Step 3: Fit.** Ordinary least squares chooses one coefficient per column."
+        },
+        {
+          "p": "**Step 4: Choose the degree.** Try degrees 1, 2, 3 … and compare their error on data the model did not train on, using cross-validation. Choose the lowest degree whose validation error is (nearly) the best."
+        },
+        {
+          "term": "Cross-validation",
+          "def": "Splitting the data into, say, 5 parts; training on 4 and testing on the fifth; repeating so each part is tested once; and averaging the 5 test errors. It estimates how a model will do on new data."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\hat{y} = b_0 + b_1 x + b_2 x^2 + \\dots + b_d x^d",
+          "plain": "The prediction is a starting value plus a weighted sum of x, x squared, and so on up to x to the power d. The weights b are found by least squares, exactly as in multiple regression.",
+          "symbols": [
+            [
+              "d",
+              "the degree, the highest power used"
+            ],
+            [
+              "b_0, \\dots, b_d",
+              "coefficients chosen by least squares"
+            ]
+          ]
+        },
+        {
+          "p": "Why is this still called **linear** regression when the curve is obviously bent? Because \"linear\" refers to the **coefficients**, not to x. Each b simply multiplies a column and the results are added. Whether a column holds x or x² makes no difference to the fitting method. Statisticians say the model is **linear in the parameters**."
+        },
+        {
+          "p": "Degree 2 deserves special attention because it is by far the most useful. A quadratic has exactly one turning point, and school algebra tells you where it is."
+        },
+        {
+          "tex": "x^{*} = -\\frac{b_1}{2\\,b_2}",
+          "plain": "The turning point of a quadratic is at minus b₁ divided by twice b₂. If b₂ is positive the curve is a U and this is the minimum; if b₂ is negative it is an arch and this is the maximum.",
+          "symbols": [
+            [
+              "x^{*}",
+              "the x-value of the minimum or maximum"
+            ],
+            [
+              "b_1",
+              "coefficient of x"
+            ],
+            [
+              "b_2",
+              "coefficient of x²"
+            ]
+          ]
+        },
+        {
+          "p": "This little formula is why quadratic models are popular in business: they turn data into an answer to \"what is the best speed, price, dose or temperature?\""
+        },
+        {
+          "p": "One more consequence of the trick: the coefficients of a polynomial are hard to read individually. In the fuel model, \"−0.2017 per km/h\" is not the effect of speed, because changing speed also changes speed². Interpret the curve as a whole, by its shape, turning point and predictions, not coefficient by coefficient."
+        },
+        {
+          "callout": "With several features the number of polynomial columns explodes. Ten features at degree 3, including all the cross terms such as x₁·x₂, give 286 columns. Polynomial regression works best with one to three features.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Finding the most economical speed",
+            "setup": "Test-track readings: speed 40, 60, 80, 100, 120 km/h; fuel 7.5, 6.0, 5.6, 6.2, 7.8 litres per 100 km. Fit a degree-2 polynomial.",
+            "steps": [
+              "Straight-line fit: fuel = 6.3 + 0.004 × speed, R² ≈ 0.02. It says speed hardly matters.",
+              "Quadratic fit (least squares on speed and speed²): fuel ≈ 13.5 − 0.2017 × speed + 0.001286 × speed², R² ≈ 0.9997.",
+              "b₂ = 0.001286 is positive, so the curve is a U with a minimum.",
+              "Best speed = 0.2017 / (2 × 0.001286) ≈ 78.4 km/h.",
+              "Predicted fuel there ≈ 5.59 litres per 100 km. At 70 km/h the model predicts 5.68 and at 90 km/h 5.76."
+            ],
+            "result": "Advise drivers to cruise at about 75 to 80 km/h. The straight line could never have given this answer."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: the revenue-maximising price",
+            "setup": "A D2C brand tests prices for a kitchen gadget across five comparable weeks: ₹200, ₹250, ₹300, ₹350, ₹400 per unit, selling 1,000, 880, 740, 610 and 480 units. Revenue (₹ thousand) = price × units / 1,000 = 200, 220, 222, 213.5, 192.",
+            "steps": [
+              "Revenue rises and then falls: a straight line cannot find the peak.",
+              "Quadratic fit: revenue ≈ −4.07 + 1.5579 × price − 0.0026714 × price².",
+              "b₂ is negative, so the curve is an arch with a maximum.",
+              "Best price = 1.5579 / (2 × 0.0026714) ≈ ₹292.",
+              "Predicted revenue at ₹292 ≈ ₹223 thousand per week, only slightly above the ₹222 thousand observed at ₹300, which tells the team the peak is flat."
+            ],
+            "result": "Price around ₹290 to ₹300. The flat top is itself useful: small price changes near the peak barely move revenue, so the team can choose ₹299 for marketing reasons at almost no cost. (Revenue also ignores costs; maximising profit would shift the best price upwards.)"
+          }
+        },
+        {
+          "example": {
+            "title": "Choosing the degree with cross-validation",
+            "setup": "Thirty noisy fuel readings between 30 and 130 km/h are simulated from a true U-shaped curve. Polynomials of degree 1, 2, 3, 6 and 10 are fitted and checked with 5-fold cross-validation (RMSE in litres per 100 km).",
+            "steps": [
+              "Degree 1: training RMSE 1.03, cross-validated RMSE 1.05. Underfits badly.",
+              "Degree 2: training 0.29, cross-validated 0.31. Big improvement.",
+              "Degree 3: training 0.28, cross-validated 0.34.",
+              "Degree 6: training 0.28, cross-validated 0.39.",
+              "Degree 10: training 0.26, cross-validated 0.43."
+            ],
+            "result": "Training error keeps falling as the degree rises, but cross-validated error is lowest at degree 2 and then climbs. Degree 2 is the right choice, and it happens to match the true shape."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing the degree: the bias-variance balance",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Degree",
+              "Training RMSE",
+              "Cross-validated RMSE",
+              "Verdict"
+            ],
+            "rows": [
+              [
+                "1",
+                "1.03",
+                "1.05",
+                "Underfits"
+              ],
+              [
+                "2",
+                "0.29",
+                "0.31",
+                "Best"
+              ],
+              [
+                "3",
+                "0.28",
+                "0.34",
+                "Slightly worse"
+              ],
+              [
+                "6",
+                "0.28",
+                "0.39",
+                "Overfitting"
+              ],
+              [
+                "10",
+                "0.26",
+                "0.43",
+                "Overfitting"
+              ]
+            ],
+            "caption": "Training error always falls with degree, so it cannot choose the degree. Cross-validated error has a sweet spot."
+          }
+        },
+        {
+          "p": "The pattern in that table appears all over machine learning. Too simple a model is consistently wrong in the same direction; statisticians call that **bias**. Too flexible a model chases noise and changes a lot if you give it slightly different data; that is **variance**. The best degree balances the two."
+        },
+        {
+          "term": "Bias and variance",
+          "def": "Bias: error from a model being too simple to capture the real pattern. Variance: error from a model being so flexible that it reacts to random noise in the particular training data. Raising flexibility lowers bias but raises variance."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "d=1",
+              "d=2",
+              "d=3",
+              "d=6",
+              "d=10"
+            ],
+            "values": [
+              1.05,
+              0.31,
+              0.34,
+              0.39,
+              0.43
+            ],
+            "highlight": 1,
+            "yLabel": "cross-validated RMSE",
+            "caption": "Cross-validated error by degree. It drops sharply from degree 1 to 2, then creeps up as extra flexibility starts fitting noise."
+          }
+        },
+        {
+          "bullets": [
+            "**Start with degree 2.** Most real business curves have one bend.",
+            "**Go to degree 3 only with evidence** (an S-shape, or a clear cross-validation gain).",
+            "**Rarely go beyond 3 or 4.** If you need more, a spline or a tree-based model is usually better.",
+            "**Use domain knowledge.** Physics says air resistance grows with the square of speed, so a quadratic term for speed is natural."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Machine wear in a press shop (illustrative)",
+            "story": "An automotive supplier runs stamping presses whose die wear depends on press speed. Too slow wastes capacity; too fast heats the die and wear accelerates sharply. Engineers log wear per 10,000 strokes at several speeds and fit a degree-2 polynomial of wear on speed. Combined with the cost of downtime and the value of extra output, the quadratic gives a recommended operating speed. They deliberately stay inside the tested speed range, refit monthly as new logs arrive, and compare the quadratic with a simple tree-based model to make sure the curve is not hiding anything."
+          }
+        },
+        {
+          "bullets": [
+            "**Pricing:** finding revenue- or profit-maximising prices from test data.",
+            "**Agriculture:** yield against fertiliser or irrigation, which typically peaks and then falls.",
+            "**Marketing:** diminishing returns to advertising spend (often a square-root or log term works too).",
+            "**Engineering:** calibration curves for sensors, battery capacity against temperature.",
+            "**Economics:** wages rising with experience and flattening later in a career (an experience² term)."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "p": "Polynomials behave beautifully inside the data range and badly outside it. The fuel quadratic predicts about 9.0 litres at 130 km/h and 14.1 litres at 160 km/h, purely because a U-curve keeps rising. It never saw a speed above 120. High-degree polynomials are worse: at the edges they can shoot to absurd values."
+        },
+        {
+          "bullets": [
+            "**Extrapolation:** never trust a polynomial outside the range of the training data.",
+            "**Choosing degree by training fit:** always use cross-validation.",
+            "**Unscaled powers:** large numbers to high powers cause numerical problems; standardise.",
+            "**Too many features:** the number of terms explodes; use regularisation (next chapter) or trees.",
+            "**Reading single coefficients:** interpret the curve, not the individual b’s."
+          ]
+        },
+        {
+          "term": "Spline",
+          "def": "A curve built from several low-degree polynomial pieces joined smoothly at chosen points (knots). It can follow complex shapes without the wild edge behaviour of one high-degree polynomial."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Polynomial regression fits when…",
+              "items": [
+                "One or two features with a smooth curve",
+                "The shape has one or two bends",
+                "You want a turning point (best price, best speed)",
+                "You predict inside the observed range",
+                "You want a simple, explainable formula"
+              ]
+            },
+            "right": {
+              "title": "Prefer instead…",
+              "items": [
+                "Complex wiggly shapes → **splines / GAMs**",
+                "Many features with interactions → **gradient boosting**",
+                "High degree needed → **ridge-regularised polynomials**",
+                "Diminishing returns → **log or square-root transform**",
+                "Predictions far outside the data → none are safe; collect data"
+              ]
+            },
+            "caption": "A quadratic term is one of the most useful tools in applied regression. Higher degrees are rarely the answer."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is polynomial regression linear or non-linear?",
+      "a": "The curve is non-linear in x, but the model is linear in its coefficients, so it is fitted with ordinary least squares. That is why it counts as a member of the linear regression family."
+    },
+    {
+      "q": "How do I know I need a polynomial term?",
+      "a": "Plot the data and the residuals of a straight-line fit. A U or arch in the residuals is the classic sign. Then check that adding x² improves cross-validated error, not just training R²."
+    },
+    {
+      "q": "What degree should I use?",
+      "a": "Usually 2, sometimes 3. Pick the degree with the best cross-validated error, and prefer the lower degree when two are close."
+    },
+    {
+      "q": "Do I need to keep the x term if I add x²?",
+      "a": "Yes. Dropping x forces the turning point to sit at x = 0, which is rarely sensible. Keep all lower powers when you include a higher one."
+    },
+    {
+      "q": "How do I do this in scikit-learn?",
+      "a": "`make_pipeline(StandardScaler(), PolynomialFeatures(degree=2), LinearRegression())`. Tune the degree with `GridSearchCV` or by comparing `cross_val_score` for each degree."
+    },
+    {
+      "q": "Why does my high-degree curve explode at the edges?",
+      "a": "High powers grow very fast, and near the ends of the data there are few points to hold the curve down. This is called Runge’s phenomenon. Use a lower degree, splines, or a ridge penalty."
+    }
+  ]
+}

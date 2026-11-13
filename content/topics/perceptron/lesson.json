@@ -1,0 +1,66 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Describe the artificial neuron",
+    "Explain the perceptron learning rule",
+    "Know its limitation (XOR)"
+  ],
+  "why": "The perceptron (1958) is the ancestor of every neural network, including today's large language models. Understanding one neuron makes deep learning far less mysterious.",
+  "explain": [
+    "An artificial neuron computes a **weighted sum** of its inputs plus a bias, then applies an **activation**. In the original perceptron that is a step: output 1 if the sum > 0, else 0.",
+    "Like a bouncer adding up reasons to let you in (dress code +2, on the list +5, rowdy −4): if the total passes a threshold, you are in.",
+    "**Learning rule**: when it makes a mistake, nudge the weights towards the correct answer (w ← w + learning_rate × error × input). It converges if the classes are linearly separable.",
+    "A single neuron draws only a **straight line**, so it cannot solve XOR. This limitation stalled the field until multi-layer networks with back-propagation."
+  ],
+  "formula": {
+    "tex": "\\hat y = \\text{step}(w \\cdot x + b)",
+    "plain": "Output 1 if the weighted sum plus bias is positive, else 0."
+  },
+  "example": {
+    "title": "Learning an AND gate",
+    "steps": [
+      "Start w = [0, 0], b = 0, learning rate 1",
+      "Input (1, 1), target 1, output 0 → error +1 → w = [1, 1], b = 1",
+      "Input (0, 0), target 0, output 1 → error −1 → b = 0",
+      "After a few passes the weights settle so only (1, 1) gives a positive sum, e.g. w = [1, 1], b = −1.5"
+    ],
+    "result": "AND is linearly separable, so the perceptron learns it. XOR is not, and it never converges."
+  },
+  "mistakes": [
+    "Thinking modern networks use step activations (they use smooth ones such as ReLU, so gradients exist)."
+  ],
+  "takeaways": [
+    "Neuron = weighted sum + activation",
+    "Learns linear boundaries only",
+    "Stacking neurons in layers removes the limitation"
+  ],
+  "practice": {
+    "code": "from sklearn.linear_model import Perceptron\nimport numpy as np\nX = np.array([[0,0],[0,1],[1,0],[1,1]])\nprint(Perceptron(random_state=0).fit(X, [0,0,0,1]).predict(X))   # AND → learns\nprint(Perceptron(random_state=0).fit(X, [0,1,1,0]).predict(X))   # XOR → fails"
+  },
+  "check": [
+    {
+      "q": "Which function can a single perceptron NOT learn?",
+      "options": [
+        "AND",
+        "OR",
+        "XOR",
+        "NOT"
+      ],
+      "answer": 2,
+      "why": "XOR is not linearly separable."
+    },
+    {
+      "q": "A perceptron computes…",
+      "options": [
+        "A decision tree",
+        "A weighted sum followed by an activation",
+        "A cluster centre",
+        "A moving average"
+      ],
+      "answer": 1,
+      "why": "That is the artificial neuron."
+    }
+  ],
+  "chapterMinutes": 16
+}

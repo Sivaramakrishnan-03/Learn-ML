@@ -1,0 +1,390 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A retail analytics team compares two churn models on one test set. Model A wins by three points, so it goes to production. A month later a colleague reruns the comparison with a different random split, and Model B wins by two points. Which result was real? Neither, on its own. A single split is one roll of the dice. **Cross-validation** rolls the dice several times, in an organised way, so luck averages out.",
+  "sections": [
+    {
+      "heading": "The problem: one split is one roll of the dice",
+      "blocks": [
+        {
+          "p": "In the train / test split chapter we held out some data to get an honest score. That idea is right, but it has two weaknesses. First, the score depends on **which** rows happened to land in the test set. An easy set flatters the model; a hard set punishes it. Second, the held-out rows are never used for learning, which hurts when data is scarce."
+        },
+        {
+          "p": "These weaknesses matter most when you are **choosing**: between two algorithms, between ten settings of one algorithm, or between feature sets. If the choice depends on the luck of one split, you may pick the wrong model and never know."
+        },
+        {
+          "term": "Cross-validation (CV)",
+          "def": "A way of estimating how well a model will do on unseen data by splitting the training data several times, training and scoring once per split, and averaging the scores."
+        },
+        {
+          "term": "Fold",
+          "def": "One of the equal-sized chunks the data is cut into for cross-validation. Each fold takes one turn as the validation data."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Split 1",
+              "Split 2",
+              "Split 3",
+              "Split 4",
+              "Split 5"
+            ],
+            "values": [
+              0.82,
+              0.85,
+              0.84,
+              0.86,
+              0.83
+            ],
+            "highlight": 3,
+            "yLabel": "accuracy",
+            "caption": "The same model scored on five different validation folds. Reporting only Split 4 would claim 0.86; reporting only Split 1 would claim 0.82. Cross-validation reports the average, 0.84, and the spread."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: rotating the exam paper",
+      "blocks": [
+        {
+          "p": "Imagine a training institute that wants to know how good its course really is. It has five sets of exam questions. If it always uses set 3 as the final exam, a cohort could do unusually well just because set 3 is easy."
+        },
+        {
+          "p": "So the institute rotates. Cohort 1 practises on sets 2–5 and is examined on set 1. Cohort 2 practises on sets 1, 3, 4, 5 and is examined on set 2. And so on, until every set has been the exam exactly once. The institute then averages the five exam results. No single easy or hard paper can distort the picture, and every set of questions was used both for practice and for examination."
+        },
+        {
+          "steps": [
+            "**Cut the questions into five equal sets.**",
+            "**Pick one set as the exam;** practise on the other four.",
+            "**Record the exam score.**",
+            "**Rotate** so a different set is the exam, and repeat until each set has had its turn.",
+            "**Average the five scores** and note how much they vary."
+          ],
+          "title": "The rotation, in plain words"
+        },
+        {
+          "think": {
+            "q": "In 5-fold cross-validation, how many times is each row used for validation, and how many times for training?",
+            "a": "Each row is in exactly one fold, so it is used for validation exactly once and for training in the other four rounds. Every row contributes to both learning and judging, just never at the same time."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How k-fold cross-validation works",
+      "blocks": [
+        {
+          "term": "k-fold cross-validation",
+          "def": "Cut the data into k folds. Train k models; each one learns from k − 1 folds and is scored on the remaining fold. The k scores are averaged. k = 5 or k = 10 are the usual choices."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Round",
+              "Fold 1",
+              "Fold 2",
+              "Fold 3",
+              "Fold 4",
+              "Fold 5"
+            ],
+            "rows": [
+              [
+                "1",
+                "Validate",
+                "Train",
+                "Train",
+                "Train",
+                "Train"
+              ],
+              [
+                "2",
+                "Train",
+                "Validate",
+                "Train",
+                "Train",
+                "Train"
+              ],
+              [
+                "3",
+                "Train",
+                "Train",
+                "Validate",
+                "Train",
+                "Train"
+              ],
+              [
+                "4",
+                "Train",
+                "Train",
+                "Train",
+                "Validate",
+                "Train"
+              ],
+              [
+                "5",
+                "Train",
+                "Train",
+                "Train",
+                "Train",
+                "Validate"
+              ]
+            ],
+            "caption": "5-fold cross-validation. The validation fold moves along the diagonal, so every fold is validated exactly once and five separate models are trained."
+          }
+        },
+        {
+          "steps": [
+            "**Set the test set aside first.** Cross-validation runs on the training data only; the test set still waits for the final check.",
+            "**Shuffle and cut** the training rows into k folds of (almost) equal size. For classification, use stratified folds so each fold has the same class mix.",
+            "**Loop over the folds.** In round i, fit a fresh model on all folds except fold i, then score it on fold i.",
+            "**Summarise** the k scores by their mean and standard deviation.",
+            "**Use the mean to compare** models or settings. Pick the winner, retrain it on all the training data, and score it once on the test set."
+          ],
+          "title": "The procedure"
+        },
+        {
+          "p": "In scikit-learn the whole loop is one line: `cross_val_score(model, X, y, cv=5)`. It returns the five scores; you take `.mean()` and `.std()`."
+        },
+        {
+          "callout": "Cross-validation **estimates** performance; it does not produce a final model. The k fold-models are thrown away. After choosing, you fit one model on all the training data.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "The arithmetic is simple averaging, but each piece has a reason. First, the CV estimate itself."
+        },
+        {
+          "tex": "\\text{CV}_{(k)} = \\frac{1}{k}\\sum_{i=1}^{k} \\text{Score}_i",
+          "plain": "Add up the score from each of the k rounds and divide by k. This average is your best estimate of performance on new data.",
+          "symbols": [
+            [
+              "k",
+              "number of folds"
+            ],
+            [
+              "\\text{Score}_i",
+              "the score of the model trained without fold i, measured on fold i"
+            ]
+          ]
+        },
+        {
+          "p": "Why average? Because each fold's score contains some luck. Averaging k scores cancels much of that luck, just as the average of five dice rolls is more stable than one roll."
+        },
+        {
+          "p": "Second, the spread. The standard deviation of the fold scores tells you how stable the model is across different slices of data."
+        },
+        {
+          "tex": "\\text{SD} = \\sqrt{\\frac{1}{k}\\sum_{i=1}^{k} (\\text{Score}_i - \\text{CV}_{(k)})^2}",
+          "plain": "For each fold, take how far its score is from the average, square it, average those squares, and take the square root. A small SD means the model behaves similarly on every slice of data.",
+          "symbols": [
+            [
+              "\\text{SD}",
+              "standard deviation of the fold scores (numpy's default divides by k)"
+            ]
+          ]
+        },
+        {
+          "p": "Why square the differences? So that folds above and below the average do not cancel each other out, and so that one very different fold stands out. A large SD is a warning: performance depends heavily on which customers or months you happen to look at."
+        },
+        {
+          "term": "Stratified k-fold",
+          "def": "k-fold where each fold keeps the same proportion of each class as the full data. scikit-learn uses it automatically when you pass `cv=5` with a classifier."
+        },
+        {
+          "p": "How to choose k? Larger k means each model trains on more data (with k = 10, on 90% of it), so the estimate is closer to what the final model will achieve, but it costs more training runs. k = 5 is a good default; k = 10 is common when data is small and training is cheap."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Summarising five fold scores",
+            "setup": "A 5-fold CV of a classifier gives accuracies 0.82, 0.85, 0.84, 0.86, 0.83.",
+            "steps": [
+              "Mean = (0.82 + 0.85 + 0.84 + 0.86 + 0.83) / 5 = 4.20 / 5 = 0.84.",
+              "Differences from the mean: −0.02, +0.01, 0.00, +0.02, −0.01.",
+              "Squares: 0.0004, 0.0001, 0, 0.0004, 0.0001. Their sum is 0.0010; divided by 5 that is 0.0002.",
+              "SD = √0.0002 ≈ 0.014. (Dividing by k − 1 = 4 instead gives about 0.016; tools differ, so say which you used.)"
+            ],
+            "result": "Report \"accuracy 0.84 ± 0.014 (5-fold CV)\". The spread is small compared with the mean, so the estimate is stable."
+          }
+        },
+        {
+          "example": {
+            "title": "How one split can crown the wrong model",
+            "setup": "Two churn models are compared with 5-fold CV on the same folds. Model A scores 0.80, 0.91, 0.78, 0.83, 0.79. Model B scores 0.84, 0.85, 0.83, 0.86, 0.84.",
+            "steps": [
+              "If you had used only fold 2 as a single test set, A would score 0.91 and B 0.85. A looks six points better.",
+              "Mean of A = 4.11 / 5 = 0.822. Mean of B = 4.22 / 5 = 0.844.",
+              "SD of A ≈ 0.047. SD of B ≈ 0.010.",
+              "B is better on average and far more stable. A's single good fold was luck."
+            ],
+            "result": "Choose Model B. Cross-validation reversed a decision that one lucky split would have made."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "A f1",
+              "A f2",
+              "A f3",
+              "A f4",
+              "A f5",
+              "B f1",
+              "B f2",
+              "B f3",
+              "B f4",
+              "B f5"
+            ],
+            "values": [
+              0.8,
+              0.91,
+              0.78,
+              0.83,
+              0.79,
+              0.84,
+              0.85,
+              0.83,
+              0.86,
+              0.84
+            ],
+            "highlight": 1,
+            "yLabel": "accuracy",
+            "caption": "Fold-by-fold scores of the two models. Model A has one spectacular fold (highlighted) and four mediocre ones. Model B is consistently good. Means: A 0.822, B 0.844."
+          }
+        },
+        {
+          "example": {
+            "title": "Time-series CV for monthly demand (business case)",
+            "setup": "A cement company has 36 months of regional demand and wants to compare forecasting models. Ordinary k-fold would let models train on future months, so it uses scikit-learn's `TimeSeriesSplit(n_splits=3)`.",
+            "steps": [
+              "Split 1: train on months 1–9, validate on months 10–18.",
+              "Split 2: train on months 1–18, validate on months 19–27.",
+              "Split 3: train on months 1–27, validate on months 28–36.",
+              "The training window grows each time and validation always lies in the future, so no model ever sees the months it is forecasting.",
+              "Average the three validation errors to compare models."
+            ],
+            "result": "This is called an expanding-window or rolling-origin backtest. It gives a fair comparison and also shows whether accuracy improves as more history becomes available."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing the right CV scheme",
+      "blocks": [
+        {
+          "p": "Plain k-fold assumes rows are independent and interchangeable. Real business data often is not. Matching the scheme to the structure of the data matters more than the choice of k."
+        },
+        {
+          "bullets": [
+            "**StratifiedKFold**: classification, especially with rare classes. With 1,000 rows and 100 positives, 5 stratified folds each hold 200 rows with exactly 20 positives.",
+            "**GroupKFold**: several rows per customer, store, patient or vehicle. All rows of one group stay in the same fold, so the model is always validated on new groups.",
+            "**TimeSeriesSplit**: dated data. Train on the past, validate on the future, never shuffle.",
+            "**Repeated k-fold**: run k-fold several times with different shuffles (for example 10 folds × 3 repeats = 30 fits) to further reduce luck when data is small.",
+            "**Leave-one-out**: k equals the number of rows. Very expensive and rarely needed outside tiny datasets."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Ordinary k-fold is fine when…",
+              "items": [
+                "Each row is a separate, independent case",
+                "There is no time order to respect",
+                "Classes are reasonably balanced (or you stratify)",
+                "No customer or machine appears in many rows"
+              ]
+            },
+            "right": {
+              "title": "Use a special scheme when…",
+              "items": [
+                "Rows have dates → **TimeSeriesSplit**",
+                "Rows share a customer, store or patient → **GroupKFold**",
+                "One class is rare → **StratifiedKFold**",
+                "Data is tiny → **RepeatedStratifiedKFold**"
+              ]
+            },
+            "caption": "The scheme should copy how the model will meet new data: new customers, future months, rare events."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "A churn model that met the same customers twice (illustrative)",
+            "story": "A broadband provider builds a monthly churn model with one row per customer per month, 12 rows per customer. Ordinary 5-fold CV gives an AUC of 0.93, far better than anything the team had seen. A reviewer notices that each customer's rows are spread across all folds, so the model is validated on customers it has already met in training, with nearly identical features. Switching to GroupKFold by customer ID brings the AUC down to 0.81. In the following quarter the live model's AUC lands close to 0.81. The 0.93 had been leakage, and cross-validation with the right scheme caught it before it reached the board pack."
+          }
+        },
+        {
+          "bullets": [
+            "**Model selection:** almost every hyperparameter search (GridSearchCV, RandomizedSearchCV, Optuna) uses cross-validation inside.",
+            "**Small datasets:** clinical studies and B2B sales models with a few hundred rows rely on repeated CV for every decision.",
+            "**Forecasting:** retailers and utilities run rolling-origin backtests before trusting a new forecasting method.",
+            "**Stacking:** ensembles use out-of-fold predictions from CV to train the combining model without leakage."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Preprocessing outside the folds.** Scaling or selecting features on all the data before CV leaks validation information into every fold. Put preprocessing inside a Pipeline so it is refitted in each round.",
+            "**Wrong scheme for the data.** Shuffled k-fold on time series or grouped rows gives scores that are too good.",
+            "**Reporting the mean without the spread.** 0.84 ± 0.01 and 0.84 ± 0.10 are very different stories.",
+            "**Treating the best CV score as the final score.** If you tried many settings and picked the best, its CV score is slightly optimistic. Confirm once on the test set, or use nested CV.",
+            "**Cost.** k folds means k trainings. For a model that takes an hour to train, 3-fold or a single validation split may be the practical choice."
+          ]
+        },
+        {
+          "term": "Nested cross-validation",
+          "def": "An outer CV loop to estimate performance and an inner CV loop, inside each outer training part, to tune settings. It gives an unbiased score for the whole \"tune then train\" process."
+        },
+        {
+          "callout": "Cross-validation replaces a single validation set, not the test set. Keep a final hold-out when you can afford it; it is the last line of defence against mistakes in the CV set-up itself.",
+          "tone": "warn"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How many models does 5-fold CV train?",
+      "a": "Five, one per fold. If you also tune 20 settings, that is 20 × 5 = 100 fits, plus one final fit on all the training data."
+    },
+    {
+      "q": "Should I use 5 or 10 folds?",
+      "a": "Five is a sensible default. Ten gives each model more training data and a slightly more reliable estimate when data is small, at twice the cost."
+    },
+    {
+      "q": "Do I still need a test set if I use cross-validation?",
+      "a": "Ideally yes. CV guides your choices; the test set checks the final choice once. With very small data, nested CV can stand in for a separate test set."
+    },
+    {
+      "q": "Which model do I deploy: one of the five fold models?",
+      "a": "None of them. After choosing settings with CV, retrain one model on all the training data and deploy that."
+    },
+    {
+      "q": "Why does `cross_val_score` give a negative number for MSE?",
+      "a": "scikit-learn always treats higher scores as better, so error metrics are returned negated, for example `neg_mean_squared_error`. Multiply by −1 to read them."
+    },
+    {
+      "q": "Is cross-validation slow?",
+      "a": "It multiplies training time by k. For most tabular models that is seconds or minutes. Use `n_jobs=-1` to run folds in parallel."
+    }
+  ]
+}

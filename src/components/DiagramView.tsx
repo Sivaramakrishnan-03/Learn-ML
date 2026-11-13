@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { scaleLinear, extent, hierarchy, tree as d3tree } from 'd3';
-import { Diagram, TreeNodeSpec } from '../lessons/deep/types';
+import { Diagram, TreeNodeSpec } from '../content/types';
 import { Md } from './Md';
 
 const COLORS = ['#58c4dd', '#fc6255', '#83c167', '#f0ac5f', '#9a72ac', '#5cd0b3'];

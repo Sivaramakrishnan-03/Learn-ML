@@ -125,9 +125,9 @@ textarea.code { width: 100%; min-height: 300px; background: #0b0e13; color: var(
 .sheet table { border-collapse: collapse; width: 100%; font-size: .85rem; }
 .sheet td, .sheet th { border: 1px solid #ccc; padding: 5px 8px; text-align: left; vertical-align: top; }
 @media print {
-  body * { visibility: hidden; }
-  .sheet, .sheet * { visibility: visible; }
-  .sheet { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+  body.print-sheet * { visibility: hidden; }
+  body.print-sheet .sheet, body.print-sheet .sheet * { visibility: visible; }
+  body.print-sheet .sheet { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
   html, body { background: #fff; }
 }
 
@@ -249,7 +249,6 @@ ol.steps li { padding-left: 4px; }
 .playbook-row { display: grid; grid-template-columns: minmax(180px, 1.1fr) 2fr minmax(160px, 1.3fr) 60px; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--line); color: var(--text); align-items: baseline; }
 .playbook-row:hover { background: var(--bg-2); text-decoration: none; }
 @media (max-width: 860px) { .start-steps { grid-template-columns: 1fr; } .playbook-row { grid-template-columns: 1fr; gap: 2px; } }
-@media print { .sheet-all, .sheet-all * { visibility: visible; } }
 
 /* ===== Textbook chapters (v0.4) ===== */
 .deep p, .deep li { font-size: 1.02rem; line-height: 1.75; }
@@ -304,3 +303,44 @@ ol.steps li { padding-left: 4px; }
 .matrix-view th { color: var(--muted); font-weight: 500; background: var(--bg-2); }
 .refs li { margin-bottom: 6px; }
 @media (max-width: 1100px) { .viz-layout { grid-template-columns: 1fr; } }
+
+/* ===== v0.6: layered lessons, reader settings ===== */
+.layer-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+.layer-btn { display: flex; flex-direction: column; gap: 2px; text-align: left; background: var(--bg-2); border: 1px solid var(--line); color: var(--text); border-radius: var(--radius); padding: 10px 14px; }
+.layer-btn.on { border-color: var(--blue); background: #13202b; }
+@media (max-width: 760px) { .layer-switch { grid-template-columns: 1fr; } }
+/* Comfortable reading width for prose; diagrams and animations keep the full width. */
+html[data-width="comfortable"] .reading p, html[data-width="comfortable"] .reading li,
+html[data-width="comfortable"] .deep p, html[data-width="comfortable"] .deep li,
+html[data-width="comfortable"] .hook, html[data-width="comfortable"] .term,
+html[data-width="comfortable"] .callout, html[data-width="comfortable"] .think { max-width: 88ch; }
+html[data-width="comfortable"] .example-box, html[data-width="comfortable"] .case-box { max-width: calc(88ch + 40px); }
+/* Light theme for the page chrome; animation canvases stay dark (3Blue1Brown style) for contrast. */
+html[data-theme="light"] { --bg: #f6f7fb; --bg-2: #ffffff; --bg-3: #eef1f6; --line: #d5dbe5; --text: #1b2230; --muted: #5b6576; color-scheme: light; }
+html[data-theme="light"] .lesson-sec.goals { background: #e8f4fa; border-color: #b9dcea; }
+html[data-theme="light"] .lesson-sec.warn, html[data-theme="light"] .callout.warn { background: #fdf1e6; border-color: #f0cfa8; }
+html[data-theme="light"] .lesson-sec.takeaways, html[data-theme="light"] .callout.key, html[data-theme="light"] .result { background: #eaf6ec; border-color: #b8dfc0; }
+html[data-theme="light"] .callout.tip, html[data-theme="light"] .layer-btn.on { background: #e8f4fa; }
+html[data-theme="light"] .term { background: #f2ecfa; border-color: #d4c4ea; }
+html[data-theme="light"] .case-box { background: #fdf6e6; border-color: #ecd9a8; }
+html[data-theme="light"] .hook { background: linear-gradient(90deg, #e3eef6, var(--bg-2)); }
+html[data-theme="light"] .howto { background: #f0f7ea; border-color: #c9e0b5; }
+html[data-theme="light"] .notice { color: #3d5a2a; }
+html[data-theme="light"] .opt.right { background: #e3f4e6; } html[data-theme="light"] .opt.wrong { background: #fbe6e5; }
+html[data-theme="light"] code.inline { background: #eef1f6; }
+html[data-theme="light"] .formula-card { background: #ffffff; }
+html[data-theme="light"] .formula-card .katex { color: #1b2230; }
+html[data-theme="light"] .hero { background: radial-gradient(circle at 85% 20%, #d7ebf5 0, transparent 50%), var(--bg-2); }
+html[data-theme="light"] .caption { color: var(--text); }
+html[data-theme="light"] .canvas { background: #0b0e13; }
+/* Print a chapter / lesson cleanly */
+@media print {
+  .side, .tabs, .journey, .layer-switch, .player, .howto, .toc, .next-card, .prereq-box, .no-print { display: none !important; }
+  .app { display: block; } .main { padding: 0; }
+  body, .main { background: #fff !important; color: #111 !important; }
+  .deep p, .deep li, .lesson-sec p, .lesson-sec li { color: #111; }
+}
+.opt.chosen { border-color: var(--blue); background: #13202b; }
+html[data-theme="light"] .opt.chosen { background: #e8f4fa; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bg-3); border: 1px solid var(--gold); color: var(--text); padding: 10px 16px; border-radius: 8px; z-index: 50; }
+.search-hit mark { background: rgba(240,172,95,.35); color: inherit; border-radius: 3px; padding: 0 2px; }

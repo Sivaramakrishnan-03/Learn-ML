@@ -1,0 +1,432 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "In the early 2000s, email inboxes were drowning in spam. The fix that turned the tide was surprisingly humble: count which words appear in spam and which in normal mail, then let each word in a new email nudge the odds one way or the other. \"Free\" nudges towards spam, \"invoice attached\" nudges away. Multiply the nudges together and you have **Naive Bayes**, a classifier so simple it fits on a postcard and so fast it can sort millions of messages a second.",
+  "sections": [
+    {
+      "heading": "The problem: weighing many small clues",
+      "blocks": [
+        {
+          "p": "A customer-support team receives 5,000 tickets a day. Each must go to the right queue: billing, technical, delivery or cancellation. A human reads a ticket and spots clue words: \"refund\" suggests billing, \"error code\" suggests technical. No single word decides, but together they point clearly in one direction."
+        },
+        {
+          "p": "We want a machine to do the same: combine many weak clues into a confident decision, learn the strength of each clue from past labelled tickets, and do it fast enough for thousands of tickets an hour. That is precisely what Naive Bayes was built for."
+        },
+        {
+          "term": "Probability",
+          "def": "A number from 0 to 1 saying how likely something is. 0 means impossible, 1 means certain, 0.25 means it happens about one time in four."
+        },
+        {
+          "term": "Conditional probability",
+          "def": "The probability of something given that we already know something else. P(refund | billing) reads \"the probability the word refund appears, given that the ticket is about billing\"."
+        },
+        {
+          "p": "Naive Bayes is built on **Bayes' theorem**, an 18th-century rule for updating a belief when new evidence arrives. The \"naive\" part is a bold simplifying assumption that makes the arithmetic trivial. We will meet both slowly."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Word",
+              "Share of spam emails containing it",
+              "Share of normal emails containing it",
+              "Points towards"
+            ],
+            "rows": [
+              [
+                "free",
+                "30%",
+                "2%",
+                "spam (15× more common)"
+              ],
+              [
+                "winner",
+                "12%",
+                "0.5%",
+                "spam"
+              ],
+              [
+                "meeting",
+                "5%",
+                "20%",
+                "normal"
+              ],
+              [
+                "invoice",
+                "3%",
+                "9%",
+                "normal"
+              ],
+              [
+                "hello",
+                "40%",
+                "42%",
+                "neither (no clue)"
+              ]
+            ],
+            "caption": "Each word is a clue whose strength is the ratio of how often it appears in each class. \"Hello\" appears equally in both, so it carries no information. Numbers are illustrative."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the detective's notebook",
+      "blocks": [
+        {
+          "p": "Think of a detective deciding whether a suspect was at the scene. She starts with a **starting belief**: from experience, say 40% of suspects in such cases turn out to be involved. Then evidence arrives one piece at a time."
+        },
+        {
+          "steps": [
+            "**Start with the base rate.** Before looking at evidence, 40% of suspects are involved.",
+            "**Weigh the first clue.** Mud on the shoes. Involved people have such mud far more often than uninvolved people. Belief goes up.",
+            "**Weigh the next clue.** A train ticket from another city. Uninvolved people have these more often. Belief goes down a bit.",
+            "**Keep going.** Each clue multiplies the odds up or down according to how much more common it is under one explanation than the other.",
+            "**Decide.** Whichever explanation ends with the higher score wins."
+          ],
+          "title": "Updating a belief clue by clue"
+        },
+        {
+          "p": "The naive part: our detective treats each clue as if it were **independent** of the others once she knows the truth. In reality mud and wet trousers tend to come together, so counting both partly double-counts. She accepts that imperfection in exchange for an extremely simple method."
+        },
+        {
+          "term": "Prior",
+          "def": "Your belief before seeing the evidence, usually the base rate in the data. If 40% of past emails were spam, the prior probability of spam is 0.4."
+        },
+        {
+          "term": "Likelihood",
+          "def": "How probable the evidence is under a given explanation. P(\"free\" | spam) = 0.30 means 30% of spam emails contain the word \"free\"."
+        },
+        {
+          "term": "Posterior",
+          "def": "Your updated belief after combining the prior with the evidence. This is what we ultimately want: P(spam | the words in this email)."
+        },
+        {
+          "think": {
+            "q": "The word \"hello\" appears in 40% of spam and 42% of normal emails. How much should it change your belief?",
+            "a": "Almost not at all. Evidence only moves a belief when it is much more common under one explanation than the other. A word equally common in both classes is like a witness who says the same thing whatever happened."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Count** class frequencies → priors",
+              "**Count** each feature within each class → likelihoods",
+              "New case: **multiply** prior × likelihoods for each class",
+              "**Compare** the class scores",
+              "**Normalise** scores to probabilities and pick the largest"
+            ],
+            "caption": "Training is just counting. Prediction is just multiplying. That is why Naive Bayes is one of the fastest classifiers that exists."
+          }
+        },
+        {
+          "p": "**Training, part 1: priors.** Count what share of training cases belong to each class. If 600 of 1,000 tickets are billing, P(billing) = 0.6."
+        },
+        {
+          "p": "**Training, part 2: likelihoods.** For each class, work out how often each feature value appears. For text, that means counting how often each word appears in billing tickets, in technical tickets, and so on."
+        },
+        {
+          "p": "**Prediction.** For a new case, compute for each class: prior × likelihood of feature 1 × likelihood of feature 2 × … The class with the biggest product wins."
+        },
+        {
+          "p": "**Normalising.** The products are not yet probabilities (they do not add up to 1). Divide each by their total to turn them into probabilities."
+        },
+        {
+          "callout": "With hundreds of words, multiplying hundreds of small numbers gives values like 10⁻³⁰⁰, which computers round to zero. Real implementations add **logarithms** instead of multiplying probabilities. The winner is the same; the arithmetic is safe.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Start with Bayes' theorem. It turns a probability we can count easily (how often words appear in spam) into the one we actually want (how likely an email is spam given its words)."
+        },
+        {
+          "tex": "P(c \\mid x) = \\frac{P(x \\mid c)\\, P(c)}{P(x)}",
+          "plain": "The probability of class c given evidence x equals the probability of the evidence if the class were c, times the prior for c, divided by the overall probability of the evidence.",
+          "symbols": [
+            [
+              "c",
+              "a class, e.g. spam"
+            ],
+            [
+              "x",
+              "the evidence, e.g. the words in the email"
+            ],
+            [
+              "P(c)",
+              "the prior"
+            ],
+            [
+              "P(x \\mid c)",
+              "the likelihood"
+            ],
+            [
+              "P(c \\mid x)",
+              "the posterior"
+            ]
+          ]
+        },
+        {
+          "p": "The bottom line, P(x), is the same for every class, so when we only want to know which class wins we can ignore it and compare the tops. The problem is the likelihood P(x | c) when x contains many features: we would need to know how often every exact combination of words appears in spam. No dataset is big enough for that."
+        },
+        {
+          "term": "Conditional independence",
+          "def": "Two features are independent given the class if, once you know the class, knowing one feature tells you nothing more about the other. Naive Bayes assumes this for all features."
+        },
+        {
+          "tex": "P(c \\mid x_1, \\dots, x_p) \\propto P(c) \\prod_{j=1}^{p} P(x_j \\mid c)",
+          "plain": "Under the naive assumption, the posterior is proportional to the prior times the product of one likelihood per feature. Each feature is counted separately, which needs very little data.",
+          "symbols": [
+            [
+              "\\propto",
+              "\"is proportional to\": equal up to a constant we can ignore"
+            ],
+            [
+              "\\prod",
+              "multiply all the terms together"
+            ],
+            [
+              "x_j",
+              "feature j of the case"
+            ]
+          ]
+        },
+        {
+          "p": "For word counts there is one more ingredient. If a word never appeared in billing tickets during training, its likelihood would be 0, and one zero in a product wipes out everything else. **Laplace smoothing** pretends every word was seen once more than it actually was."
+        },
+        {
+          "tex": "P(w \\mid c) = \\frac{\\text{count}(w, c) + 1}{\\text{total words in } c + V}",
+          "plain": "Add 1 to every word count and add the vocabulary size V to the total, so no word ever has probability zero and the probabilities still add up to 1.",
+          "symbols": [
+            [
+              "\\text{count}(w, c)",
+              "how many times word w appears in class c"
+            ],
+            [
+              "V",
+              "number of distinct words in the vocabulary"
+            ]
+          ]
+        },
+        {
+          "p": "For continuous features like temperature, **Gaussian Naive Bayes** assumes each feature follows a bell curve (normal distribution) within each class and uses the height of that curve as the likelihood."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "A two-word spam check",
+            "setup": "Priors: P(spam) = 0.4, P(normal) = 0.6. Likelihoods: P(free | spam) = 0.30, P(free | normal) = 0.02, P(meeting | spam) = 0.05, P(meeting | normal) = 0.20. An email contains both \"free\" and \"meeting\".",
+            "steps": [
+              "Spam score = 0.4 × 0.30 × 0.05 = 0.0060.",
+              "Normal score = 0.6 × 0.02 × 0.20 = 0.0024.",
+              "Total = 0.0060 + 0.0024 = 0.0084.",
+              "P(spam | email) = 0.0060 / 0.0084 ≈ 0.714. P(normal | email) ≈ 0.286.",
+              "For comparison, \"free\" alone would give 0.4 × 0.30 = 0.120 vs 0.6 × 0.02 = 0.012, so P(spam) ≈ 0.91. The word \"meeting\" pulled it back down."
+            ],
+            "result": "Predict spam with about 71% probability. Each word multiplied the odds: \"free\" pushed strongly towards spam, \"meeting\" pushed back towards normal."
+          }
+        },
+        {
+          "example": {
+            "title": "Routing support tickets with Laplace smoothing (illustrative)",
+            "setup": "Training: 6 billing tickets and 4 technical tickets, so priors 0.6 and 0.4. Billing tickets contain 50 words in total, technical tickets 40, and the vocabulary has V = 20 distinct words. \"refund\" appears 6 times in billing and 0 times in technical. \"error\" appears once in billing and 5 times in technical. New ticket: \"refund error\".",
+            "steps": [
+              "Without smoothing: P(refund | technical) = 0/40 = 0, so the technical score is 0 regardless of \"error\". That is clearly too extreme.",
+              "Smoothed billing likelihoods: P(refund | billing) = (6+1)/(50+20) = 7/70 = 0.100; P(error | billing) = (1+1)/70 ≈ 0.0286.",
+              "Smoothed technical likelihoods: P(refund | technical) = (0+1)/(40+20) = 1/60 ≈ 0.0167; P(error | technical) = (5+1)/60 = 0.100.",
+              "Billing score = 0.6 × 0.100 × 0.0286 ≈ 0.001714. Technical score = 0.4 × 0.0167 × 0.100 ≈ 0.000667.",
+              "P(billing) = 0.001714 / (0.001714 + 0.000667) = 0.72."
+            ],
+            "result": "Route to billing with 72% confidence, while technical keeps a fair 28% instead of being ruled out by a single unseen word."
+          }
+        },
+        {
+          "example": {
+            "title": "Gaussian Naive Bayes on a car-parts line (illustrative)",
+            "setup": "An automotive plant classifies wheel bearings as healthy or worn. From history, 10% are worn. Vibration: healthy average 2.0 mm/s (SD 0.5), worn average 4.0 (SD 1.0). Temperature: healthy average 60 °C (SD 5), worn average 70 °C (SD 5). A bearing reads 3.0 mm/s and 68 °C.",
+            "steps": [
+              "Vibration likelihoods (bell-curve heights at 3.0): healthy ≈ 0.1080, worn ≈ 0.2420.",
+              "Vibration only: healthy 0.9 × 0.1080 ≈ 0.0972; worn 0.1 × 0.2420 ≈ 0.0242; P(worn) ≈ 0.199.",
+              "Temperature likelihoods at 68 °C: healthy ≈ 0.0222, worn ≈ 0.0737.",
+              "Both features: healthy 0.9 × 0.1080 × 0.0222 ≈ 0.00216; worn 0.1 × 0.2420 × 0.0737 ≈ 0.00178.",
+              "P(worn) = 0.00178 / (0.00216 + 0.00178) ≈ 0.45."
+            ],
+            "result": "One clue raised the worn probability from the 10% base rate to 20%; the second raised it to 45%. Not quite a majority, but well above the level at which a plant would pull a part for inspection."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-Math.pow(x-2,2)/(2*0.25))/(0.5*Math.sqrt(2*Math.PI))",
+            "fn2": "Math.exp(-Math.pow(x-4,2)/2)/Math.sqrt(2*Math.PI)",
+            "xMin": 0,
+            "xMax": 8,
+            "marks": [
+              {
+                "x": 3,
+                "label": "reading 3.0"
+              }
+            ],
+            "xLabel": "vibration (mm/s)",
+            "yLabel": "likelihood",
+            "legend": [
+              "healthy",
+              "worn"
+            ],
+            "caption": "The two bell curves Gaussian Naive Bayes uses for vibration. At 3.0 mm/s the worn curve (0.242) is more than twice as high as the healthy curve (0.108). That ratio is the strength of the clue before the 10% prior is applied."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Variants, and why \"naive\" still works",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Variant",
+              "Feature type",
+              "Typical use",
+              "scikit-learn"
+            ],
+            "rows": [
+              [
+                "Multinomial",
+                "Word counts",
+                "Text, ticket routing",
+                "`MultinomialNB`"
+              ],
+              [
+                "Bernoulli",
+                "Present / absent",
+                "Short texts, yes/no flags",
+                "`BernoulliNB`"
+              ],
+              [
+                "Gaussian",
+                "Continuous numbers",
+                "Sensor readings, measurements",
+                "`GaussianNB`"
+              ],
+              [
+                "Complement",
+                "Word counts, imbalanced classes",
+                "Text with rare classes",
+                "`ComplementNB`"
+              ]
+            ],
+            "caption": "Pick the variant that matches what your features look like. The Bayes logic is identical; only the likelihood formula changes."
+          }
+        },
+        {
+          "p": "The independence assumption is almost always false. Words like \"credit\" and \"card\" co-occur; temperature and vibration rise together. So why does Naive Bayes classify well?"
+        },
+        {
+          "p": "Because classification only needs the **right winner**, not exact probabilities. Double-counting correlated clues inflates the scores of the winning class, but usually inflates them in the same direction, so the ranking survives. The price is paid in the probabilities themselves, which are pushed towards 0 or 1 and should not be trusted as accurate percentages."
+        },
+        {
+          "callout": "Use Naive Bayes for **deciding**, not for **quoting odds**. If you need trustworthy probabilities (for pricing risk, say), calibrate them with `CalibratedClassifierCV` or use logistic regression.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Naive Bayes in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Spam filtering",
+            "story": "Paul Graham's widely read 2002 essay \"A Plan for Spam\" popularised Bayesian word-counting filters, and the approach was soon built into many spam filters of that era. Each user's own \"this is spam\" clicks retrained the counts, so the filter adapted to what that person received. Modern providers now combine many signals and more complex models, but word-level Bayesian scoring remains a teaching classic and a strong baseline for any new text-filtering problem."
+          }
+        },
+        {
+          "bullets": [
+            "**Ticket and email routing:** a first model for sending messages to the right team, often trained in seconds on a laptop.",
+            "**Sentiment analysis:** positive versus negative product reviews from word counts.",
+            "**Document categorisation:** news topics, legal document types, invoice versus purchase order.",
+            "**Medical screening aids:** combining several test results, each with known rates in sick and healthy patients.",
+            "**Baselines:** before training a large language model classifier, check how far Naive Bayes gets you. Sometimes it is enough."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Zero probabilities.** Forgetting smoothing lets one unseen word veto a class. scikit-learn's `alpha=1.0` default is Laplace smoothing.",
+            "**Overconfident probabilities.** Outputs of 0.999 are common and rarely mean what they say.",
+            "**Strongly correlated features.** Ten near-copies of the same clue get counted ten times. Remove duplicates before training.",
+            "**Interactions.** If a clue only matters in combination (\"discount\" is fine, \"discount\" plus \"wire transfer\" is suspicious), Naive Bayes cannot see it.",
+            "**Gaussian assumption.** Skewed features such as income break the bell-curve assumption; transform them (for example with a log) first."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Naive Bayes shines when…",
+              "items": [
+                "Features are words or counts",
+                "Training data is small",
+                "You need training in seconds and instant predictions",
+                "Many features each carry a little evidence",
+                "You need a quick baseline"
+              ]
+            },
+            "right": {
+              "title": "Prefer something else when…",
+              "items": [
+                "You need calibrated probabilities → **logistic regression**",
+                "Features interact strongly → **trees** or **boosting**",
+                "Highest text accuracy matters → **linear SVM** or **transformer** models",
+                "Numeric features are far from normal → transform them or use **trees**"
+              ]
+            },
+            "caption": "Naive Bayes trades accuracy at the top end for speed, simplicity and robustness on small data."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why is it called \"naive\"?",
+      "a": "Because it assumes every feature is independent of the others once the class is known. That is rarely true, which is the naive part, but the method works well anyway for ranking classes."
+    },
+    {
+      "q": "Do I need a lot of data?",
+      "a": "No. Because each feature is counted separately, Naive Bayes needs far less data than most classifiers. It is a good choice when you have only a few hundred labelled examples."
+    },
+    {
+      "q": "Should I trust its probabilities?",
+      "a": "Treat them as scores, not true percentages. They tend to be too extreme. Calibrate them if exact probabilities matter."
+    },
+    {
+      "q": "What does Laplace smoothing actually do?",
+      "a": "It adds one imaginary occurrence of every word to every class, so no word has zero probability. That stops a single unseen word from ruling a class out entirely."
+    },
+    {
+      "q": "Does Naive Bayes need feature scaling?",
+      "a": "No. Multinomial and Bernoulli work on counts and flags, and Gaussian Naive Bayes estimates a separate mean and spread for each feature, so the units do not matter."
+    },
+    {
+      "q": "How is Bayes' theorem different from Naive Bayes?",
+      "a": "Bayes' theorem is an exact rule of probability. Naive Bayes is a classifier that applies that rule plus the simplifying independence assumption, so the likelihood can be computed one feature at a time."
+    }
+  ]
+}

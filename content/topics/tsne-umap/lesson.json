@@ -1,0 +1,71 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain what t-SNE and UMAP preserve",
+    "Read their plots without over-interpreting them",
+    "Know when to use each"
+  ],
+  "why": "t-SNE and UMAP produce the striking 2-D maps of embeddings, single-cell data and customer behaviour that reveal clusters PCA cannot show.",
+  "explain": [
+    "Both are **non-linear** methods that place similar points close together in 2-D, preserving **neighbourhoods** rather than global distances. Think of flattening a crumpled map without tearing neighbourhoods apart.",
+    "**t-SNE** is excellent for revealing local clusters. It is slow on large data and its key setting is **perplexity** (roughly, the number of neighbours considered).",
+    "**UMAP** is faster, preserves more global structure, and can transform new data. Key settings: n_neighbors and min_dist.",
+    "**Reading rules:** cluster **sizes** and the **distances between clusters** are often meaningless; different runs can look different. Use the plots for exploration, not as proof."
+  ],
+  "example": {
+    "title": "Visualising 10,000 product embeddings",
+    "steps": [
+      "Embeddings have 384 dimensions",
+      "PCA to 2-D: one overlapping blob",
+      "UMAP to 2-D: clear islands for electronics, apparel, grocery…",
+      "Colour by category to sanity-check, and inspect the points that sit in the \"wrong\" island"
+    ],
+    "result": "UMAP reveals the structure; the follow-up investigation provides the insight."
+  },
+  "mistakes": [
+    "Interpreting distances between clusters.",
+    "Training a model on t-SNE coordinates.",
+    "Judging from a single run or perplexity setting."
+  ],
+  "takeaways": [
+    "Non-linear, neighbourhood-preserving 2-D maps",
+    "UMAP is faster and more global; t-SNE is good for local detail",
+    "Explore with them; do not prove with them"
+  ],
+  "use": [
+    "Exploring high-dimensional data and embeddings"
+  ],
+  "avoid": [
+    "Feature engineering for models (prefer PCA)",
+    "Drawing quantitative conclusions from distances"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_digits\nfrom sklearn.manifold import TSNE\nX, y = load_digits(return_X_y=True)\nemb = TSNE(n_components=2, perplexity=30, random_state=0).fit_transform(X)\nprint(emb.shape)   # plot emb coloured by y to see the 10 digit islands\n# UMAP: pip install umap-learn → umap.UMAP(n_neighbors=15).fit_transform(X)"
+  },
+  "check": [
+    {
+      "q": "In a t-SNE plot, what is most reliable?",
+      "options": [
+        "Distances between clusters",
+        "Which points are near each other locally",
+        "Cluster sizes",
+        "The axes' meaning"
+      ],
+      "answer": 1,
+      "why": "t-SNE preserves local neighbourhoods."
+    },
+    {
+      "q": "Main practical advantage of UMAP over t-SNE?",
+      "options": [
+        "It is linear",
+        "It is faster and can transform new data",
+        "It needs labels",
+        "It has no parameters"
+      ],
+      "answer": 1,
+      "why": "Speed and a reusable transform."
+    }
+  ],
+  "chapterMinutes": 16
+}

@@ -1,0 +1,390 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "Two villages sit on either side of a valley and the government wants to build a road between them. Many routes would technically separate the villages, but the sensible planner chooses the one that stays as far as possible from the nearest houses on both sides, leaving room for growth and mistakes. A **Support Vector Machine** draws the boundary between two classes with the same philosophy: not just any line that separates them, but the one with the **widest street**.",
+  "sections": [
+    {
+      "heading": "The problem: many lines separate, which one is best?",
+      "blocks": [
+        {
+          "p": "Suppose a lender has two features for past applicants and the repaid and defaulted groups do not overlap on the chart. You could draw dozens of straight lines that put every repaid applicant on one side and every defaulter on the other. All of them score 100% on the training data. Which should you trust for tomorrow's applicants?"
+        },
+        {
+          "p": "A line that just grazes some training points is risky: a new applicant slightly different from those points could land on the wrong side. A line with plenty of room on both sides is more forgiving. The SVM turns that intuition into an exact optimisation."
+        },
+        {
+          "term": "Decision boundary",
+          "def": "The line (or, with more features, the flat surface) that separates the region where the model predicts one class from the region where it predicts the other."
+        },
+        {
+          "term": "Hyperplane",
+          "def": "The general name for a flat boundary: a line in 2 dimensions, a flat plane in 3, and its equivalent in more dimensions, which we cannot draw but can compute."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "feature 1 (scaled)",
+            "yLabel": "feature 2 (scaled)",
+            "line": {
+              "m": -1,
+              "b": 6
+            },
+            "caption": "Seven applicants, blue for class −1 and red for class +1. The line x₁ + x₂ = 6 is the maximum-margin boundary. The four points closest to it, (2, 3), (3, 2), (4, 3) and (3, 4), sit exactly on the edges of the street; they are the support vectors.",
+            "points": [
+              [
+                2,
+                3,
+                0
+              ],
+              [
+                3,
+                2,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                4,
+                3,
+                1
+              ],
+              [
+                3,
+                4,
+                1
+              ],
+              [
+                5,
+                5,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the widest street",
+      "blocks": [
+        {
+          "p": "Picture the chart as a map with red houses on one side and blue houses on the other. You must lay a straight road with a centre line and two kerbs. The rule: no house may stand on the road. Your goal: make the road as wide as possible."
+        },
+        {
+          "steps": [
+            "**Start with any road** that separates the colours.",
+            "**Widen it** until a kerb touches a house on one side or the other.",
+            "**Rotate and shift** the road to see whether it can be made wider while still touching no house.",
+            "**Stop** when the road cannot be widened any further. The houses touching the kerbs are now holding the road in place."
+          ],
+          "title": "Laying the widest road"
+        },
+        {
+          "p": "Those houses touching the kerbs are the **support vectors**: they \"support\" the road like tent pegs. Every other house could be moved around, or removed entirely, and the road would not change. That is a striking property: the final model depends on only a handful of the training points."
+        },
+        {
+          "term": "Margin",
+          "def": "The width of the street: the distance between the boundary and the closest points of each class, counted on both sides."
+        },
+        {
+          "term": "Support vectors",
+          "def": "The training points that lie on the edge of the margin (or inside it, when errors are allowed). They alone determine where the boundary goes."
+        },
+        {
+          "think": {
+            "q": "You delete a training point that sits far away from the boundary, deep in its own class territory. What happens to the SVM's boundary?",
+            "a": "Nothing. Only support vectors affect the boundary. Points far from the street play no part in the final answer. Logistic regression, by contrast, uses every point, so its line would shift slightly."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Scale** the features",
+              "Choose **C** (tolerance for violations)",
+              "**Solve** for the widest street allowing paid violations",
+              "Keep only the **support vectors**",
+              "Predict by the **side of the line** a new point falls on"
+            ],
+            "caption": "Training an SVM is a single optimisation problem with one best answer; no random restarts needed."
+          }
+        },
+        {
+          "p": "**Step 1: Scale.** Like k-NN, an SVM measures distances, so every feature must be standardised first."
+        },
+        {
+          "p": "**Step 2: Choose C.** Real data almost never separates perfectly; a few repaid applicants look like defaulters. The **soft-margin** SVM allows points inside the street or even on the wrong side, but charges a penalty for each. The setting **C** says how expensive each violation is."
+        },
+        {
+          "term": "Soft margin",
+          "def": "A version of the SVM that tolerates some points inside the margin or on the wrong side, paying a penalty for each, so it can handle overlapping classes."
+        },
+        {
+          "p": "**Step 3: Solve.** A numerical optimiser finds the line that best balances a wide street against the total penalty. This problem is **convex**, meaning it has a single best answer and the solver always finds it."
+        },
+        {
+          "p": "**Step 4: Predict.** For a new point, compute a score from the line's equation. Positive score: class +1. Negative: class −1. The size of the score says how far the point is from the boundary, a rough measure of confidence."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "A straight boundary can be written as a weighted sum of features plus a constant. Points where this sum is zero lie on the boundary."
+        },
+        {
+          "tex": "f(x) = w \\cdot x + b = w_1 x_1 + w_2 x_2 + \\dots + b",
+          "plain": "Multiply each feature by its weight, add them up, add b. If f(x) is positive predict +1, if negative predict −1. The boundary is where f(x) = 0.",
+          "symbols": [
+            [
+              "w",
+              "the weights, one per feature; they set the direction of the boundary"
+            ],
+            [
+              "b",
+              "the bias or offset; it shifts the boundary"
+            ],
+            [
+              "x",
+              "the features of a case"
+            ]
+          ]
+        },
+        {
+          "p": "SVMs fix the scale of w by insisting that the closest points on each side have f(x) = +1 or −1 exactly. The street edges are then the lines f(x) = +1 and f(x) = −1, and geometry tells us the street's width."
+        },
+        {
+          "tex": "\\text{margin width} = \\frac{2}{\\lVert w \\rVert}",
+          "plain": "The width of the street is 2 divided by the length of the weight vector. Smaller weights mean a wider street.",
+          "symbols": [
+            [
+              "\\lVert w \\rVert",
+              "the length of w: the square root of the sum of squared weights"
+            ]
+          ]
+        },
+        {
+          "p": "So making the street wide is the same as making w small. The soft-margin SVM balances that against penalties for violations."
+        },
+        {
+          "tex": "\\min_{w,\\,b} \\; \\frac{1}{2}\\lVert w \\rVert^2 + C \\sum_{i=1}^{n} \\max\\big(0,\\; 1 - y_i f(x_i)\\big)",
+          "plain": "Minimise two things together: the first term keeps the street wide; the second adds up a penalty for every training point that is inside the street or on the wrong side. C sets how much the penalties matter compared with the width.",
+          "symbols": [
+            [
+              "y_i",
+              "the true label of case i, either +1 or −1"
+            ],
+            [
+              "y_i f(x_i)",
+              "positive and at least 1 if the point is correctly outside the street"
+            ],
+            [
+              "C",
+              "the price of each unit of violation"
+            ]
+          ]
+        },
+        {
+          "term": "Hinge loss",
+          "def": "The penalty max(0, 1 − y·f(x)). Zero for points safely outside the street on the correct side, growing in a straight line as a point moves into the street and across to the wrong side."
+        },
+        {
+          "callout": "**Large C** says \"violations are very expensive\": a narrow street that bends to classify every training point, risking overfitting. **Small C** says \"a few violations are fine\": a wide, calm street that may ignore some points. Tune C by cross-validation.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Reading a trained SVM",
+            "setup": "On the seven scaled points in the first diagram, a linear SVM (with very large C, so no violations allowed) finds w = (1, 1) and b = −6. Check its properties.",
+            "steps": [
+              "Boundary: x₁ + x₂ − 6 = 0, that is x₁ + x₂ = 6.",
+              "Point (2, 3), class −1: f = 2 + 3 − 6 = −1. Exactly on its kerb → support vector. Same for (3, 2).",
+              "Point (4, 3), class +1: f = 4 + 3 − 6 = +1 → support vector. Same for (3, 4).",
+              "Point (1, 1), class −1: f = −4. Well inside its own territory, not a support vector. Its distance to the boundary is |−4| / √2 ≈ 2.83.",
+              "Margin width = 2 / ‖w‖ = 2 / √(1² + 1²) = 2 / √2 ≈ 1.41. Each support vector is 1 / √2 ≈ 0.71 from the centre line.",
+              "New point (4, 4): f = 4 + 4 − 6 = +2 → predict +1, comfortably outside the street."
+            ],
+            "result": "Four support vectors define everything. Delete (1, 1), (2, 2) or (5, 5) and retraining gives exactly the same line."
+          }
+        },
+        {
+          "example": {
+            "title": "Hinge loss for four applicants",
+            "setup": "A soft-margin SVM gives these values of y·f(x): applicant P = 2.0, Q = 1.0, R = 0.5, S = −0.3.",
+            "steps": [
+              "P: max(0, 1 − 2.0) = 0. Correct side, outside the street, no penalty.",
+              "Q: max(0, 1 − 1.0) = 0. Exactly on the kerb, still no penalty.",
+              "R: max(0, 1 − 0.5) = 0.5. Correct side but inside the street: partial penalty.",
+              "S: max(0, 1 − (−0.3)) = 1.3. On the wrong side: the biggest penalty.",
+              "Total violation = 0 + 0 + 0.5 + 1.3 = 1.8. With C = 1 this adds 1.8 to the objective; with C = 100 it adds 180, which would push the solver hard to fix R and S at the cost of a narrower street."
+            ],
+            "result": "The hinge loss ignores well-classified points entirely and charges more the deeper a point sits on the wrong side. C decides how loudly those charges speak."
+          }
+        },
+        {
+          "example": {
+            "title": "Tuning C on a real medical dataset",
+            "setup": "The public Wisconsin breast-cancer dataset in scikit-learn has 569 tumour samples with 30 measurements each. A scaled linear SVM is scored with 5-fold cross-validation for several values of C.",
+            "steps": [
+              "C = 0.001: accuracy 93.7%, with 252 of 569 points as support vectors. The street is very wide and many points fall inside it.",
+              "C = 0.01: 96.8%, 118 support vectors.",
+              "C = 0.1: 97.4%, 60 support vectors. The best of the values tried.",
+              "C = 1: 97.2%, 40 support vectors.",
+              "C = 100: 96.0%, 31 support vectors. Training accuracy is 99.6%, but held-out accuracy has dropped."
+            ],
+            "result": "Moderate C wins. Larger C keeps shrinking the street and the number of support vectors while training accuracy climbs, but performance on unseen data falls. Always choose C on held-out data."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "C=0.001",
+              "C=0.01",
+              "C=0.1",
+              "C=1",
+              "C=10",
+              "C=100"
+            ],
+            "values": [
+              93.7,
+              96.8,
+              97.4,
+              97.2,
+              96.8,
+              96
+            ],
+            "highlight": 2,
+            "yLabel": "cross-validated accuracy %",
+            "caption": "Results of the breast-cancer run above (scikit-learn, linear kernel, 5-fold CV). Accuracy peaks at C = 0.1 and drifts down as C grows and the street narrows around individual points."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading SVM output and getting probabilities",
+      "blocks": [
+        {
+          "p": "A trained scikit-learn SVM exposes useful attributes. `support_vectors_` lists the points holding the street in place; `n_support_` counts them per class. For a linear kernel, `coef_` holds w: larger absolute weights mean the feature matters more to the boundary (as long as features were scaled)."
+        },
+        {
+          "p": "`decision_function(x)` returns f(x), the signed score. Its sign gives the class and its size gives the distance from the boundary in units of half the street width. It is **not** a probability."
+        },
+        {
+          "term": "Calibration",
+          "def": "Converting a model's raw scores into probabilities that match reality, so that among cases labelled \"70% likely\", about 70% really are positive."
+        },
+        {
+          "p": "If you need probabilities, set `probability=True` (scikit-learn then fits a calibration curve using internal cross-validation, which slows training) or wrap the model in `CalibratedClassifierCV`. For multi-class problems, scikit-learn's `SVC` trains one SVM per pair of classes and combines their votes automatically."
+        },
+        {
+          "callout": "A growing share of support vectors is a warning sign. If most of your training points are support vectors, the classes overlap heavily or C is too small, and the model is close to guessing near the boundary.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "SVMs in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Text categorisation",
+            "story": "Thorsten Joachims' 1998 study of text categorisation, using the Reuters news collection, showed linear SVMs performing very well on documents represented by thousands of word features. Text suits SVMs: there are many features, each document uses only a few of them, and the classes are often close to linearly separable in that high-dimensional space. Linear SVMs became a standard tool for news tagging, spam detection and sentiment analysis, and `LinearSVC` remains a strong, fast baseline for text classification today."
+          }
+        },
+        {
+          "bullets": [
+            "**Bioinformatics:** classifying tissue samples from thousands of gene-expression measurements with only a few hundred patients.",
+            "**Image descriptors:** before deep learning, SVMs on hand-crafted image features were a common approach to detecting pedestrians and faces.",
+            "**Quality inspection (illustrative):** separating good and faulty welds from a dozen sensor readings, with only a few hundred labelled examples.",
+            "**Fraud screening:** a linear SVM on transaction features, with C tuned to control false alarms."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Unscaled features** distort the street. Always use a `StandardScaler` in a pipeline.",
+            "**Slow on large datasets.** Kernel `SVC` training time grows roughly with the square of the number of rows or worse; beyond about 100,000 rows use `LinearSVC` or `SGDClassifier`.",
+            "**No native probabilities.** Calibration adds cost and complexity.",
+            "**Less interpretable than trees** once kernels are involved.",
+            "**Imbalanced classes:** the street can be pushed against the rare class. Use `class_weight=\"balanced\"`."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "SVM",
+              "items": [
+                "Uses only the boundary points (support vectors)",
+                "Maximises the margin; robust to far-away points",
+                "Scores are distances, not probabilities",
+                "Shines with many features and few rows",
+                "Curved boundaries via kernels"
+              ]
+            },
+            "right": {
+              "title": "Logistic regression",
+              "items": [
+                "Uses every point",
+                "Maximises likelihood of the labels",
+                "Gives well-calibrated probabilities",
+                "Scales easily to millions of rows",
+                "Coefficients are easy to explain as odds"
+              ]
+            },
+            "caption": "Linear SVMs and logistic regression often reach similar accuracy. Choose logistic regression when you need probabilities and explanations; try an SVM when features are many and data is modest."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why is it called a \"machine\" and what are \"support vectors\"?",
+      "a": "The name is historical; \"machine\" just means a learning algorithm. Support vectors are the training points that sit on or inside the margin and hold the boundary in place."
+    },
+    {
+      "q": "Is a bigger C better?",
+      "a": "No. Bigger C means fewer training errors but a narrower street, which often overfits. Choose C by cross-validation, typically trying values like 0.01, 0.1, 1, 10 and 100."
+    },
+    {
+      "q": "Can SVMs handle more than two classes?",
+      "a": "Yes. scikit-learn's `SVC` trains one SVM for every pair of classes and lets them vote; `LinearSVC` trains one class against the rest. You do not need to do anything special."
+    },
+    {
+      "q": "Do SVMs output probabilities?",
+      "a": "Not directly. They output signed distances. Use `probability=True` or `CalibratedClassifierCV` if you need probabilities."
+    },
+    {
+      "q": "What if my classes cannot be separated by a straight line?",
+      "a": "Use the kernel trick, covered in the next chapter, which lets an SVM draw curved boundaries."
+    },
+    {
+      "q": "Does an SVM need scaled data?",
+      "a": "Yes. The margin is a distance, and a feature measured in large units would dominate it. Put a scaler in the pipeline."
+    }
+  ]
+}

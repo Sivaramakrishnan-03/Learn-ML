@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Explain why ANOVA beats multiple t-tests",
+    "Interpret the F-statistic",
+    "Follow up with post-hoc tests"
+  ],
+  "why": "Comparing three suppliers, four ad creatives or five machine settings is common. Running many t-tests inflates false positives; ANOVA handles all groups in one test.",
+  "explain": [
+    "With 5 groups there are 10 pairwise t-tests. At α = 0.05 each, the chance of at least one false positive is about 40%. **ANOVA** (analysis of variance) controls this.",
+    "Idea: compare the variation **between** group means with the variation **within** groups. If the groups differ much more than the individuals inside them, the means probably differ.",
+    "The **F-statistic** = between-group variance ÷ within-group variance. F near 1 means no evidence of a difference; large F means a small p-value.",
+    "ANOVA only tells you that *some* group differs. Use a **post-hoc** test (Tukey HSD) to find which ones."
+  ],
+  "formula": {
+    "tex": "F = \\frac{\\text{variance between groups}}{\\text{variance within groups}}",
+    "plain": "How spread out the group averages are, relative to the noise inside each group."
+  },
+  "example": {
+    "title": "Three call scripts",
+    "steps": [
+      "Average sales per agent: Script A 20, B 22, C 27 (10 agents each)",
+      "Variation between the three means is large relative to agent-to-agent variation",
+      "Software reports F = 6.1, p = 0.006",
+      "Tukey HSD: C beats A and B; A vs B is not significant"
+    ],
+    "result": "Roll out script C. Without the post-hoc test you would not know which script to choose."
+  },
+  "mistakes": [
+    "Stopping at \"significant ANOVA\" without a post-hoc test.",
+    "Ignoring very unequal variances (use Welch's ANOVA)."
+  ],
+  "takeaways": [
+    "One test for 3+ group means",
+    "F = between ÷ within variation",
+    "Post-hoc tests identify which groups differ"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom scipy.stats import f_oneway\nfrom statsmodels.stats.multicomp import pairwise_tukeyhsd\nrng = np.random.default_rng(0)\na, b, c = rng.normal(20, 4, 10), rng.normal(22, 4, 10), rng.normal(27, 4, 10)\nprint(f_oneway(a, b, c))\nprint(pairwise_tukeyhsd(np.r_[a, b, c], [\"A\"]*10 + [\"B\"]*10 + [\"C\"]*10))",
+    "note": "statsmodels may not be available in the in-browser runner; run this locally."
+  },
+  "check": [
+    {
+      "q": "F ≈ 1 suggests…",
+      "options": [
+        "Strong group differences",
+        "No evidence the group means differ",
+        "Perfect fit",
+        "An error"
+      ],
+      "answer": 1,
+      "why": "Between-group variation is similar to the noise."
+    },
+    {
+      "q": "ANOVA is significant. Next step?",
+      "options": [
+        "Done",
+        "A post-hoc test such as Tukey HSD",
+        "Delete a group",
+        "Run a chi-square"
+      ],
+      "answer": 1,
+      "why": "ANOVA does not say which groups differ."
+    }
+  ],
+  "chapterMinutes": 15
+}

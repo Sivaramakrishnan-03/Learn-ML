@@ -1,0 +1,80 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Fit and interpret a regression with several features",
+    "Explain \"holding other variables constant\"",
+    "Detect multicollinearity with VIF"
+  ],
+  "why": "Real outcomes have many drivers. Multiple regression separates their effects, for example how much of a price premium comes from location versus size.",
+  "explain": [
+    "The model becomes **ŷ = b₀ + b₁x₁ + b₂x₂ + …**. Each coefficient is the expected change in y for a one-unit change in that feature **with all other features held fixed**.",
+    "That \"holding fixed\" is the superpower: simple regression of price on bedrooms mixes up bedrooms and size; multiple regression separates them.",
+    "**Multicollinearity**: when features are highly correlated (area and number of rooms), coefficients become unstable and can even flip sign. Check the **VIF** (variance inflation factor); above 5–10 is a warning.",
+    "Use **adjusted R²** or cross-validation to compare models. Plain R² always rises when you add a feature, even a useless one."
+  ],
+  "formula": {
+    "tex": "\\hat y = \\beta_0 + \\beta_1 x_1 + \\dots + \\beta_p x_p, \\qquad \\hat\\beta = (X^TX)^{-1}X^Ty",
+    "plain": "A weighted sum of features; the weights are found by least squares (matrix form on the right)."
+  },
+  "example": {
+    "title": "Flat price model",
+    "steps": [
+      "price = 5 + 3.8 × area(100 sq ft) − 0.4 × age(years) + 9 × near_metro(0/1)",
+      "Flat: 1,000 sq ft, 8 years old, near the metro",
+      "5 + 38 − 3.2 + 9 = ₹48.8L",
+      "Reading: being near the metro is worth about ₹9L at the same size and age"
+    ],
+    "result": "Each coefficient answers a separate business question, provided the features are not strongly collinear."
+  },
+  "mistakes": [
+    "Interpreting coefficients of collinear features.",
+    "Comparing raw coefficient sizes across features with different units (standardise first).",
+    "Adding features until R² looks great (overfitting)."
+  ],
+  "takeaways": [
+    "Coefficients = effect holding others fixed",
+    "Watch for multicollinearity (VIF)",
+    "Compare models with adjusted R² or CV"
+  ],
+  "use": [
+    "Explaining drivers with several inputs",
+    "Pricing, cost and demand models"
+  ],
+  "avoid": [
+    "Highly collinear inputs without regularisation",
+    "More features than rows"
+  ],
+  "interview": [
+    "What is multicollinearity and how do you detect it?",
+    "Why does R² always increase when you add features?"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_diabetes\nfrom sklearn.linear_model import LinearRegression\nimport pandas as pd\nX, y = load_diabetes(return_X_y=True, as_frame=True)\nm = LinearRegression().fit(X, y)\nprint(pd.Series(m.coef_, index=X.columns).round(1).sort_values())"
+  },
+  "check": [
+    {
+      "q": "Coefficient for \"age\" = −0.4. Interpretation?",
+      "options": [
+        "Older flats always cost less",
+        "Each extra year lowers the price by ₹0.4L, holding other features fixed",
+        "Age explains 40%",
+        "Age is not significant"
+      ],
+      "answer": 1,
+      "why": "Partial effect, other variables held constant."
+    },
+    {
+      "q": "VIF of 15 for a feature suggests…",
+      "options": [
+        "A strong predictor",
+        "Serious multicollinearity",
+        "A missing value",
+        "Perfect fit"
+      ],
+      "answer": 1,
+      "why": "VIF above 10 signals that the feature is largely explained by the others."
+    }
+  ],
+  "chapterMinutes": 17
+}

@@ -1,0 +1,438 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 19,
+  "hook": "Your manager forwards a spreadsheet with 12,000 rows of delivery times and asks one question: “So, are we fast or not?” Nobody can read 12,000 numbers. You need to squeeze them into two or three numbers that tell the truth, without hiding the bad days. That squeezing is **descriptive statistics**, and doing it well (or badly) is the difference between an honest dashboard and a misleading one.",
+  "sections": [
+    {
+      "heading": "The problem: too many numbers, not enough understanding",
+      "blocks": [
+        {
+          "p": "Every business collects lists of numbers: sales per store, salaries per employee, minutes per delivery, defects per shift. A list on its own is almost useless to a decision-maker. What they want is a short, faithful summary: what is typical, how much things vary, and whether anything strange is going on."
+        },
+        {
+          "term": "Dataset",
+          "def": "A collection of measurements, usually arranged as a table. Each row is one thing measured (a delivery, a customer, a machine) and each column is one measurement about it (minutes, rupees, temperature)."
+        },
+        {
+          "term": "Descriptive statistics",
+          "def": "Numbers and pictures that summarise a dataset you already have: its typical value, its spread and its shape. They describe; they do not, by themselves, predict or prove anything."
+        },
+        {
+          "p": "There are three questions every summary should answer. **Where is the centre?** (What does a typical value look like?) **How spread out is it?** (Are the values all close together or all over the place?) **What shape does it have?** (Is it symmetric, or does it have a long tail of extreme values?)"
+        },
+        {
+          "term": "Distribution",
+          "def": "The pattern of how often each value (or range of values) occurs in the data. A picture of the distribution shows at a glance where values pile up and where they thin out."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: describing a city’s weather to a friend",
+      "blocks": [
+        {
+          "p": "Imagine a friend is moving to your city and asks, “What is the weather like?” You would not read out every day’s temperature for the last year. You would say something like: “It’s usually around 30 degrees. It rarely drops below 22 or goes above 38. And every summer there are a few brutal days over 42.”"
+        },
+        {
+          "p": "Look at what you just did. You gave a **typical value** (around 30). You gave a **range where most days fall** (22 to 38). And you warned about **unusual days** (the 42-degree heatwaves). That is descriptive statistics, done by instinct."
+        },
+        {
+          "steps": [
+            "**Say what is typical.** One number that represents an ordinary day.",
+            "**Say how much it varies.** A friend moving from a city where every day is 25 degrees needs to know your city swings a lot.",
+            "**Mention the shape.** Are hot days and cold days equally common, or is there a long tail on one side?",
+            "**Flag the oddities.** The rare extreme days matter for planning (buy an air conditioner)."
+          ],
+          "title": "What a good summary always contains"
+        },
+        {
+          "p": "Now a trap. Ask about **house prices** instead: most homes sell for ₹60 to ₹90 lakh, but a handful of sea-facing bungalows sell for ₹40 crore. Add up all prices and divide by the count, and those bungalows drag the answer far above what an ordinary buyer pays. The “typical” number depends on how you calculate it."
+        },
+        {
+          "think": {
+            "q": "Ten people sit in a café, each earning about ₹50,000 a month. A billionaire walks in. What happens to the average income in the room, and to the income of the person in the middle?",
+            "a": "The average (add up and divide) shoots up to crores per person, even though nobody else got richer. The income of the middle person, if you line everyone up from poorest to richest, barely moves. This is exactly the difference between the mean and the median, which we define next."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How to summarise a dataset, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Look** at the data: plot a histogram",
+              "**Centre**: mean and median",
+              "**Spread**: standard deviation and IQR",
+              "**Shape**: symmetric or skewed?",
+              "**Outliers**: check, explain, report"
+            ],
+            "caption": "The routine an experienced analyst follows before any modelling. The picture comes first, because a single number can hide a lot."
+          }
+        },
+        {
+          "p": "**Step 1: Look.** Draw a histogram: split the range of values into equal-width bins and count how many values fall into each."
+        },
+        {
+          "term": "Histogram",
+          "def": "A bar chart of counts. The horizontal axis is divided into equal bins (for example ₹0–20k, ₹20–40k …) and each bar’s height is how many values fall in that bin."
+        },
+        {
+          "p": "**Step 2: Centre.** Compute the **mean** and the **median**. A big gap between them is the first sign of a long tail."
+        },
+        {
+          "term": "Mean, median and mode",
+          "def": "The **mean** is the ordinary average: add all values and divide by how many there are. The **median** is the middle value after sorting (half the values are below it, half above). The **mode** is the value that occurs most often."
+        },
+        {
+          "p": "**Step 3: Spread.** Compute the **standard deviation** (the typical distance of a value from the mean) and the **interquartile range** (the width of the middle half of the data)."
+        },
+        {
+          "p": "**Step 4: Shape.** Is the histogram symmetric like a bell, or **skewed** with a tail stretching to one side?"
+        },
+        {
+          "term": "Skewed",
+          "def": "Lopsided. A right-skewed (positively skewed) distribution has most values bunched on the left and a long tail of large values stretching to the right. A left-skewed one is the mirror image."
+        },
+        {
+          "p": "**Step 5: Outliers.** Look for values far from the rest. Some are data errors (a delivery time of −5 minutes), some are real and important (a fraud transaction). Never delete them silently: investigate, then decide."
+        },
+        {
+          "term": "Outlier",
+          "def": "A value that is unusually far from the bulk of the data. A common rule of thumb flags anything more than 1.5 IQRs below the first quartile or above the third quartile."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "We use the letter n for the number of values and x₁, x₂, …, xₙ for the values themselves. The mean is written x̄ (“x-bar”)."
+        },
+        {
+          "tex": "\\bar x = \\frac{1}{n}\\sum_{i=1}^{n} x_i",
+          "plain": "Add up all n values and divide by n. Every value contributes equally, which is exactly why one huge value can move the mean a lot.",
+          "symbols": [
+            [
+              "\\bar x",
+              "the sample mean"
+            ],
+            [
+              "n",
+              "number of values"
+            ],
+            [
+              "x_i",
+              "the i-th value"
+            ],
+            [
+              "\\sum",
+              "add up everything that follows"
+            ]
+          ]
+        },
+        {
+          "p": "Now spread. A natural idea is: how far is each value from the mean, on average? The trouble is that distances above the mean are positive and below are negative, and they always cancel out to exactly zero. So we **square** each distance first (making every term positive), average them, and then take the square root to get back to the original units."
+        },
+        {
+          "term": "Variance and standard deviation",
+          "def": "The **variance** is the average squared distance from the mean. The **standard deviation** (SD) is its square root, which puts it back in the original units (minutes, rupees). Read the SD as “the typical distance of a value from the mean”."
+        },
+        {
+          "tex": "s = \\sqrt{\\frac{1}{n-1}\\sum_{i=1}^{n} (x_i - \\bar x)^2}",
+          "plain": "For each value, measure its distance from the mean and square it. Add these up, divide by n − 1, and take the square root.",
+          "symbols": [
+            [
+              "s",
+              "sample standard deviation"
+            ],
+            [
+              "s^2",
+              "sample variance"
+            ],
+            [
+              "x_i - \\bar x",
+              "deviation of value i from the mean"
+            ]
+          ]
+        },
+        {
+          "p": "Why divide by n − 1 and not n? Because the sample mean is calculated from the same data, it sits a little closer to the data than the true population mean would. The squared distances therefore come out slightly too small on average. Dividing by n − 1 instead of n makes the variance correct on average."
+        },
+        {
+          "callout": "Software differs here. pandas `Series.std()` divides by n − 1 by default; NumPy `np.std()` divides by n unless you pass `ddof=1`. If two tools disagree slightly, this is usually why.",
+          "tone": "warn"
+        },
+        {
+          "p": "Finally, **quartiles**. Sort the data. The first quartile Q1 is the value with a quarter of the data below it; the median is Q2; the third quartile Q3 has three-quarters below it. The interquartile range IQR = Q3 − Q1 is the width of the middle 50%."
+        },
+        {
+          "term": "Quartiles and IQR",
+          "def": "Quartiles cut sorted data into four equal-sized parts. Q1 is the 25th percentile, Q3 the 75th percentile. The **interquartile range** (IQR = Q3 − Q1) measures spread while ignoring the most extreme quarter on each side, so outliers cannot distort it."
+        },
+        {
+          "tex": "\\text{IQR} = Q_3 - Q_1, \\qquad \\text{outlier if } x < Q_1 - 1.5\\,\\text{IQR} \\;\\text{ or }\\; x > Q_3 + 1.5\\,\\text{IQR}",
+          "plain": "The middle half of the data spans Q1 to Q3. Anything more than one and a half middle-halves beyond either edge is flagged for a closer look.",
+          "symbols": [
+            [
+              "Q_1, Q_3",
+              "first and third quartiles"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "The CEO bonus problem (mean vs median)",
+            "setup": "Five employees receive monthly bonuses (₹ thousand): 2, 3, 3, 4, 100. The last one is the CEO. What is the typical bonus?",
+            "steps": [
+              "Mean = (2 + 3 + 3 + 4 + 100) / 5 = 112 / 5 = 22.4, so ₹22,400.",
+              "Median: the values are already sorted; the middle (3rd) value is 3, so ₹3,000.",
+              "Mode: 3 appears twice, every other value once, so the mode is also ₹3,000.",
+              "Four of the five people received ₹4,000 or less, yet the mean claims ₹22,400.",
+              "Remove the CEO and the mean drops to (2 + 3 + 3 + 4) / 4 = 3.0, while the median moves only from 3 to 3.0."
+            ],
+            "result": "“Average bonus ₹22,400” is arithmetically correct and practically misleading. For skewed data like pay, report the median, or both."
+          }
+        },
+        {
+          "example": {
+            "title": "Two couriers with the same average",
+            "setup": "Delivery delays (days late) for five recent orders. Courier A: 4, 6, 8, 10, 12. Courier B: 7, 8, 8, 8, 9. Which courier is more reliable?",
+            "steps": [
+              "Both means are 8: A gives 40 / 5 = 8 and B gives 40 / 5 = 8. On the mean alone they look identical.",
+              "Courier A deviations from 8: −4, −2, 0, 2, 4. Squared: 16, 4, 0, 4, 16. Sum = 40.",
+              "Variance A = 40 / (5 − 1) = 10. SD A = √10 ≈ 3.16 days.",
+              "Courier B deviations: −1, 0, 0, 0, 1. Squared: 1, 0, 0, 0, 1. Sum = 2.",
+              "Variance B = 2 / 4 = 0.5. SD B = √0.5 ≈ 0.71 days."
+            ],
+            "result": "Same average, very different reliability. Courier B is predictable to within about a day; Courier A swings by about three days. If your customers hate surprises, B wins. Always report a spread alongside a centre."
+          }
+        },
+        {
+          "example": {
+            "title": "Machine downtime on a production line",
+            "setup": "Minutes of unplanned downtime on 10 shifts at an auto-parts plant: 12, 15, 17, 18, 20, 22, 25, 27, 30, 95. Summarise and check for outliers.",
+            "steps": [
+              "Mean = 281 / 10 = 28.1 minutes. Median = average of 5th and 6th values = (20 + 22) / 2 = 21 minutes.",
+              "Q1 (pandas default method): position 0.25 × (10 − 1) = 2.25 in the sorted list counting from 0, so 17 + 0.25 × (18 − 17) = 17.25.",
+              "Q3: position 0.75 × 9 = 6.75, so 25 + 0.75 × (27 − 25) = 26.5. IQR = 26.5 − 17.25 = 9.25.",
+              "Upper fence = 26.5 + 1.5 × 9.25 = 40.375. Lower fence = 17.25 − 13.875 = 3.375.",
+              "95 is above 40.375, so it is flagged as an outlier. Without it, the mean is 186 / 9 ≈ 20.7 and the median is 20.",
+              "SD with the outlier ≈ 24.1 minutes; without it ≈ 5.9 minutes. One shift quadruples the apparent variability."
+            ],
+            "result": "The typical shift loses about 20 minutes. The 95-minute shift is not “noise to be deleted”: it is the most important row in the table. Find out what broke."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing the right summary for the shape of your data",
+      "blocks": [
+        {
+          "p": "For symmetric data, the mean and the median almost coincide, and the mean with the standard deviation is the classic summary. For skewed data they separate, and you need to choose deliberately."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "x>0 ? Math.exp(-Math.pow(Math.log(x/10),2)/(2*0.36))/(x*0.6*Math.sqrt(2*Math.PI)) : 0",
+            "xMin": 0,
+            "xMax": 40,
+            "marks": [
+              {
+                "x": 7,
+                "label": "mode ≈ 7.0"
+              },
+              {
+                "x": 10,
+                "label": "median 10"
+              },
+              {
+                "x": 12,
+                "label": "mean ≈ 12.0"
+              }
+            ],
+            "xLabel": "annual salary (₹ lakh)",
+            "yLabel": "density",
+            "caption": "A right-skewed salary distribution. The peak (mode) is at about ₹7 lakh, half of employees earn under ₹10 lakh (median), but the long right tail drags the mean up to about ₹12 lakh. In right-skewed data the order is almost always mode < median < mean."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "0–20k",
+              "20–40k",
+              "40–60k",
+              "60–80k",
+              "80–100k",
+              "100–120k",
+              "120k+"
+            ],
+            "values": [
+              30,
+              70,
+              45,
+              25,
+              15,
+              8,
+              7
+            ],
+            "highlight": 1,
+            "yLabel": "employees",
+            "caption": "Histogram of monthly salaries at a 200-person firm (illustrative). The tallest bar (₹20–40k) is where most people are, and the tail to the right is why the mean sits above the median."
+          }
+        },
+        {
+          "bullets": [
+            "**Roughly symmetric, no extreme values** (heights, machine tolerances, exam scores): report mean and standard deviation.",
+            "**Skewed or with outliers** (salaries, house prices, delivery times, claim sizes): report median and IQR, and consider adding the mean so readers see the tail’s effect.",
+            "**Categories** (favourite brand, car colour): only the mode makes sense; there is no average of “red” and “blue”.",
+            "**Totals matter** (budgeting total fuel cost): use the mean, because mean × count = total."
+          ]
+        },
+        {
+          "think": {
+            "q": "A ride-hailing app reports “average wait time 4 minutes”. Riders complain that waits are terrible. Can both be true?",
+            "a": "Yes. Wait times are right-skewed: most rides arrive in 2 to 3 minutes, but a minority take 15 to 20. The mean can be modest while one rider in ten has an awful experience. A percentile such as “90% of riders wait under 9 minutes” describes the pain far better than the mean."
+          }
+        },
+        {
+          "callout": "Percentiles generalise quartiles. The 90th percentile (P90) is the value 90% of observations fall below. Operations teams set service-level targets on P90 or P95, not on the mean, because customers remember the bad days.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Descriptive statistics in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Delivery-time dashboard at an e-commerce company (illustrative)",
+            "story": "An online retailer’s weekly dashboard showed one number: mean delivery time, steady at 2.1 days for months. Customer complaints, however, were rising. An analyst replaced the single number with a small table per city: median, P90 and the share of orders over 5 days. The median was indeed stable at about 1.8 days, but in three tier-2 cities the P90 had crept from 4 to 7 days because one courier partner was struggling. The mean had barely moved because big metro volumes, which were fine, dominated it. Switching partners in those cities cut complaints within a month. Nothing clever was needed: just the right summary."
+          }
+        },
+        {
+          "bullets": [
+            "**Finance:** reporting median and IQR of invoice-to-payment days to spot customers who pay late.",
+            "**Manufacturing:** tracking mean and SD of a part’s diameter on every shift; a rising SD warns of tool wear before parts go out of tolerance."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Statistic",
+              "Downtime with outlier",
+              "Without outlier",
+              "Robust to outliers?"
+            ],
+            "rows": [
+              [
+                "Mean",
+                "28.1 min",
+                "20.7 min",
+                "No"
+              ],
+              [
+                "Median",
+                "21.0 min",
+                "20.0 min",
+                "Yes"
+              ],
+              [
+                "Standard deviation",
+                "24.1 min",
+                "5.9 min",
+                "No"
+              ],
+              [
+                "IQR (pandas default)",
+                "9.25 min",
+                "8.0 min",
+                "Mostly"
+              ],
+              [
+                "Max",
+                "95 min",
+                "30 min",
+                "No"
+              ]
+            ],
+            "caption": "The downtime example in one table. The median and IQR barely move when the extreme shift is removed; the mean, SD and maximum change dramatically."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Reporting a centre with no spread.** “Average return 12%” means little without knowing it ranged from −30% to +50%.",
+            "**Using the mean for skewed data.** It describes nobody in particular. Use the median, or report both.",
+            "**Deleting outliers to make charts look neat.** The outlier may be the fraud, the breakdown or the data-entry bug you most need to find.",
+            "**Trusting a summary without a plot.** Very different datasets can share the same mean and SD (a famous demonstration is Anscombe’s quartet). Always look at the histogram."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Mean and standard deviation",
+              "items": [
+                "Use every value",
+                "Easy maths: mean × n = total",
+                "Ideal for symmetric data",
+                "Pulled strongly by outliers",
+                "Foundation for later tools (z-scores, t-tests)"
+              ]
+            },
+            "right": {
+              "title": "Median and IQR",
+              "items": [
+                "Depend on the order of values, not their size",
+                "Cannot give totals",
+                "Ideal for skewed data",
+                "Barely affected by outliers",
+                "Natural partner of box plots and percentiles"
+              ]
+            },
+            "caption": "Neither pair is “better”. Choose the pair that matches the shape of your data and the decision you need to make, and say which one you used."
+          }
+        },
+        {
+          "callout": "Descriptive statistics summarise the data you have. They do not tell you whether a difference between two groups is real or just luck. That needs inferential statistics: sampling, confidence intervals and hypothesis tests, which later chapters build on top of these ideas.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use the median instead of the mean?",
+      "a": "Whenever the data is skewed or has outliers: incomes, prices, delivery times, claim sizes, website session lengths. If the mean and median differ a lot, that gap is itself worth reporting."
+    },
+    {
+      "q": "Why is standard deviation used more than the simpler average distance from the mean?",
+      "a": "The average absolute distance (called the mean absolute deviation) is perfectly sensible and more robust. The SD wins mainly because squared distances have neat mathematical properties: variances of independent quantities add up, and the SD is the natural width parameter of the normal distribution, which much of statistics is built on."
+    },
+    {
+      "q": "Should I divide by n or n − 1?",
+      "a": "Divide by n − 1 when your data is a sample and you want to estimate the spread of the larger population (the usual case). Divide by n only if your data is the entire population and you just want to describe it. For large n the difference is tiny."
+    },
+    {
+      "q": "What is a ‘good’ standard deviation?",
+      "a": "There is no universal good value; it depends on the units and the context. A useful trick is the coefficient of variation, SD ÷ mean, which expresses spread as a percentage of the typical value and lets you compare, for example, the variability of ₹ sales and of unit sales."
+    },
+    {
+      "q": "What does `df.describe()` in pandas give me?",
+      "a": "For each numeric column: count, mean, standard deviation (divided by n − 1), minimum, 25th percentile, median (50%), 75th percentile and maximum. It is the fastest first look at a new dataset."
+    }
+  ]
+}

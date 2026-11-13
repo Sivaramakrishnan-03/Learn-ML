@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain sequential re-weighting of hard examples",
+    "Describe weak learners (stumps)",
+    "Know AdaBoost's sensitivity to noise"
+  ],
+  "why": "AdaBoost (1995) introduced boosting: combining many weak models into a strong one. It powered the famous Viola–Jones real-time face detector in early digital cameras.",
+  "explain": [
+    "Train a **weak learner** (often a one-split tree, a \"stump\") that is only a bit better than guessing.",
+    "**Increase the weight** of the examples it got wrong and train the next stump on the re-weighted data, so it focuses on the hard cases. Repeat.",
+    "The final model is a **weighted vote**: more accurate stumps get a bigger say.",
+    "Like a teacher who spends more time on the questions you got wrong. But if some \"wrong\" answers are really **label noise**, AdaBoost keeps chasing them and overfits."
+  ],
+  "example": {
+    "title": "Three rounds of boosting",
+    "steps": [
+      "Round 1 stump: 30% error → weight α₁ = ½ ln(0.7/0.3) ≈ 0.42",
+      "Misclassified points get heavier weights",
+      "Round 2 stump focuses on them: 25% weighted error → α₂ ≈ 0.55",
+      "Final prediction = sign(0.42·h₁ + 0.55·h₂ + …)"
+    ],
+    "result": "Each new stump patches the previous mistakes; together they form a complex boundary."
+  },
+  "mistakes": [
+    "Using it on noisy labels without regularisation (lower the learning rate, fewer rounds)."
+  ],
+  "takeaways": [
+    "Sequential: focus on previous errors",
+    "Weighted vote of weak learners",
+    "Sensitive to label noise"
+  ],
+  "use": [
+    "Clean data, simple weak learners"
+  ],
+  "avoid": [
+    "Noisy labels, many outliers (prefer gradient boosting with regularisation)"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.ensemble import AdaBoostClassifier\nfrom sklearn.model_selection import cross_val_score\nX, y = load_breast_cancer(return_X_y=True)\nprint(cross_val_score(AdaBoostClassifier(n_estimators=200, learning_rate=0.5, random_state=0), X, y, cv=5).mean().round(3))"
+  },
+  "check": [
+    {
+      "q": "After each round, AdaBoost…",
+      "options": [
+        "Removes misclassified points",
+        "Increases the weight of misclassified points",
+        "Randomly resamples",
+        "Adds features"
+      ],
+      "answer": 1,
+      "why": "The next learner focuses on the hard cases."
+    },
+    {
+      "q": "A typical AdaBoost weak learner is…",
+      "options": [
+        "A deep tree",
+        "A decision stump",
+        "A neural network",
+        "k-means"
+      ],
+      "answer": 1,
+      "why": "One-split trees are weak but fast."
+    }
+  ],
+  "chapterMinutes": 15
+}

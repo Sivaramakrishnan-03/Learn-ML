@@ -1,0 +1,365 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "A fintech start-up announces that its fraud detector is 98% accurate. An investor asks one question: \"What fraction of transactions are fraud?\" The answer is 2%. A model that simply says \"not fraud\" to every transaction would also be 98% accurate, and would catch nothing. **Classification metrics** are the tools that see through this kind of illusion and tell you what a yes/no model really does for the business.",
+  "sections": [
+    {
+      "heading": "The problem: accuracy can lie",
+      "blocks": [
+        {
+          "p": "Many business models answer yes/no questions: will this customer churn, is this transaction fraud, is this part defective, will this lead convert? These are **classification** models. The obvious score is accuracy, the share of predictions that are right. But accuracy treats every mistake as equal and is easily fooled when one answer is rare."
+        },
+        {
+          "term": "Classification",
+          "def": "Predicting which category something belongs to. Binary classification has two categories, conventionally called positive (the thing we are looking for: fraud, churn, defect) and negative."
+        },
+        {
+          "term": "Accuracy",
+          "def": "The share of all predictions that are correct. Simple, but misleading when one class is much more common than the other."
+        },
+        {
+          "p": "Mistakes come in two kinds, and they cost very different amounts. Blocking a genuine customer's card is annoying and may lose a customer. Letting a fraudulent transaction through loses money directly. Missing a cracked brake disc on a production line may cause a recall. We need metrics that count each kind of mistake separately."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Accuracy",
+              "Precision",
+              "Recall",
+              "F1"
+            ],
+            "values": [
+              98,
+              50,
+              75,
+              60
+            ],
+            "highlight": 0,
+            "yLabel": "percent",
+            "caption": "One fraud model, four metrics (worked out later in this chapter). Accuracy says 98%; the metrics that focus on the rare fraud class say 50–75%. The highlighted bar is the one that misleads."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the smoke alarm",
+      "blocks": [
+        {
+          "p": "Think of the smoke alarm in your kitchen. It can be right in two ways and wrong in two ways."
+        },
+        {
+          "steps": [
+            "**There is a fire and it rings.** Good: a correct alarm.",
+            "**There is no fire and it stays quiet.** Good: a correct silence. This happens almost every minute of every day.",
+            "**There is no fire but it rings** (you made toast). A false alarm. Irritating; if it happens often, people take the battery out.",
+            "**There is a fire but it stays quiet.** A missed fire. Rare, but potentially catastrophic."
+          ],
+          "title": "Four outcomes of an alarm"
+        },
+        {
+          "p": "Now notice: an alarm that **never rings** is right almost every minute, because fires are rare. Its accuracy is superb and it is worthless. What we really want to know are two things. When it rings, how often is there really a fire? (That is **precision**.) When there is a fire, how often does it ring? (That is **recall**.)"
+        },
+        {
+          "p": "Making the alarm more sensitive catches more fires (recall up) but rings more for toast (precision down). Making it less sensitive does the opposite. There is no setting that is best for every home; it depends on what each kind of mistake costs."
+        },
+        {
+          "think": {
+            "q": "For a hospital's first-stage cancer screening test, which matters more: precision or recall?",
+            "a": "Recall. A missed cancer (false negative) can cost a life, while a false alarm leads to a follow-up test that clears the patient. Screening tests are therefore tuned to catch nearly every real case, accepting many false alarms that later tests sort out."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Step by step: from predictions to a confusion matrix",
+      "blocks": [
+        {
+          "p": "Every classification metric starts from one small table that counts the four outcomes."
+        },
+        {
+          "term": "Confusion matrix",
+          "def": "A 2 × 2 table counting true positives, false positives, false negatives and true negatives. It shows exactly where a classifier gets confused."
+        },
+        {
+          "term": "TP, FP, FN, TN",
+          "def": "True positive: predicted yes, really yes. False positive: predicted yes, really no (false alarm). False negative: predicted no, really yes (a miss). True negative: predicted no, really no."
+        },
+        {
+          "steps": [
+            "Most classifiers output a **probability** for each case, for example \"0.82 chance of fraud\".",
+            "Choose a **threshold** (default 0.5). Cases at or above it are predicted positive; the rest negative.",
+            "Compare each prediction with the truth and put a tally in one of the four boxes.",
+            "Compute metrics from the four counts.",
+            "Change the threshold and repeat to see the trade-off between catching more and raising fewer false alarms."
+          ],
+          "title": "The procedure"
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Model outputs a **probability** per case",
+              "Apply a **threshold** (e.g. 0.5)",
+              "Tally **TP, FP, FN, TN**",
+              "Compute **precision, recall, F1**",
+              "Move the threshold to match **business costs**"
+            ],
+            "caption": "The threshold turns probabilities into decisions. Metrics like precision and recall depend on it; ROC-AUC summarises all thresholds at once."
+          }
+        },
+        {
+          "term": "Threshold",
+          "def": "The probability cut-off above which a case is labelled positive. It is a business decision, not a property of the model."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\text{Precision} = \\frac{TP}{TP + FP}",
+          "plain": "Of everything the model flagged as positive, what share really was positive? \"When the alarm rings, how often is there a fire?\"",
+          "symbols": [
+            [
+              "TP",
+              "true positives (correct alarms)"
+            ],
+            [
+              "FP",
+              "false positives (false alarms)"
+            ]
+          ]
+        },
+        {
+          "tex": "\\text{Recall} = \\frac{TP}{TP + FN}",
+          "plain": "Of all the cases that really were positive, what share did the model catch? Also called sensitivity or true positive rate.",
+          "symbols": [
+            [
+              "FN",
+              "false negatives (missed cases)"
+            ]
+          ]
+        },
+        {
+          "p": "Notice what each formula leaves out. Precision ignores misses entirely; recall ignores false alarms entirely. That is why you must look at both. A model that flags everything has perfect recall and terrible precision; a model that flags only its single most confident case may have perfect precision and terrible recall."
+        },
+        {
+          "tex": "F_1 = \\frac{2 \\cdot \\text{Precision} \\cdot \\text{Recall}}{\\text{Precision} + \\text{Recall}}",
+          "plain": "A single number that balances precision and recall. It is their harmonic mean, which stays low if either one is low."
+        },
+        {
+          "p": "Why the harmonic mean instead of the ordinary average? Take precision 1.0 and recall 0.02. The ordinary average is 0.51, which sounds respectable for a model that misses 98% of cases. The harmonic mean is about 0.04, which tells the truth. F1 rewards balance."
+        },
+        {
+          "p": "Two more rates complete the picture. The **false positive rate** is FP / (FP + TN): of all genuine negatives, the share wrongly flagged. Plotting recall against false positive rate for every possible threshold gives the **ROC curve**. The area under it, **ROC-AUC**, is the probability that the model gives a randomly chosen positive a higher score than a randomly chosen negative."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "1-Math.pow(1-x,3)",
+            "fn2": "x",
+            "xMin": 0,
+            "xMax": 1,
+            "legend": [
+              "our model (AUC = 0.75)",
+              "random guessing (AUC = 0.5)"
+            ],
+            "xLabel": "false positive rate",
+            "yLabel": "recall (true positive rate)",
+            "caption": "A ROC curve. Each point is one threshold: lower thresholds move up and to the right (more caught, more false alarms). The further the curve bows towards the top-left corner, the better the model ranks positives above negatives. The diagonal is a coin toss."
+          }
+        },
+        {
+          "callout": "When positives are very rare, ROC-AUC can look flattering because the huge number of true negatives keeps the false positive rate small. The **precision–recall curve** (and its area, PR-AUC or average precision) is usually more informative for fraud, defects and rare diseases.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "The fraud model from the opening",
+            "setup": "1,000 transactions, 20 of them fraud. The model flags 30 transactions; 15 of those are real fraud.",
+            "steps": [
+              "TP = 15 (flagged and fraud). FP = 30 − 15 = 15 (flagged but genuine).",
+              "FN = 20 − 15 = 5 (fraud the model missed). TN = 1,000 − 15 − 15 − 5 = 965.",
+              "Accuracy = (15 + 965) / 1,000 = 98.0%. A model that never flags anything scores (0 + 980) / 1,000 = 98.0% too.",
+              "Precision = 15 / (15 + 15) = 50%. Recall = 15 / (15 + 5) = 75%.",
+              "F1 = 2 × 0.5 × 0.75 / (0.5 + 0.75) = 0.75 / 1.25 = 0.60.",
+              "False positive rate = 15 / (15 + 965) ≈ 1.5% of genuine customers inconvenienced."
+            ],
+            "result": "The useful summary: \"We catch 75% of fraud, half our alerts are real, and about 1.5% of genuine transactions are wrongly flagged.\" Accuracy alone could not distinguish this model from doing nothing."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "",
+              "Predicted fraud",
+              "Predicted genuine",
+              "Total"
+            ],
+            "rows": [
+              [
+                "Actually fraud",
+                "TP = 15",
+                "FN = 5",
+                "20"
+              ],
+              [
+                "Actually genuine",
+                "FP = 15",
+                "TN = 965",
+                "980"
+              ],
+              [
+                "Total",
+                "30",
+                "970",
+                "1,000"
+              ]
+            ],
+            "caption": "The confusion matrix for the fraud model. Read along the top row for recall (15 of 20 caught) and down the first column for precision (15 of 30 alerts real)."
+          }
+        },
+        {
+          "example": {
+            "title": "Moving the threshold",
+            "setup": "Ten customers with predicted churn probabilities and what really happened (1 = churned): 0.95 (1), 0.85 (1), 0.80 (0), 0.70 (1), 0.60 (0), 0.45 (1), 0.40 (0), 0.30 (1), 0.20 (0), 0.10 (0). Five customers really churned.",
+            "steps": [
+              "Threshold 0.5: flag the five customers at 0.60 or above. Of these, 3 churned (TP = 3) and 2 did not (FP = 2). Churners missed: those at 0.45 and 0.30, so FN = 2. TN = 3.",
+              "Precision = 3 / 5 = 60%. Recall = 3 / 5 = 60%. F1 = 0.60. Accuracy = (3 + 3) / 10 = 60%.",
+              "Threshold 0.35: also flag 0.45 (churned) and 0.40 (did not). TP = 4, FP = 3, FN = 1, TN = 2.",
+              "Precision = 4 / 7 ≈ 57%. Recall = 4 / 5 = 80%. F1 = 2 × 0.571 × 0.8 / 1.371 ≈ 0.67. Accuracy still 60%.",
+              "ROC-AUC: of the 5 × 5 = 25 churner/non-churner pairs, the churner has the higher probability in 19. AUC = 19 / 25 = 0.76."
+            ],
+            "result": "Lowering the threshold caught one more churner at the cost of one more false alarm. Accuracy did not move, F1 improved, and AUC (which ignores the threshold) stayed at 0.76."
+          }
+        },
+        {
+          "example": {
+            "title": "Choosing a defect detector by cost (business case)",
+            "setup": "An auto-component plant inspects 5,000 castings, 100 of which are defective. A missed defect (FN) leads to a warranty claim costing about ₹20,000. A false alarm (FP) means a manual re-inspection costing ₹500. Model A: TP 70, FP 50, FN 30. Model B: TP 92, FP 400, FN 8.",
+            "steps": [
+              "Model A: precision = 70 / 120 ≈ 58.3%, recall = 70 / 100 = 70%, F1 ≈ 0.64, accuracy = (70 + 4,850) / 5,000 = 98.4%.",
+              "Model B: precision = 92 / 492 ≈ 18.7%, recall = 92%, F1 ≈ 0.31, accuracy = (92 + 4,500) / 5,000 = 91.8%.",
+              "Cost of A = 30 × ₹20,000 + 50 × ₹500 = ₹6,00,000 + ₹25,000 = ₹6,25,000.",
+              "Cost of B = 8 × ₹20,000 + 400 × ₹500 = ₹1,60,000 + ₹2,00,000 = ₹3,60,000."
+            ],
+            "result": "Model A wins on accuracy and F1, yet Model B saves ₹2.65 lakh per 5,000 castings because misses are 40 times more expensive than false alarms. When costs are known, put them in rupees and let them decide."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading the metrics: which one when?",
+      "blocks": [
+        {
+          "bullets": [
+            "**Precision first** when false alarms are expensive or annoying: blocking genuine card payments, sending a field engineer, flagging an employee for investigation.",
+            "**Recall first** when misses are expensive: disease screening, safety-critical defects, money-laundering alerts that regulators audit.",
+            "**F1** when both matter and you need a single number for comparison, especially with imbalanced classes.",
+            "**ROC-AUC** to compare how well models rank cases, independent of threshold. Good for balanced or moderately imbalanced data.",
+            "**PR-AUC (average precision)** for rare positives, where it is more sensitive to improvements than ROC-AUC.",
+            "**Expected cost in rupees** whenever you can estimate the cost of each error type. It is the metric the business actually feels."
+          ]
+        },
+        {
+          "p": "In scikit-learn, `classification_report(y_true, y_pred)` prints precision, recall and F1 for each class at once, and `confusion_matrix` gives the four counts. Read the matrix first; it prevents most misunderstandings."
+        },
+        {
+          "callout": "Beware the labels in scikit-learn's `confusion_matrix`: rows are actual classes and columns are predicted classes, ordered [0, 1]. So `ravel()` returns TN, FP, FN, TP in that order.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Tuning alerts for a bank's fraud team (illustrative)",
+            "story": "A bank's fraud operations team can review about 400 alerts a day. The first model, run at the default 0.5 threshold, produces 2,000 alerts a day with 6% precision; analysts are swamped and start ignoring alerts. The data science team keeps the same model but changes the threshold so that only the top 400 scores each day are flagged. Precision rises to about 30% and recall falls, but every alert is now reviewed, so more fraud is actually stopped than before. The team reports precision and recall \"at 400 alerts per day\" alongside PR-AUC, which matches how the business operates."
+          }
+        },
+        {
+          "bullets": [
+            "**Churn campaigns:** precision at the top 10% of scores tells marketing how many retention offers reach real churners.",
+            "**Medical diagnostics:** regulators look at sensitivity (recall) and specificity (TN / (TN + FP)).",
+            "**Spam filters:** very high precision is required, because losing a genuine email hurts more than seeing one spam message.",
+            "**Lead scoring:** sales teams care about precision in the leads they actually call."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Accuracy on imbalanced data.** Always compare with the \"always predict the majority\" baseline.",
+            "**Keeping the default 0.5 threshold.** It is arbitrary. Choose it by cost, capacity (alerts per day) or a target recall.",
+            "**Reporting one number.** Precision without recall (or the reverse) can be gamed. Report both, or the confusion matrix.",
+            "**ROC-AUC alone for rare events.** Add PR-AUC or precision at a fixed alert volume.",
+            "**Tuning the threshold on the test set.** Choose it on validation data; otherwise the test score is optimistic.",
+            "**Ignoring calibration.** If the business uses the probabilities themselves (expected loss = probability × amount), check that a predicted 20% really means about 20%, using a calibration curve or the Brier score."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Precision",
+              "items": [
+                "Of the alarms raised, how many were real?",
+                "Hurt by false positives",
+                "Raise it with a higher threshold",
+                "Matters when acting on an alarm is costly"
+              ]
+            },
+            "right": {
+              "title": "Recall",
+              "items": [
+                "Of the real cases, how many raised an alarm?",
+                "Hurt by false negatives",
+                "Raise it with a lower threshold",
+                "Matters when missing a case is costly"
+              ]
+            },
+            "caption": "The central trade-off of classification. Moving the threshold trades one for the other; business costs decide where to stop."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is a good F1 score?",
+      "a": "It depends on the problem and on how rare the positive class is. Always compare with a baseline (for example a simple rule) and translate into business terms: \"catch 75%, half the alerts are real\"."
+    },
+    {
+      "q": "Why not just maximise accuracy?",
+      "a": "Because it weights all errors equally and is dominated by the common class. With 2% fraud, doing nothing scores 98%."
+    },
+    {
+      "q": "What does an AUC of 0.5 mean?",
+      "a": "The model ranks positives and negatives no better than a coin toss. An AUC of 1.0 means every positive is scored above every negative."
+    },
+    {
+      "q": "How do I pick the threshold?",
+      "a": "Use validation data. Either minimise expected cost (FN cost × FN + FP cost × FP), fix a capacity (top 400 alerts a day), or fix a required recall (catch at least 90%) and maximise precision subject to it."
+    },
+    {
+      "q": "What about more than two classes?",
+      "a": "Compute precision and recall for each class (one class versus the rest), then average. \"Macro\" averaging treats every class equally; \"weighted\" averaging weights by class size. `classification_report` shows both."
+    },
+    {
+      "q": "Is recall the same as sensitivity?",
+      "a": "Yes. Recall, sensitivity and true positive rate are three names for TP / (TP + FN). Specificity is the matching measure for negatives: TN / (TN + FP)."
+    }
+  ]
+}

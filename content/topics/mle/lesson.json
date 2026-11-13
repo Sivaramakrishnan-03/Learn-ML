@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Explain the idea of likelihood",
+    "Find a maximum likelihood estimate in a simple case",
+    "Connect MLE to familiar loss functions"
+  ],
+  "why": "MLE is the principle behind logistic regression, Poisson regression, GMMs and most statistical models. Log-loss and MSE are likelihoods in disguise.",
+  "explain": [
+    "A model with parameters can say how probable your observed data is. The **likelihood** is that probability, viewed as a function of the parameters.",
+    "**Maximum likelihood estimation** picks the parameters that make the observed data most probable: \"turn the dials until the machine is most likely to produce what you actually saw.\"",
+    "In practice we maximise the **log-likelihood** (products become sums, which is easier and more numerically stable).",
+    "Hidden connections: with normal errors, maximising likelihood = minimising squared error (OLS). For yes/no outcomes it = minimising log-loss (logistic regression)."
+  ],
+  "formula": {
+    "tex": "\\hat\\theta = \\arg\\max_\\theta \\prod_i p(x_i \\mid \\theta) = \\arg\\max_\\theta \\sum_i \\log p(x_i\\mid\\theta)",
+    "plain": "Choose the parameter value that gives the highest (log) probability to the observed data."
+  },
+  "example": {
+    "title": "Conversion rate from 10 visitors",
+    "steps": [
+      "Observed: 7 conversions out of 10",
+      "Likelihood L(p) = p⁷(1 − p)³",
+      "Try p = 0.5 → L = 0.00098; p = 0.7 → L = 0.00222; p = 0.9 → L = 0.00048",
+      "Calculus confirms the maximum at p = 7/10 = 0.7"
+    ],
+    "result": "The MLE equals the sample proportion, matching intuition. The likelihood framework then extends to models with many parameters."
+  },
+  "mistakes": [
+    "Confusing likelihood with the probability of the parameter (that is Bayesian posterior territory).",
+    "Overfitting with tiny samples: MLE from 1 conversion out of 1 says p = 100%."
+  ],
+  "takeaways": [
+    "Likelihood = how probable the data is under given parameters",
+    "MLE = parameters that maximise it",
+    "OLS and log-loss are special cases"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom scipy.optimize import minimize_scalar\nnll = lambda p: -(7 * np.log(p) + 3 * np.log(1 - p))     # negative log-likelihood\nprint(minimize_scalar(nll, bounds=(0.01, 0.99), method=\"bounded\").x)   # ≈ 0.7"
+  },
+  "check": [
+    {
+      "q": "3 defects in 100 items. MLE of the defect rate?",
+      "options": [
+        "0.3",
+        "0.03",
+        "3",
+        "0.97"
+      ],
+      "answer": 1,
+      "why": "For binomial data the MLE is successes / trials."
+    },
+    {
+      "q": "With normally distributed errors, MLE for linear regression equals…",
+      "options": [
+        "Minimising absolute error",
+        "Ordinary least squares",
+        "Maximising R² only",
+        "Gradient boosting"
+      ],
+      "answer": 1,
+      "why": "The normal log-likelihood is a negative sum of squared errors (scaled)."
+    }
+  ],
+  "chapterMinutes": 15
+}

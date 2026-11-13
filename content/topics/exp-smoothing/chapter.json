@@ -1,0 +1,487 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 18,
+  "hook": "A retail chain stocks 20,000 products in 300 stores. That is six million series to forecast every week. Nobody can hand-craft a model for each one, and a forecast that takes an hour per series is useless. What the planners need is a method that is cheap, automatic, adapts when demand shifts and ignores random blips. For more than sixty years, the answer in supply chains has been **exponential smoothing**: a weighted average that trusts recent weeks more than old ones.",
+  "sections": [
+    {
+      "heading": "The problem: how much should the past count?",
+      "blocks": [
+        {
+          "p": "Suppose you sell a shampoo and want to forecast next week's demand. Two very simple ideas come to mind, and both are flawed."
+        },
+        {
+          "term": "Naive forecast",
+          "def": "Forecast that next period will equal the most recent value: \"next week will be like this week\". It reacts instantly to change but also copies every random blip."
+        },
+        {
+          "p": "The **naive forecast** overreacts. If last week had a one-off bulk order, it predicts the bulk order again. The opposite idea is to **average all history**. That ignores noise beautifully, but if demand truly moved up six months ago, the old weeks keep dragging the forecast down for years."
+        },
+        {
+          "p": "What we want is in between: use all the history, but let recent weeks count more and older weeks fade away gradually. Exponential smoothing does exactly that, and it needs to remember just one number."
+        },
+        {
+          "term": "Level",
+          "def": "The current underlying value of the series once noise is filtered out: \"what demand is really running at right now\". Simple exponential smoothing tracks only the level."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "150-50*Math.pow(0.8,x)",
+            "fn2": "150-50*Math.pow(0.2,x)",
+            "xMin": 0,
+            "xMax": 10,
+            "xLabel": "weeks after demand jumps from 100 to 150",
+            "yLabel": "forecast",
+            "legend": [
+              "α = 0.2: smooth but slow",
+              "α = 0.8: fast but jumpy"
+            ],
+            "caption": "Demand steps permanently from 100 to 150. A forecaster with a high smoothing weight (α = 0.8) catches up within two weeks; one with a low weight (α = 0.2) takes many weeks. The price of fast reaction is that random blips also get copied."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the experienced store manager",
+      "blocks": [
+        {
+          "p": "Picture a store manager who has run the same shop for years. Each Monday she writes down her gut-feel estimate of weekly demand. Then the week happens. How does a sensible person update her belief?"
+        },
+        {
+          "steps": [
+            "**She starts with her current belief:** \"We sell about 100 bottles a week.\"",
+            "**The week comes in at 120.** She was surprised by 20 bottles.",
+            "**She does not jump all the way to 120.** Maybe it was a fluke. Nor does she ignore it. She moves part of the way, say 30% of the surprise: 100 + 0.3 × 20 = 106.",
+            "**Next week she repeats the process** with 106 as her belief. Over time, old weeks matter less and less because each update dilutes them a little more."
+          ],
+          "title": "Updating a belief, one week at a time"
+        },
+        {
+          "p": "That 30% is the single dial of simple exponential smoothing, called **alpha (α)**. A nervous manager uses a big α and chases every number. A stubborn one uses a tiny α and barely moves. A good one picks the α that would have forecast best in the past."
+        },
+        {
+          "term": "Smoothing parameter (α)",
+          "def": "A number between 0 and 1 that says what fraction of each surprise to accept. α near 1: follow the latest data closely. α near 0: change belief very slowly."
+        },
+        {
+          "think": {
+            "q": "For which product would you want a higher α: rice (steady staple) or a trendy energy drink whose popularity shifts month to month?",
+            "a": "The energy drink. Its true level really does move, so the forecast must keep up. Rice demand is stable, so most week-to-week movement is noise and a low α filters it out."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Start** with an initial level",
+              "**Forecast** next period = current level",
+              "**Observe** the actual value",
+              "**Error** = actual − forecast",
+              "**Update** level += α × error, then repeat"
+            ],
+            "caption": "Simple exponential smoothing is a feedback loop: forecast, observe, measure the surprise, correct partway."
+          }
+        },
+        {
+          "steps": [
+            "**Initialise the level.** Common choices are the first observation or the average of the first few. Libraries can also estimate it.",
+            "**Forecast.** The forecast for next period is simply the current level. For simple smoothing, the forecast for every future period is the same flat line.",
+            "**Observe and compute the error** when the actual value arrives.",
+            "**Update the level** by adding α times the error.",
+            "**Choose α** by trying values on history and keeping the one with the lowest forecast error. Libraries do this automatically."
+          ],
+          "title": "The procedure"
+        },
+        {
+          "p": "Simple smoothing assumes there is no trend and no seasonality: demand wanders around a level. Two famous extensions add those components back. **Holt's method** adds a trend, and **Holt-Winters** adds a trend and a seasonal pattern. Each new component gets its own smoothing dial."
+        },
+        {
+          "term": "Trend component (b)",
+          "def": "In Holt's method, the smoothed estimate of how much the level changes per period, for example \"+10 units a week\". It is updated with its own parameter β."
+        },
+        {
+          "term": "Seasonal component (s)",
+          "def": "In Holt-Winters, one smoothed adjustment per season position (one for each month, or each weekday), updated with parameter γ."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\hat y_{t+1} = \\alpha\\, y_t + (1-\\alpha)\\, \\hat y_t",
+          "plain": "Next forecast = α × the latest actual + (1 − α) × the previous forecast. A weighted average of \"what just happened\" and \"what I believed\".",
+          "symbols": [
+            [
+              "\\hat y_{t+1}",
+              "forecast for the next period"
+            ],
+            [
+              "y_t",
+              "actual value this period"
+            ],
+            [
+              "\\hat y_t",
+              "forecast that had been made for this period"
+            ],
+            [
+              "\\alpha",
+              "smoothing parameter, between 0 and 1"
+            ]
+          ]
+        },
+        {
+          "tex": "\\hat y_{t+1} = \\hat y_t + \\alpha\\,(y_t - \\hat y_t)",
+          "plain": "The same formula rearranged: new forecast = old forecast + α × the error. This is the store manager's \"move part of the way\" rule."
+        },
+        {
+          "p": "Why is it called \"exponential\"? Substitute the formula into itself repeatedly and the forecast turns out to be a weighted average of **all** past values, with weights that shrink by a factor (1 − α) each step back."
+        },
+        {
+          "tex": "\\hat y_{t+1} = \\alpha y_t + \\alpha(1-\\alpha) y_{t-1} + \\alpha(1-\\alpha)^2 y_{t-2} + \\dots",
+          "plain": "This week gets weight α, last week α(1 − α), the week before α(1 − α)², and so on. Weights decay like an exponential curve and add up to 1."
+        },
+        {
+          "p": "This is the magic: you get a weighted average of the entire history while storing just one number, the latest forecast."
+        },
+        {
+          "p": "**Holt's method** keeps two numbers: a level ℓ and a trend b. Each is updated like the simple case."
+        },
+        {
+          "tex": "\\ell_t = \\alpha y_t + (1-\\alpha)(\\ell_{t-1} + b_{t-1}) \\qquad b_t = \\beta(\\ell_t - \\ell_{t-1}) + (1-\\beta) b_{t-1}",
+          "plain": "New level: blend the actual with where the old level plus trend said we would be. New trend: blend the latest change in level with the old trend.",
+          "symbols": [
+            [
+              "\\ell_t",
+              "level at time t"
+            ],
+            [
+              "b_t",
+              "trend (change per period) at time t"
+            ],
+            [
+              "\\beta",
+              "trend smoothing parameter, between 0 and 1"
+            ]
+          ]
+        },
+        {
+          "tex": "\\hat y_{t+h} = \\ell_t + h\\, b_t",
+          "plain": "Holt forecast h periods ahead: start from today's level and add h steps of trend. The forecast is a sloping straight line.",
+          "symbols": [
+            [
+              "h",
+              "how many periods ahead"
+            ]
+          ]
+        },
+        {
+          "tex": "\\hat y_{t+h} = \\ell_t + h\\, b_t + s_{t+h-m}",
+          "plain": "Additive Holt-Winters adds the most recent seasonal adjustment for the season being forecast. In the multiplicative version the seasonal term multiplies instead of adds.",
+          "symbols": [
+            [
+              "s",
+              "seasonal adjustment for that season position"
+            ],
+            [
+              "m",
+              "season length, e.g. 12 for months"
+            ]
+          ]
+        },
+        {
+          "term": "Damped trend",
+          "def": "A version of Holt's method where the trend gradually fades towards zero over the forecast horizon, so long-range forecasts level off instead of climbing forever. It often forecasts better in practice."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Five weeks of simple smoothing (α = 0.3)",
+            "setup": "Weekly demand for a shampoo SKU. The forecast for week 1 is 100. Actuals for weeks 1 to 5: 120, 110, 95, 130, 105.",
+            "steps": [
+              "Week 1: error = 120 − 100 = +20. New forecast = 100 + 0.3 × 20 = 106.",
+              "Week 2: error = 110 − 106 = +4. New forecast = 106 + 0.3 × 4 = 107.2.",
+              "Week 3: error = 95 − 107.2 = −12.2. New forecast = 107.2 − 3.66 = 103.54.",
+              "Week 4: error = 130 − 103.54 = +26.46. New forecast = 103.54 + 7.94 ≈ 111.48.",
+              "Week 5: error = 105 − 111.48 = −6.48. New forecast ≈ 111.48 − 1.94 ≈ 109.53."
+            ],
+            "result": "Actuals swung between 95 and 130, but the forecast moved calmly between 100 and about 111. The forecast for week 6, and every later week, is about 109.5 units."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Week",
+              "Actual",
+              "Forecast",
+              "Error",
+              "Next forecast"
+            ],
+            "rows": [
+              [
+                "1",
+                "120",
+                "100.00",
+                "+20.00",
+                "106.00"
+              ],
+              [
+                "2",
+                "110",
+                "106.00",
+                "+4.00",
+                "107.20"
+              ],
+              [
+                "3",
+                "95",
+                "107.20",
+                "−12.20",
+                "103.54"
+              ],
+              [
+                "4",
+                "130",
+                "103.54",
+                "+26.46",
+                "111.48"
+              ],
+              [
+                "5",
+                "105",
+                "111.48",
+                "−6.48",
+                "109.53"
+              ]
+            ],
+            "caption": "The same calculation as a table. Each row's next forecast becomes the following row's forecast. Notice how much less the forecast column moves than the actual column."
+          }
+        },
+        {
+          "example": {
+            "title": "Catching up after a demand shift",
+            "setup": "A product moves to a better shelf and demand jumps permanently from 100 to 150 units. Compare α = 0.2 and α = 0.8, starting from a forecast of 100.",
+            "steps": [
+              "α = 0.8: forecasts after weeks 1 to 4 are 140, 148, 149.6, 149.9.",
+              "α = 0.2: forecasts after weeks 1 to 5 are 110, 118, 124.4, 129.5, 133.6.",
+              "After 5 weeks the low-α forecast is still 16 units short; each week it closes only 20% of the remaining gap."
+            ],
+            "result": "High α adapts quickly to real changes; low α resists noise. Fitting α on history balances the two automatically."
+          }
+        },
+        {
+          "example": {
+            "title": "One Holt update for a growing product",
+            "setup": "An EV charging cable with rising sales. Current level ℓ = 200 units, trend b = +10 per month. α = 0.5, β = 0.3. This month's actual = 215.",
+            "steps": [
+              "Forecast for this month was 200 + 10 = 210. Actual 215 is 5 above.",
+              "New level = 0.5 × 215 + 0.5 × 210 = 212.5.",
+              "Change in level = 212.5 − 200 = 12.5. New trend = 0.3 × 12.5 + 0.7 × 10 = 3.75 + 7 = 10.75.",
+              "Forecasts: 1 month ahead = 212.5 + 10.75 = 223.25; 2 months = 234.0; 3 months = 244.75."
+            ],
+            "result": "Because sales beat the forecast, both the level and the trend were nudged upwards. Simple smoothing would have forecast a flat line and fallen further behind each month."
+          }
+        },
+        {
+          "example": {
+            "title": "Holt-Winters forecast for a festive month (illustrative)",
+            "setup": "A sweets maker in July: level = ₹500 lakh a month, trend = +₹4 lakh per month, additive seasonal adjustment for October = +₹80 lakh.",
+            "steps": [
+              "October is h = 3 months after July.",
+              "Forecast = 500 + 3 × 4 + 80 = 500 + 12 + 80 = ₹592 lakh.",
+              "The same model for January (h = 6, seasonal −₹40 lakh) gives 500 + 24 − 40 = ₹484 lakh."
+            ],
+            "result": "Holt-Winters combines all three components into one forecast. Raw materials and staffing for October can be planned around ₹592 lakh of sales."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing α and the right variant",
+      "blocks": [
+        {
+          "p": "How much does the past really count for a given α? The bars below show the weights for α = 0.3. The latest week gets 30%, and weights shrink by 30% each step back."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "this week",
+              "1 back",
+              "2 back",
+              "3 back",
+              "4 back",
+              "5 back"
+            ],
+            "values": [
+              0.3,
+              0.21,
+              0.147,
+              0.103,
+              0.072,
+              0.05
+            ],
+            "highlight": 0,
+            "yLabel": "weight in forecast",
+            "caption": "Weights for α = 0.3: 0.30, 0.21, 0.147, 0.103, 0.072, 0.050. The last six weeks carry about 88% of the total weight; everything older shares the remaining 12%."
+          }
+        },
+        {
+          "p": "**Fitting the parameters.** You do not guess α, β and γ by hand. The library tries values and keeps those that minimise the sum of squared one-step-ahead errors on history. In statsmodels this happens inside `.fit()`."
+        },
+        {
+          "p": "**Choosing the variant.** Modern practice uses the **ETS framework** (Error, Trend, Seasonal), which names each model by its components, for example ETS(A,A,M): additive errors, additive trend, multiplicative seasonality. Because ETS models are proper statistical models, they produce **prediction intervals** and can be compared using AIC."
+        },
+        {
+          "term": "Prediction interval",
+          "def": "A range that the future value should fall inside with a stated probability, for example \"between 90 and 130 units with 80% probability\". It is more useful for stock decisions than a single number."
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "Does the series have a trend?",
+              "children": [
+                {
+                  "label": "Seasonality?",
+                  "edge": "No",
+                  "children": [
+                    {
+                      "label": "Simple ES",
+                      "edge": "No"
+                    },
+                    {
+                      "label": "Seasonal ES, no trend",
+                      "edge": "Yes"
+                    }
+                  ]
+                },
+                {
+                  "label": "Seasonality?",
+                  "edge": "Yes",
+                  "children": [
+                    {
+                      "label": "Holt (often damped)",
+                      "edge": "No"
+                    },
+                    {
+                      "label": "Holt-Winters",
+                      "edge": "Yes"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "A quick guide to the family. Then ask one more question for Holt-Winters: does the seasonal swing grow with the level (multiplicative) or stay constant (additive)?"
+          }
+        },
+        {
+          "callout": "Exponential smoothing extends any trend in a straight line. Over long horizons that can produce absurd forecasts. A **damped trend** is usually the safer default for horizons beyond a few periods.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Exponential smoothing in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Replenishing thousands of SKUs (illustrative, based on common practice)",
+            "story": "A pharmacy chain forecasts weekly demand for every product in every store. A data scientist could build a sophisticated model per series, but there are far too many series and most sell only a few units a week. The team fits ETS models automatically to every store-product series each weekend: simple smoothing for steady items, Holt-Winters for seasonal ones such as cough syrup and sunscreen, chosen by AIC. The forecasts, plus their prediction intervals, feed a safety-stock formula. Forecasting and stock-ordering run overnight on a modest server. The team then reserves its expensive modelling effort for the few hundred high-value products where promotions and prices matter."
+          }
+        },
+        {
+          "p": "Exponential smoothing has a strong reputation. In the well-known M forecasting competitions run by Spyros Makridakis, simple statistical methods such as exponential smoothing repeatedly proved hard to beat, and the winner of the 2018 M4 competition was a hybrid that combined exponential smoothing with a neural network."
+        },
+        {
+          "bullets": [
+            "**Supply chains:** weekly demand per SKU, a classic and still dominant use.",
+            "**Call centres:** half-hourly call volumes with daily and weekly seasonality for staffing.",
+            "**Finance:** smoothing noisy indicators; the exponentially weighted moving average (EWMA) of volatility is the same idea.",
+            "**Manufacturing quality control:** EWMA control charts flag small, persistent drifts in a process."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Using simple smoothing on trending or seasonal data.** It always lags behind a trend and flattens every peak. Match the variant to the components you found in decomposition.",
+            "**Wrong seasonality type.** Additive seasonality on a growing business under-forecasts peaks. Check whether the swings grow with the level.",
+            "**Forgetting external drivers.** Smoothing only looks at the series' own past. It cannot know about next week's promotion, a price cut or a heatwave.",
+            "**Intermittent demand.** Items that sell zero most weeks break the method. Croston's method is designed for these.",
+            "**Over-trusting long horizons.** Trend extrapolation compounds errors; prefer damped trends and always backtest."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Exponential smoothing shines when…",
+              "items": [
+                "Thousands of series need automatic forecasts",
+                "Short to medium horizons",
+                "Patterns are mainly level, trend and season",
+                "You need speed, simplicity and intervals",
+                "You need a tough baseline to beat"
+              ]
+            },
+            "right": {
+              "title": "Consider instead…",
+              "items": [
+                "Strong autocorrelation structure → **ARIMA**",
+                "Promotions, prices, weather matter → **regression or gradient boosting** with lag features",
+                "Many related series with shared patterns → **global ML models**",
+                "Mostly zero demand → **Croston**",
+                "Multiple seasonalities → **TBATS** or **Prophet**"
+              ]
+            },
+            "caption": "Use exponential smoothing as the first model and the benchmark that any fancier model must beat."
+          }
+        },
+        {
+          "callout": "Never deploy a complex forecasting model without comparing it with exponential smoothing on the same backtest. It is surprising how often the simple model wins.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is exponential smoothing the same as a moving average?",
+      "a": "Both average past values, but a simple moving average gives equal weight to the last k values and zero to everything older. Exponential smoothing gives every past value some weight, decaying smoothly, with the most recent counting most."
+    },
+    {
+      "q": "What is a good value for α?",
+      "a": "There is no universal value; let the software fit it. Fitted values between about 0.1 and 0.3 are common for stable demand. A fitted α near 1 suggests the series behaves like a random walk, where the naive forecast is about as good as anything."
+    },
+    {
+      "q": "Why is my simple smoothing forecast a flat line?",
+      "a": "Simple smoothing only estimates the current level, so every future period gets the same forecast. To get slopes or seasonal shapes, use Holt or Holt-Winters."
+    },
+    {
+      "q": "What is the difference between Holt-Winters and ETS?",
+      "a": "Holt-Winters is the original set of updating equations. ETS wraps the same ideas in a statistical model with an explicit error term, which gives likelihoods, AIC-based model selection and prediction intervals."
+    },
+    {
+      "q": "How much history do I need?",
+      "a": "Simple smoothing works with a dozen points. Holt-Winters needs at least two full seasons (two years of monthly data) to estimate the seasonal pattern sensibly; more is better."
+    },
+    {
+      "q": "Which Python library should I use?",
+      "a": "`statsmodels`: `SimpleExpSmoothing` and `ExponentialSmoothing` for the classic methods, `ETSModel` for the full statistical version with intervals. The `statsforecast` package offers fast `AutoETS` for many series."
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain how k-NN classifies by neighbour vote",
+    "Choose k and see the bias–variance effect",
+    "Know why scaling is essential"
+  ],
+  "why": "k-NN is the simplest \"learn from similar cases\" model: recommendations, case-based reasoning and quick baselines. Its idea of similarity also underlies vector search in RAG systems.",
+  "explain": [
+    "To classify a new point, find the **k closest** training points and take a **majority vote** (or average them for regression). There is no training step; the data is the model.",
+    "**Small k** (1) follows every quirk of the data: low bias, high variance, noisy boundaries. **Large k** smooths the boundary: higher bias, lower variance. Choose k by cross-validation.",
+    "Distances are meaningless without **scaling**: always standardise features.",
+    "Weaknesses: prediction is slow on large data (it compares with every point unless you use indexes), and it suffers in high dimensions, where all points look equally far apart."
+  ],
+  "example": {
+    "title": "Will this customer churn? (k = 5)",
+    "steps": [
+      "Find the 5 most similar past customers by tenure, usage and complaints",
+      "Their outcomes: churn, churn, stay, churn, stay",
+      "Vote: 3 churn vs 2 stay → predict churn",
+      "Probability estimate = 3/5 = 0.6"
+    ],
+    "result": "Easy to explain: \"customers most like this one usually left\"."
+  },
+  "mistakes": [
+    "Not scaling features.",
+    "k = 1 on noisy data.",
+    "Using it on millions of rows without approximate nearest-neighbour indexes."
+  ],
+  "takeaways": [
+    "Predict by the vote of the k nearest points",
+    "k controls the bias–variance trade-off",
+    "Scaling is mandatory"
+  ],
+  "use": [
+    "Small to medium datasets, irregular boundaries",
+    "Recommendation and similarity search"
+  ],
+  "avoid": [
+    "High-dimensional data",
+    "Very large datasets needing fast predictions",
+    "Unscaled features"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_wine\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import cross_val_score\nX, y = load_wine(return_X_y=True)\nfor k in [1, 5, 15, 45]:\n    print(k, cross_val_score(make_pipeline(StandardScaler(), KNeighborsClassifier(k)), X, y, cv=5).mean().round(3))"
+  },
+  "check": [
+    {
+      "q": "Increasing k generally…",
+      "options": [
+        "Increases variance",
+        "Smooths the boundary (more bias, less variance)",
+        "Has no effect",
+        "Requires retraining"
+      ],
+      "answer": 1,
+      "why": "More neighbours average out noise."
+    },
+    {
+      "q": "k-NN \"training\" consists of…",
+      "options": [
+        "Gradient descent",
+        "Storing the data",
+        "Building a tree",
+        "Computing eigenvectors"
+      ],
+      "answer": 1,
+      "why": "It is a lazy learner."
+    }
+  ],
+  "chapterMinutes": 17
+}

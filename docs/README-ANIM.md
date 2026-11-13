@@ -5,7 +5,7 @@ Every topic gets two interactive tabs, **🎬 Animate** and **🕹 Playground**,
 ## Read first
 1. `src/anim/types.ts` (the contract) and **`src/anim/sampling-clt.tsx` (the gold standard; copy its structure)**.
 2. `src/viz/kit.tsx`: the shared toolkit. **Build only from it** (plus React, `useMemo`/`useState`, and `d3` helpers if truly needed). Components: `Plot` (render-prop scales), `Dots`, `FnLine`, `Seg`, `Arrow`, `Label`, `Region`, `Bars`, `MatrixView`, `Caption`, `Readout`, `Slider`, `Choice`, `Toggle`, `Legend`, `Layout`, `useStepPlayer` + `PlayerControls`, `rng`/`gauss` (seeded randomness), `Tex` (KaTeX), `Md`, colours `C` / `SERIES`.
-3. The topic's textbook chapter in `src/lessons/deep/g-*.ts` and short lesson in `src/lessons/*.ts`: reuse their running examples and numbers so the animation matches what the learner just read.
+3. The topic's chapter `content/topics/<id>/chapter.json` and short lesson `content/topics/<id>/lesson.json`: reuse their running examples and numbers so the animation matches what the learner just read.
 4. For the three existing pilots, see how rich an animation can be: `src/models/linear-regression.tsx`, `kmeans.tsx`, `decision-tree.tsx` (do not edit them).
 
 ## Your output

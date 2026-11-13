@@ -3,19 +3,14 @@
 Every topic page opens with a **textbook chapter**: a 15–25 minute, plain-English explanation. The person who asked for this said the old short lessons were **too compressed, used too much jargon, lacked diagrams and needed more examples**. Every chapter must fix all four problems.
 
 ## Files
-- Format (read first): `src/lessons/deep/types.ts`
-- **Gold standard to imitate (read fully):** `src/lessons/deep/g-kmeans.ts`
-- Existing short lessons with facts, examples and Python you may reuse or extend: `src/lessons/{math,python-workflow,stats,supervised,advanced}.ts`
+- Format (read first): `src/content/types.ts` (`DeepLesson`, `Block`, `Diagram`) and the JSON Schema `content/schema/chapter.schema.json`
+- **Gold standard to imitate (read fully):** `content/topics/kmeans/chapter.json`
+- The topic's short lesson (5-minute core, toolkit, Python): `content/topics/<id>/lesson.json`
 - Topic list, titles, prerequisites and analogies: `src/data/curriculum.ts`
-- Validator: `npx tsx scripts/validate-deep.ts <topicId> [<topicId> ...]` (run from the project root `/home/claude/lp2`)
+- Validator: `npm run validate -- <topicId> [<topicId> ...]`
 
 ## Your output
-One file `src/lessons/deep/g-<group>.ts` that exports one constant:
-```ts
-import { DeepLesson } from './types';
-export const <GROUP>_DEEP: Record<string, DeepLesson> = { '<topic-id>': { ... }, ... };
-```
-Keys must be the exact topic ids. **Do not edit any other file.** Other writers are working on other groups at the same time.
+Edit or create `content/topics/<topic-id>/chapter.json` (one JSON object of type `DeepLesson`, starting with `"$schema": "../../schema/chapter.schema.json"`). If you change the chapter's `minutes`, update `chapterMinutes` in the same topic's `lesson.json` to match.
 
 ## Required structure per chapter (headings can be tailored to the topic)
 1. **The problem / why this exists**: concrete business situation, why people needed this idea.
@@ -31,7 +26,7 @@ Then `faq` with **5–6** questions beginners really ask.
 ## Minimums (the validator enforces them)
 - **1,800–2,600 words** (validator hard limits: 1,500–3,400). Set `minutes` ≈ words ÷ 140, rounded.
 - ≥ 6 sections, ≥ **3 diagrams** (validator min 2), ≥ 2 worked examples, ≥ 4 `term` boxes, ≥ 1 `think` block, ≥ 1 `case` block, ≥ 5 FAQ.
-- Every `tex` must compile in KaTeX (validator checks it). Use `\\` for backslashes inside TS strings.
+- Every `tex` must compile in KaTeX (validator checks it). In JSON, write each backslash as `\\`.
 
 ## Style rules
 - **Plain English first.** Introduce every technical word with a `term` box *the first time it appears*, before using it freely. Assume a smart reader with school maths and no ML background.
@@ -47,4 +42,4 @@ Then `faq` with **5–6** questions beginners really ask.
 - Technical claims must match standard textbooks and scikit-learn / statsmodels behaviour.
 
 ## Done means
-`npx tsx scripts/validate-deep.ts <all your ids>` prints **"All checked topics pass."** Then reply with a one-line summary per topic (id, words, diagrams) and anything you were unsure about. Type errors from *other* groups' files are not your concern; your own file must type-check (the validator imports it).
+`npm run validate -- <all your ids>` prints **"All checked content passes."** Then reply with a one-line summary per topic (id, words, diagrams) and anything you were unsure about. Type errors from *other* groups' files are not your concern; your own file must type-check (the validator imports it).

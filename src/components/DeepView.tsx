@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, DeepLesson } from '../lessons/deep/types';
+import { Block, DeepLesson } from '../content/types';
 import { Md } from './Md';
 import { Tex } from './Tex';
 import { DiagramView } from './DiagramView';

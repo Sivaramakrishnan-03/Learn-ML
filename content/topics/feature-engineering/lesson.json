@@ -1,0 +1,64 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Create useful features from raw columns",
+    "Encode categorical variables correctly",
+    "Know when each encoding is appropriate"
+  ],
+  "why": "Better features usually beat fancier algorithms. Many Kaggle winners credit feature engineering, not model choice, for their edge.",
+  "explain": [
+    "Models only see numbers. **Feature engineering** turns raw data into numbers that expose the pattern: ratios (debt ÷ income), differences (days since last purchase), date parts (month, weekday) and aggregates (average spend over the last 90 days).",
+    "**One-hot encoding** turns a category with k values into k columns of 0/1. Use it for unordered categories such as city.",
+    "**Ordinal encoding** maps ordered categories to numbers (small = 1, medium = 2, large = 3). Do **not** use it for unordered categories: it would imply Chennai < Mumbai < Pune.",
+    "**Target encoding** replaces a category with the average target for that category. It is powerful for high-cardinality columns (10,000 product IDs) but must be computed inside cross-validation to avoid leakage."
+  ],
+  "example": {
+    "title": "Credit features",
+    "steps": [
+      "Raw: income ₹10L, existing EMIs ₹4L per year",
+      "Engineered: debt-to-income = 4 / 10 = 0.40",
+      "City = Pune → one-hot: is_chennai 0, is_pune 1, is_mumbai 0",
+      "Application date → month = 3, is_weekend = 0"
+    ],
+    "result": "Debt-to-income is often a far stronger predictor than income or EMIs alone."
+  },
+  "mistakes": [
+    "Ordinal-encoding unordered categories.",
+    "Target encoding on the full dataset (leakage).",
+    "Creating features that use future information."
+  ],
+  "takeaways": [
+    "Ratios, differences, dates and aggregates expose patterns",
+    "One-hot for unordered categories, ordinal for ordered ones",
+    "Domain knowledge is the best feature generator"
+  ],
+  "practice": {
+    "code": "import pandas as pd\ndf = pd.DataFrame({\"income\": [10, 20], \"emi\": [4, 2], \"city\": [\"Pune\", \"Chennai\"],\n                   \"applied\": pd.to_datetime([\"2026-03-14\", \"2026-03-15\"])})\ndf[\"dti\"] = df.emi / df.income\ndf[\"weekday\"] = df.applied.dt.weekday\ndf = pd.get_dummies(df, columns=[\"city\"])\nprint(df)"
+  },
+  "check": [
+    {
+      "q": "Best encoding for \"city\" (no natural order) in a linear model?",
+      "options": [
+        "Ordinal 1, 2, 3",
+        "One-hot",
+        "Leave as text",
+        "Alphabetical rank"
+      ],
+      "answer": 1,
+      "why": "One-hot avoids implying an order."
+    },
+    {
+      "q": "Income ₹8L, EMIs ₹2L per year. Debt-to-income ratio?",
+      "options": [
+        "0.25",
+        "4",
+        "0.4",
+        "10"
+      ],
+      "answer": 0,
+      "why": "2 / 8 = 0.25."
+    }
+  ],
+  "chapterMinutes": 15
+}

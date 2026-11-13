@@ -1,0 +1,410 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A marketing team has 80 weeks of sales data and 40 candidate drivers: spend in every channel, prices, competitor activity, weather, festivals. Ordinary multiple regression fits the past beautifully, with R² = 0.87, then predicts new weeks barely better than guessing the average. Several coefficients have absurd signs. The fix is surprisingly simple: **charge the model a fee for large coefficients**. That idea gives three famous methods, **Ridge, Lasso and Elastic Net**.",
+  "sections": [
+    {
+      "heading": "The problem: too many features, too little data",
+      "blocks": [
+        {
+          "p": "Multiple regression works well when you have many more rows than features and the features are not strongly related to each other. Business data often breaks both conditions. You have dozens of candidate drivers, many of them overlapping (TV and digital spend both rise before Diwali), and only a couple of years of weekly data."
+        },
+        {
+          "p": "In that situation least squares does what it is told: it finds the coefficients that fit the training data best. With so much freedom it uses some features to fit noise, and gives correlated features huge coefficients of opposite signs that happen to cancel on the training data. On new data the cancelling fails and predictions swing wildly."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "OLS (train)",
+              "OLS (CV)",
+              "Ridge (CV)",
+              "Lasso (CV)"
+            ],
+            "values": [
+              0.87,
+              0.18,
+              0.44,
+              0.59
+            ],
+            "highlight": 3,
+            "yLabel": "R²",
+            "caption": "Simulated weekly data: 80 rows, 40 candidate features, of which only 6 truly matter. Ordinary least squares looks excellent on its training data (0.87) but scores only 0.18 under cross-validation. Ridge and Lasso trade a little training fit for much better performance on unseen weeks."
+          }
+        },
+        {
+          "term": "Overfitting",
+          "def": "When a model fits its training data so closely that it learns random noise as well as the real pattern, so it predicts new data badly. Cross-validation (testing on held-out parts of the data) is how you detect it."
+        },
+        {
+          "term": "Regularisation",
+          "def": "Adding a penalty to the model’s objective that discourages complexity, usually large coefficients. It deliberately makes the training fit slightly worse to make predictions on new data better."
+        },
+        {
+          "p": "The penalty is the whole idea. Instead of asking only \"how well do you fit?\", we ask \"how well do you fit, **and** how big are your coefficients?\" A model that wants a big coefficient must earn it by reducing the error a lot."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: a budget for coefficients",
+      "blocks": [
+        {
+          "p": "Imagine a manager building a project team from 40 freelancers. Each freelancer is a feature, and the money paid to each is their coefficient. With an unlimited budget the manager would pay everyone something, including people who add little or who duplicate each other’s work. Now introduce a cost of spending."
+        },
+        {
+          "steps": [
+            "**Ridge is like a tax that rises steeply with each payment.** Paying one person a fortune is heavily taxed, so the manager spreads money across people and pays everyone a bit less. Nobody is fired, but nobody is overpaid.",
+            "**Lasso is like a tax on every rupee paid, at the same rate.** For weak contributors the tax outweighs their value, so the manager pays them exactly nothing. The team shrinks to the people who really matter.",
+            "**Elastic Net mixes both taxes.** Weak contributors are dropped, and among similar strong contributors the money is shared rather than given to one at random.",
+            "**The tax rate (λ) is the dial.** Zero tax gives ordinary regression; a huge tax pays everyone nothing and predicts the average for every case."
+          ],
+          "title": "Three tax policies"
+        },
+        {
+          "term": "Shrinkage",
+          "def": "Pulling coefficients towards zero compared with ordinary least squares. Shrunk coefficients are slightly biased but much more stable from one sample of data to another."
+        },
+        {
+          "think": {
+            "q": "Why might a model with smaller coefficients predict new data better, even though it fits the training data worse?",
+            "a": "Large coefficients make predictions very sensitive to small changes in the inputs, including noise. Shrinking them reduces that sensitivity. You accept a little bias in exchange for a big cut in variance, and on new data the trade is usually worth it."
+          }
+        },
+        {
+          "callout": "Regularisation is the formal version of a manager’s scepticism: a feature has to prove its worth before it gets a big say in the prediction.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Standardise** every feature",
+              "**Choose** Ridge, Lasso or Elastic Net",
+              "**Try a grid** of penalty strengths λ",
+              "**Cross-validate** and pick the best λ",
+              "**Refit** on all training data and interpret"
+            ],
+            "caption": "The workflow. In scikit-learn, `RidgeCV`, `LassoCV` and `ElasticNetCV` perform steps 3 and 4 for you."
+          }
+        },
+        {
+          "p": "**Step 1: Standardise.** The penalty looks at the size of coefficients, and size depends on units. Area in square feet would get a tiny coefficient and area in hundreds of square feet a large one, so the penalty would treat the same feature differently. Converting every feature to \"standard deviations from its mean\" puts them on equal footing."
+        },
+        {
+          "term": "Standardise",
+          "def": "Transform a feature by subtracting its average and dividing by its standard deviation, so it has mean 0 and spread 1. Also called z-scoring. In scikit-learn: `StandardScaler`."
+        },
+        {
+          "p": "**Step 2: Choose the penalty.** Ridge when you believe many features each contribute a little; Lasso when you believe only a few matter and want a short list; Elastic Net when features come in correlated groups."
+        },
+        {
+          "p": "**Step 3 and 4: Tune λ.** Try values on a log scale (0.01, 0.1, 1, 10, 100 …), estimate the cross-validated error of each, and choose the best. Never choose λ by training error: the training error is always lowest at λ = 0."
+        },
+        {
+          "p": "**Step 5: Refit and interpret.** Fit with the chosen λ on all the training data. For Lasso, the features with non-zero coefficients are the selected drivers."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\text{Ridge:}\\quad \\min_{b} \\; \\sum_{i} (y_i - \\hat{y}_i)^2 + \\lambda \\sum_{j} b_j^2",
+          "plain": "Minimise the usual sum of squared errors plus λ times the sum of squared coefficients. The intercept is not penalised.",
+          "symbols": [
+            [
+              "\\lambda",
+              "penalty strength, chosen by cross-validation (called `alpha` in scikit-learn)"
+            ],
+            [
+              "b_j",
+              "coefficient of feature j"
+            ],
+            [
+              "\\sum_j b_j^2",
+              "the L2 penalty: sum of squared coefficients"
+            ]
+          ]
+        },
+        {
+          "tex": "\\text{Lasso:}\\quad \\min_{b} \\; \\sum_{i} (y_i - \\hat{y}_i)^2 + \\lambda \\sum_{j} |b_j|",
+          "plain": "Same idea, but the penalty is the sum of the absolute values of the coefficients (their sizes ignoring sign).",
+          "symbols": [
+            [
+              "|b_j|",
+              "absolute value of b_j"
+            ],
+            [
+              "\\sum_j |b_j|",
+              "the L1 penalty"
+            ]
+          ]
+        },
+        {
+          "p": "Why does this small change, squares versus absolute values, make Lasso set coefficients to exactly zero while Ridge does not? Look at how each penalty grows near zero."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.abs(x)",
+            "fn2": "x*x",
+            "xMin": -2,
+            "xMax": 2,
+            "xLabel": "coefficient value b",
+            "yLabel": "penalty",
+            "legend": [
+              "Lasso |b|",
+              "Ridge b²"
+            ],
+            "caption": "Near zero the Ridge penalty (b²) is almost flat: shrinking a coefficient from 0.1 to 0 saves almost nothing (0.01), so Ridge rarely bothers. The Lasso penalty keeps a constant slope with a sharp corner at zero: every last bit of shrinkage saves the same amount, so weak coefficients get pushed all the way to zero."
+          }
+        },
+        {
+          "p": "For a single centred feature, both methods have tidy formulas that make the difference visible. Ordinary least squares gives slope = Sxy / Sxx, where Sxy is the sum of products of deviations and Sxx the sum of squared x deviations, exactly as in the linear regression chapter."
+        },
+        {
+          "tex": "b_{\\text{ridge}} = \\frac{S_{xy}}{S_{xx} + \\lambda}, \\qquad b_{\\text{lasso}} = \\frac{\\max\\left(S_{xy} - \\tfrac{\\lambda}{2},\\, 0\\right)}{S_{xx}}",
+          "plain": "Ridge adds λ to the denominator, so the slope shrinks smoothly but never reaches zero. Lasso subtracts a fixed amount from the numerator, and once that amount exceeds Sxy the slope is exactly zero. (The Lasso formula is shown for a positive Sxy.)",
+          "symbols": [
+            [
+              "S_{xy}",
+              "sum of (x − x̄)(y − ȳ)"
+            ],
+            [
+              "S_{xx}",
+              "sum of (x − x̄)²"
+            ]
+          ]
+        },
+        {
+          "tex": "\\text{Elastic Net:}\\quad \\min_{b} \\; \\sum_{i} (y_i - \\hat{y}_i)^2 + \\lambda_1 \\sum_{j} |b_j| + \\lambda_2 \\sum_{j} b_j^2",
+          "plain": "Use both penalties at once. In scikit-learn you set an overall strength `alpha` and a mixing share `l1_ratio` (1 = pure Lasso, 0 = pure Ridge)."
+        },
+        {
+          "callout": "Libraries scale the formulas differently. scikit-learn’s `Ridge` uses exactly the Ridge formula above, but its `Lasso` divides the squared-error part by 2n, so its `alpha` is not the same number as λ here. The behaviour is identical; only the scale of the dial differs.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Ridge by hand on the five flats",
+            "setup": "From the linear regression chapter: area deviations −4, −2, 0, 2, 4 and price deviations −17, −8, −2, 10, 17, so Sxy = 172 and Sxx = 40. Ordinary slope = 172 / 40 = 4.3 (₹ lakh per 100 sq ft).",
+            "steps": [
+              "λ = 10: slope = 172 / (40 + 10) = 172 / 50 = 3.44.",
+              "λ = 40: slope = 172 / 80 = 2.15.",
+              "λ = 400: slope = 172 / 440 ≈ 0.39.",
+              "The intercept is recalculated each time so the line still passes through the average flat (10, 52)."
+            ],
+            "result": "The slope shrinks steadily as λ grows, but it never becomes exactly zero. (These values match scikit-learn’s `Ridge(alpha=λ)`.)"
+          }
+        },
+        {
+          "example": {
+            "title": "Lasso by hand: watching a coefficient switch off",
+            "setup": "Same flats, Sxy = 172, Sxx = 40. Apply the Lasso formula slope = (172 − λ/2) / 40, floored at zero.",
+            "steps": [
+              "λ = 100: (172 − 50) / 40 = 122 / 40 = 3.05.",
+              "λ = 200: (172 − 100) / 40 = 72 / 40 = 1.8.",
+              "λ = 344: (172 − 172) / 40 = 0.",
+              "λ = 400: 172 − 200 is negative, so the slope stays at exactly 0."
+            ],
+            "result": "Once λ/2 reaches Sxy, area is dropped from the model altogether. With many features, the weak ones hit zero first, which is how Lasso performs feature selection."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "172/(40+x)",
+            "fn2": "Math.max(0,(172-x/2)/40)",
+            "xMin": 0,
+            "xMax": 450,
+            "marks": [
+              {
+                "x": 344,
+                "label": "Lasso hits 0 at λ = 344"
+              }
+            ],
+            "xLabel": "penalty strength λ",
+            "yLabel": "slope (₹ lakh per 100 sq ft)",
+            "legend": [
+              "Ridge",
+              "Lasso"
+            ],
+            "caption": "The flat-price slope as the penalty grows. Ridge glides towards zero but never arrives. Lasso falls in a straight line and stops dead at zero."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: two features that say the same thing",
+            "setup": "Twelve simulated Chennai flats with four standardised features: built-up area, carpet area (about 80% of built-up, correlation 0.998), age, and a pure-noise column. True model: price depends on built-up area and age only.",
+            "steps": [
+              "OLS coefficients: built-up +18.0, carpet −9.5, age −2.1, noise +0.6. A bigger carpet area \"lowers\" price? The two area columns are fighting each other.",
+              "Ridge (alpha = 1): built-up +4.4, carpet +3.8, age −1.9, noise +0.5. The credit is shared sensibly between the twins.",
+              "Lasso (alpha = 0.3): built-up +8.3, carpet 0, age −1.7, noise +0.15. One twin is dropped.",
+              "Lasso (alpha = 1.0): built-up +7.6, carpet 0, age −0.9, noise 0. Stronger penalty also removes the noise column."
+            ],
+            "result": "OLS gave nonsense signs; Ridge stabilised them; Lasso produced a short, readable model. Which twin Lasso keeps can be somewhat arbitrary, so do not read its choice as proof that one twin matters and the other does not."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Feature",
+              "OLS",
+              "Ridge (α=1)",
+              "Lasso (α=0.3)",
+              "Lasso (α=1)"
+            ],
+            "rows": [
+              [
+                "Built-up area",
+                "18.0",
+                "4.4",
+                "8.3",
+                "7.6"
+              ],
+              [
+                "Carpet area",
+                "−9.5",
+                "3.8",
+                "0",
+                "0"
+              ],
+              [
+                "Age",
+                "−2.1",
+                "−1.9",
+                "−1.7",
+                "−0.9"
+              ],
+              [
+                "Noise column",
+                "0.6",
+                "0.5",
+                "0.15",
+                "0"
+              ]
+            ],
+            "caption": "Standardised coefficients (₹ lakh per standard deviation) from the twelve-flat example. Watch the carpet-area row: wrong sign under OLS, shared under Ridge, zero under Lasso."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing between Ridge, Lasso and Elastic Net",
+      "blocks": [
+        {
+          "bullets": [
+            "**Ridge** when you expect many small effects, when features are strongly correlated, or when you care mostly about prediction accuracy. It keeps every feature.",
+            "**Lasso** when you expect only a handful of features to matter and want a short, explainable list of drivers.",
+            "**Elastic Net** when features come in correlated groups (several digital-channel metrics, several weather measures) and you still want selection. It is often the safest default for wide data.",
+            "**Plain OLS** when you have many more rows than features, little collinearity, and need classical p-values and confidence intervals."
+          ]
+        },
+        {
+          "p": "In practice, try more than one and let cross-validation decide. In the marketing simulation, Lasso scored best (cross-validated R² 0.59 versus 0.44 for Ridge) and kept 20 of the 40 features, including all 6 true drivers. It still kept 14 noise features, a reminder that Lasso’s selection is helpful but not perfect."
+        },
+        {
+          "term": "Sparse model",
+          "def": "A model in which most coefficients are exactly zero, so only a few features are used. Lasso and Elastic Net produce sparse models; Ridge does not."
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Credit risk scorecards with many bureau variables (illustrative)",
+            "story": "A lender in India has hundreds of candidate variables from credit-bureau reports and its own records: utilisation ratios, enquiry counts, delinquency flags over 3, 6 and 12 months, many of them highly correlated. Regulators and credit committees expect a short, explainable model. The analytics team uses an L1-penalised (Lasso-style) logistic regression to shortlist about 15 variables, checks that their signs make business sense, then fits the final scorecard and validates it on a later time period. The same penalty idea used here for regression works for classification too."
+          }
+        },
+        {
+          "bullets": [
+            "**Genomics:** thousands of genes, a few hundred patients. Lasso and Elastic Net were made for this.",
+            "**Marketing mix models:** Ridge stabilises the effects of channels that are always run together.",
+            "**Finance:** shrinkage of return forecasts and risk-model coefficients to avoid over-trading on noise.",
+            "**Text models:** thousands of word features; L1 or L2 penalties keep models from memorising rare words.",
+            "**Neural networks:** \"weight decay\" is the Ridge penalty applied to network weights."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Forgetting to standardise:** the penalty then depends on arbitrary units. Put `StandardScaler` in a pipeline so it is fitted only on training folds.",
+            "**Choosing λ on training error:** always use cross-validation.",
+            "**Over-reading Lasso’s choices:** among correlated features it picks almost at random; rerun on bootstrap samples to see how stable the selection is.",
+            "**Expecting p-values:** penalised coefficients are deliberately biased, so classical p-values and confidence intervals do not apply directly.",
+            "**Penalising dummies blindly:** a categorical feature split into several 0/1 columns may be half-selected by Lasso; group-aware methods exist if that matters."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Ridge (L2)",
+              "items": [
+                "Shrinks all coefficients smoothly",
+                "Never exactly zero: keeps every feature",
+                "Shares credit among correlated features",
+                "Always has a unique, stable solution",
+                "Best for many small effects"
+              ]
+            },
+            "right": {
+              "title": "Lasso (L1)",
+              "items": [
+                "Shrinks and sets weak ones to exactly zero",
+                "Performs automatic feature selection",
+                "Picks one of a correlated group, somewhat arbitrarily",
+                "Gives short, explainable models",
+                "Best when few features really matter"
+              ]
+            },
+            "caption": "Elastic Net sits between the two. All three reduce to ordinary least squares when λ = 0."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What happens when λ is 0 or very large?",
+      "a": "At λ = 0 you get ordinary least squares. As λ grows very large every coefficient is squeezed to zero and the model predicts the average target for everyone. The best λ lies in between and is found by cross-validation."
+    },
+    {
+      "q": "Why is the intercept not penalised?",
+      "a": "The intercept just sets the overall level of predictions (the average price). Shrinking it towards zero would bias every prediction for no benefit, so libraries leave it free."
+    },
+    {
+      "q": "Is it called alpha or lambda?",
+      "a": "Both, for the same idea. Textbooks usually write λ; scikit-learn calls the penalty strength `alpha`, and in `ElasticNet` uses `l1_ratio` for the L1/L2 mix."
+    },
+    {
+      "q": "Do I still need to remove correlated features myself?",
+      "a": "Less so. Ridge and Elastic Net handle correlated features gracefully. You may still drop obvious duplicates to keep the model easy to explain."
+    },
+    {
+      "q": "Can I use these penalties with logistic regression?",
+      "a": "Yes. scikit-learn’s `LogisticRegression` uses an L2 penalty by default (strength set by `C`, where smaller C means a stronger penalty), and supports L1 and Elastic Net too."
+    },
+    {
+      "q": "Does regularisation help if I have millions of rows and ten features?",
+      "a": "Usually very little. Overfitting is mainly a problem when features are many relative to rows or strongly correlated. With abundant data, λ chosen by cross-validation will simply come out small."
+    }
+  ]
+}

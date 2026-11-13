@@ -1,0 +1,81 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 11,
+  "goals": [
+    "Explain how a sigmoid turns a score into a probability",
+    "Interpret coefficients as odds ratios",
+    "Choose a decision threshold"
+  ],
+  "why": "Logistic regression is the industry standard for credit scoring, churn and medical risk: fast, well calibrated and explainable to regulators.",
+  "explain": [
+    "Despite its name, it is a **classifier**. It computes a linear score (like linear regression), then squashes it through the **sigmoid** S-curve into a probability between 0 and 1.",
+    "Score 0 → probability 0.5; large positive → close to 1; large negative → close to 0. The boundary between the classes is a straight line (a plane in higher dimensions).",
+    "It is trained by minimising **log-loss** (cross-entropy), which heavily punishes confident wrong answers. There is no closed form, so it uses an iterative optimiser.",
+    "Coefficients act on the **log-odds**. e^β is an **odds ratio**: β = 0.69 → e^0.69 ≈ 2, so the odds double per unit increase. The final decision uses a **threshold** (0.5 by default) that should reflect business costs."
+  ],
+  "formula": {
+    "tex": "p = \\sigma(z) = \\frac{1}{1+e^{-z}}, \\qquad z = \\beta_0 + \\beta_1 x_1 + \\dots",
+    "plain": "Probability = sigmoid of a weighted sum of features."
+  },
+  "example": {
+    "title": "Loan default probability",
+    "steps": [
+      "z = −4 + 0.8 × (debt-to-income in tenths)",
+      "Applicant with DTI 0.5 → z = −4 + 0.8 × 5 = 0",
+      "p = 1 / (1 + e⁰) = 0.5",
+      "DTI 0.7 → z = 1.6 → p = 1 / (1 + e^−1.6) ≈ 0.83"
+    ],
+    "result": "Each +0.1 of DTI multiplies the odds of default by e^0.8 ≈ 2.2. That is a clear, explainable risk driver."
+  },
+  "mistakes": [
+    "Using accuracy on imbalanced data.",
+    "Not scaling features when using regularisation (scikit-learn regularises by default).",
+    "Assuming a linear boundary when the classes curve (add interactions or use trees)."
+  ],
+  "takeaways": [
+    "Linear score → sigmoid → probability",
+    "e^β = odds ratio",
+    "Choose the threshold by business cost"
+  ],
+  "use": [
+    "Binary outcomes needing probabilities and explanations",
+    "Strong baseline for any classification problem"
+  ],
+  "avoid": [
+    "Highly non-linear boundaries without feature engineering",
+    "Perfectly separable data (coefficients blow up without regularisation)"
+  ],
+  "interview": [
+    "Why not use linear regression for a binary target?",
+    "Interpret a coefficient of 0.5.",
+    "What is log-loss and why is it used?"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import cross_val_score\nX, y = load_breast_cancer(return_X_y=True)\nm = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\nprint(cross_val_score(m, X, y, cv=5, scoring=\"roc_auc\").mean().round(3))"
+  },
+  "check": [
+    {
+      "q": "z = 0 gives probability…",
+      "options": [
+        "0",
+        "0.5",
+        "1",
+        "0.73"
+      ],
+      "answer": 1,
+      "why": "1 / (1 + 1) = 0.5."
+    },
+    {
+      "q": "β = 0.69 for a feature. Its odds ratio is about…",
+      "options": [
+        "0.69",
+        "2",
+        "1.69",
+        "0.5"
+      ],
+      "answer": 1,
+      "why": "e^0.69 ≈ 2: the odds double."
+    }
+  ],
+  "chapterMinutes": 16
+}

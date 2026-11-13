@@ -1,0 +1,66 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Compute a 95% confidence interval for a mean",
+    "Interpret a CI correctly",
+    "Explain how sample size changes the width"
+  ],
+  "why": "A point estimate without uncertainty is half an answer. \"Conversion rose 2%\" is very different from \"2% ± 3%\".",
+  "explain": [
+    "A **confidence interval** gives a range of plausible values for an unknown quantity, such as the true average delivery time.",
+    "Recipe for a mean: estimate ± (critical value × standard error). For 95% with a decent sample size the critical value is about **1.96** (≈ 2).",
+    "Correct interpretation: if we repeated the sampling many times, **95% of the intervals built this way would contain the true value**. Think of a fishing net: 95% of the nets we throw catch the fish.",
+    "Wider intervals come from more variability or smaller samples. More data narrows them."
+  ],
+  "formula": {
+    "tex": "\\bar x \\pm 1.96 \\cdot \\frac{s}{\\sqrt n}",
+    "plain": "Sample mean plus or minus about two standard errors."
+  },
+  "example": {
+    "title": "Average delivery time",
+    "steps": [
+      "n = 100 deliveries, mean 52 min, SD 10 min",
+      "SE = 10 / √100 = 1 min",
+      "95% CI = 52 ± 1.96 × 1 = 50.0 to 54.0 min"
+    ],
+    "result": "We can promise \"about 52 minutes, plausibly between 50 and 54\". To halve the width to ±1 minute, deliver 4× the sample (400)."
+  },
+  "mistakes": [
+    "Saying \"there is a 95% probability the true mean is in this interval\" (a common but technically wrong reading of a frequentist CI).",
+    "Confusing a CI for the mean with the range of individual values."
+  ],
+  "takeaways": [
+    "CI = estimate ± ~2 SE",
+    "Wider = less certain",
+    "Always report uncertainty with an estimate"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom scipy import stats\nx = np.random.default_rng(3).normal(52, 10, 100)\nprint(stats.t.interval(0.95, len(x) - 1, loc=x.mean(), scale=stats.sem(x)))"
+  },
+  "check": [
+    {
+      "q": "Mean 80, SE 2. Approximate 95% CI?",
+      "options": [
+        "78–82",
+        "76–84",
+        "79–81",
+        "70–90"
+      ],
+      "answer": 1,
+      "why": "80 ± 1.96 × 2 ≈ 76–84."
+    },
+    {
+      "q": "What makes a CI narrower?",
+      "options": [
+        "Smaller sample",
+        "Larger sample",
+        "Higher confidence level",
+        "More variable data"
+      ],
+      "answer": 1,
+      "why": "More data reduces the standard error."
+    }
+  ],
+  "chapterMinutes": 16
+}

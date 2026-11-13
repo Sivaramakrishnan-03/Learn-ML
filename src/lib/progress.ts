@@ -30,6 +30,7 @@ export const progress = {
     ids.forEach((id) => { if (!state[id]) state[id] = 'tested'; });
     save();
   },
+  replace(s: State) { state = { ...s }; save(); },
   reset() { state = {}; save(); },
 };
 

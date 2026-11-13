@@ -1,0 +1,476 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 19,
+  "hook": "A young couple in Chennai are looking at a 1,100 sq ft flat in Velachery listed at ₹62 lakh. Is that fair? The broker says \"market rate\", the seller says \"bargain\", and the couple have no idea. What they really want is a rule built from recent sales: \"for flats like this, each extra 100 sq ft costs about this much\". Drawing the best straight line through past sales gives exactly that rule. That line is **linear regression**, the first and most widely used model in all of data science.",
+  "sections": [
+    {
+      "heading": "The problem: turning past sales into a pricing rule",
+      "blocks": [
+        {
+          "p": "Businesses constantly need to predict a **number**: next month’s sales, a machine’s running cost, the price a flat will fetch. In each case there is something we know (the size of the flat) and something we want to estimate (its price)."
+        },
+        {
+          "term": "Target",
+          "def": "The number you want to predict, such as the price of a flat. Also called the dependent variable, the response or simply y."
+        },
+        {
+          "term": "Feature",
+          "def": "A piece of information you use to make the prediction, such as the floor area. Also called an input, a predictor, an independent variable or x."
+        },
+        {
+          "p": "If you plot area against price for recent sales in one neighbourhood, you usually see an upward-sloping cloud of dots. Bigger flats cost more, but not perfectly: two flats of the same size can differ by a few lakh because of the view, the floor or how hard the seller bargained."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "area (hundreds of sq ft)",
+            "yLabel": "price (₹ lakh)",
+            "line": {
+              "m": 4.3,
+              "b": 9
+            },
+            "caption": "Five recent sales in one Chennai neighbourhood and the best straight line through them: price ≈ 4.3 × area + 9. The dots sit close to the line but not exactly on it. Those small gaps are the errors the method tries to keep small.",
+            "points": [
+              [
+                6,
+                35
+              ],
+              [
+                8,
+                44
+              ],
+              [
+                10,
+                50
+              ],
+              [
+                12,
+                62
+              ],
+              [
+                14,
+                69
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Linear regression answers one question: **which straight line best summarises the relationship between the feature and the target?** Once we have that line we can do two useful things. We can **predict** (a 1,100 sq ft flat should cost about ₹56 lakh), and we can **explain** (each extra 100 sq ft adds about ₹4.3 lakh)."
+        },
+        {
+          "term": "Regression",
+          "def": "Any method that predicts a number, as opposed to a category such as \"spam / not spam\"."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: a ruler on a pinboard",
+      "blocks": [
+        {
+          "p": "Imagine the sales are pins stuck in a cork board. You hold a long ruler over them and try to place it so it runs \"through the middle\" of the pins. No position touches every pin, so you need a fair way to decide which position is best."
+        },
+        {
+          "steps": [
+            "**Place the ruler anywhere.** Some pins are above it, some below.",
+            "**Measure each pin’s vertical gap to the ruler.** A pin 2 cm above and a pin 2 cm below are equally badly served.",
+            "**Square each gap and add them up.** Squaring makes every gap positive and punishes big misses much more than small ones: a 4 cm miss counts four times as much as a 2 cm miss, not twice.",
+            "**Tilt and slide the ruler** to make that total as small as possible.",
+            "**The winning position is the regression line.** Its tilt is the slope; where it crosses the left edge is the intercept."
+          ],
+          "title": "Finding the fairest ruler position"
+        },
+        {
+          "term": "Residual",
+          "def": "The vertical gap between an actual data point and the line: actual value minus predicted value. Positive means the line under-predicted; negative means it over-predicted."
+        },
+        {
+          "think": {
+            "q": "Why not simply add up the gaps without squaring them?",
+            "a": "Positive and negative gaps would cancel. A terrible line that is 10 above one point and 10 below another would score a perfect zero. Squaring stops the cancelling and also makes the maths give a single clean answer."
+          }
+        },
+        {
+          "callout": "Linear regression does not \"understand\" flats. It finds the straight line that keeps the squared gaps smallest. Deciding whether a straight line is sensible, and what the slope means for the business, is your job.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Collect** pairs of (feature, target)",
+              "**Plot** them and check the cloud looks roughly straight",
+              "**Fit** the line that minimises squared residuals",
+              "**Check** residuals, R² and RMSE on new data",
+              "**Use** the slope to explain and the line to predict"
+            ],
+            "caption": "The everyday workflow. The fitting step takes milliseconds; the checking steps are where the real thinking happens."
+          }
+        },
+        {
+          "p": "**Steps 1 and 2: Collect and look.** You need examples where both feature and target are known, say 200 recent sales. Plot them first: if the cloud bends, or one point sits miles from the rest, a straight line may be the wrong tool."
+        },
+        {
+          "p": "**Step 3: Fit.** The computer finds the slope and intercept that minimise the sum of squared residuals. For a single feature there is an exact formula (next section); for millions of rows and many features it uses fast matrix algebra or an iterative method called gradient descent."
+        },
+        {
+          "term": "Least squares",
+          "def": "The rule \"choose the line that makes the sum of squared residuals as small as possible\". Linear regression fitted this way is often called OLS, for ordinary least squares."
+        },
+        {
+          "p": "**Steps 4 and 5: Check and use.** Measure the typical error on flats the model has not seen and look at the residuals for patterns. Then read the slope as a business fact (\"₹4.3 lakh per 100 sq ft here\") and price new listings, remembering the typical error."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "A straight line needs just two numbers: how steep it is and where it starts. Everything in this section is about finding those two numbers and then judging how good the line is."
+        },
+        {
+          "tex": "\\hat{y} = b_0 + b_1 x",
+          "plain": "Predicted price = starting value + slope × area. The little hat on y means \"predicted\", to keep it separate from the real price.",
+          "symbols": [
+            [
+              "\\hat{y}",
+              "the predicted target (price)"
+            ],
+            [
+              "x",
+              "the feature (area)"
+            ],
+            [
+              "b_1",
+              "slope: change in prediction per one-unit increase in x"
+            ],
+            [
+              "b_0",
+              "intercept: the prediction when x = 0"
+            ]
+          ]
+        },
+        {
+          "tex": "SSE = \\sum_{i=1}^{n} (y_i - \\hat{y}_i)^2",
+          "plain": "For every one of the n data points, take the residual (actual minus predicted), square it, and add them all up. Least squares picks the b₀ and b₁ that make this total smallest.",
+          "symbols": [
+            [
+              "SSE",
+              "sum of squared errors"
+            ],
+            [
+              "y_i",
+              "actual value of point i"
+            ],
+            [
+              "\\hat{y}_i",
+              "predicted value of point i"
+            ],
+            [
+              "n",
+              "number of data points"
+            ]
+          ]
+        },
+        {
+          "p": "Using a little calculus (setting the slope of SSE to zero), the best line has a neat formula. You never need to derive it, but it is worth reading in words because it shows what the slope really measures."
+        },
+        {
+          "tex": "b_1 = \\frac{\\sum (x_i - \\bar{x})(y_i - \\bar{y})}{\\sum (x_i - \\bar{x})^2}, \\qquad b_0 = \\bar{y} - b_1 \\bar{x}",
+          "plain": "The slope compares how x and y move together (top) with how much x moves on its own (bottom). The intercept is then chosen so the line passes exactly through the average point (x̄, ȳ).",
+          "symbols": [
+            [
+              "\\bar{x}",
+              "average of the feature"
+            ],
+            [
+              "\\bar{y}",
+              "average of the target"
+            ]
+          ]
+        },
+        {
+          "p": "Read the top of the fraction carefully. For a flat that is bigger than average (x − x̄ positive) and also pricier than average (y − ȳ positive), the product is positive. If big flats are usually expensive flats, these products pile up and the slope is positive. If size and price had nothing to do with each other, the positives and negatives would cancel and the slope would be near zero."
+        },
+        {
+          "term": "RMSE",
+          "def": "Root mean squared error: square the residuals, average them, then take the square root. It is a \"typical size of error\" in the same units as the target, e.g. ₹1.1 lakh."
+        },
+        {
+          "tex": "R^2 = 1 - \\frac{\\sum (y_i - \\hat{y}_i)^2}{\\sum (y_i - \\bar{y})^2}",
+          "plain": "Compare the errors of your line (top) with the errors of the laziest possible prediction, which is always guessing the average price (bottom). R² is the share of that variation your line removes.",
+          "symbols": [
+            [
+              "R^2",
+              "coefficient of determination, between 0 and 1 on training data"
+            ]
+          ]
+        },
+        {
+          "p": "R² = 0.9 means the line explains 90% of the variation in price; R² = 0 means it is no better than guessing the average. RMSE says how wrong you will typically be in rupees, which business people usually care about more."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Fitting the flat-price line by hand",
+            "setup": "Five sales: area (hundreds of sq ft) 6, 8, 10, 12, 14 and price (₹ lakh) 35, 44, 50, 62, 69. Find the least-squares line.",
+            "steps": [
+              "Averages: x̄ = (6 + 8 + 10 + 12 + 14) / 5 = 10. ȳ = (35 + 44 + 50 + 62 + 69) / 5 = 52.",
+              "Deviations of x from 10: −4, −2, 0, 2, 4. Deviations of y from 52: −17, −8, −2, 10, 17.",
+              "Products: (−4)(−17) = 68, (−2)(−8) = 16, 0 × (−2) = 0, 2 × 10 = 20, 4 × 17 = 68. Sum = 172.",
+              "Squared x deviations: 16 + 4 + 0 + 4 + 16 = 40.",
+              "Slope b₁ = 172 / 40 = 4.3. Intercept b₀ = 52 − 4.3 × 10 = 9.",
+              "Line: price = 9 + 4.3 × area. Predictions: 34.8, 43.4, 52.0, 60.6, 69.2. Residuals: 0.2, 0.6, −2.0, 1.4, −0.2."
+            ],
+            "result": "Each extra 100 sq ft adds about ₹4.3 lakh. The couple’s 1,100 sq ft flat (area 11) should cost about 9 + 4.3 × 11 = ₹56.3 lakh, so the ₹62 lakh asking price is roughly ₹6 lakh above the line."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Area x",
+              "Price y",
+              "Predicted ŷ",
+              "Residual",
+              "Residual²"
+            ],
+            "rows": [
+              [
+                "6",
+                "35",
+                "34.8",
+                "0.2",
+                "0.04"
+              ],
+              [
+                "8",
+                "44",
+                "43.4",
+                "0.6",
+                "0.36"
+              ],
+              [
+                "10",
+                "50",
+                "52.0",
+                "−2.0",
+                "4.00"
+              ],
+              [
+                "12",
+                "62",
+                "60.6",
+                "1.4",
+                "1.96"
+              ],
+              [
+                "14",
+                "69",
+                "69.2",
+                "−0.2",
+                "0.04"
+              ],
+              [
+                "Total",
+                "",
+                "",
+                "0.0",
+                "6.40"
+              ]
+            ],
+            "caption": "The residuals of a least-squares line always add up to zero, and the sum of squared residuals (6.40) is the smallest any straight line can achieve on these five points."
+          }
+        },
+        {
+          "example": {
+            "title": "How good is the line? R² and RMSE",
+            "setup": "Using the same five flats, judge the fit.",
+            "steps": [
+              "Sum of squared residuals (from the table) = 6.40.",
+              "Errors of the lazy \"always guess ₹52 lakh\" model: 17² + 8² + 2² + 10² + 17² = 289 + 64 + 4 + 100 + 289 = 746.",
+              "R² = 1 − 6.40 / 746 = 1 − 0.0086 ≈ 0.991.",
+              "RMSE = √(6.40 / 5) = √1.28 ≈ 1.13, i.e. about ₹1.1 lakh."
+            ],
+            "result": "The line removes about 99% of the variation, and predictions are typically within about ₹1.1 lakh on these flats. Real data is messier, and this is measured on the training flats, which flatters the model."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: fixed and variable cost of a factory",
+            "setup": "A component plant in Hosur records monthly output (thousand units) and total monthly cost (₹ lakh): (1, 22), (2, 27), (3, 35), (4, 38), (5, 43). Management wants to split cost into fixed and variable parts.",
+            "steps": [
+              "x̄ = 3, ȳ = 33. Deviations of x: −2, −1, 0, 1, 2. Deviations of y: −11, −6, 2, 5, 10.",
+              "Sum of products = 22 + 6 + 0 + 5 + 20 = 53. Sum of squared x deviations = 4 + 1 + 0 + 1 + 4 = 10.",
+              "Slope = 53 / 10 = 5.3 (₹ lakh per thousand units), i.e. about ₹530 per extra unit.",
+              "Intercept = 33 − 5.3 × 3 = 17.1 (₹ lakh), the estimated cost of running the plant even at zero output.",
+              "R² ≈ 0.98. Forecast for 6,000 units: 17.1 + 5.3 × 6 = ₹48.9 lakh."
+            ],
+            "result": "Here, unlike the flat example, the intercept has a real meaning: about ₹17 lakh per month of fixed cost (rent, salaries, standing charges). The slope is the variable cost per unit, which feeds directly into pricing and break-even calculations."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Assumptions and how to check them",
+      "blocks": [
+        {
+          "p": "The line can always be computed. Whether you should trust it depends on four assumptions, often remembered as **LINE**. You check them mostly by looking at the residuals."
+        },
+        {
+          "bullets": [
+            "**L – Linear:** the true relationship is roughly a straight line. Check: the scatter plot, and a residual plot with no curve in it.",
+            "**I – Independent:** one data point’s error tells you nothing about the next. Monthly sales that drift together over time break this.",
+            "**N – Normal errors:** residuals roughly follow a bell curve. This matters mainly for confidence intervals and p-values, much less for prediction.",
+            "**E – Equal spread:** residuals are about as spread out for small flats as for big ones. A funnel shape (bigger errors for bigger flats) breaks this."
+          ]
+        },
+        {
+          "term": "Residual plot",
+          "def": "A chart of residuals (vertical) against predicted values or the feature (horizontal). A good model leaves a shapeless band around zero; any pattern means the model is missing something."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "speed (km/h)",
+            "yLabel": "residual (litres per 100 km)",
+            "line": {
+              "m": 0,
+              "b": 0
+            },
+            "caption": "Residuals from forcing a straight line through fuel-use data. They go positive, negative, then positive again: a clear U-shape. The data curves, so a straight line is the wrong model. Polynomial regression (a later chapter) fixes this.",
+            "points": [
+              [
+                40,
+                1.04
+              ],
+              [
+                60,
+                -0.54
+              ],
+              [
+                80,
+                -1.02
+              ],
+              [
+                100,
+                -0.5
+              ],
+              [
+                120,
+                1.02
+              ]
+            ]
+          }
+        },
+        {
+          "callout": "For pure prediction, focus on test-set RMSE and the residual plot. For confidence intervals on the slope, all four assumptions matter.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "A property portal’s price guide (illustrative)",
+            "story": "A property portal wants to show \"Is this listing fairly priced?\" next to each flat. Analysts start with linear regression of price on area, separately for each locality, because it is fast, transparent and easy to explain to sellers. In a locality like Velachery the slope might come out around ₹4–5 lakh per 100 sq ft. Listings far above the line are flagged \"priced high\"; those far below are checked for errors or fraud. Over time the team adds more features (age, floor, metro distance), which is multiple regression, and compares fancier models against this baseline. The simple line stays on the page because sellers trust what they can understand."
+          }
+        },
+        {
+          "bullets": [
+            "**Finance:** estimating a stock’s beta by regressing its returns on the market’s returns. The slope is the beta.",
+            "**Manufacturing:** cost splitting into fixed and variable parts, as in the Hosur example.",
+            "**Automotive:** relating vehicle weight to fuel consumption or battery range during early design."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "example": {
+            "title": "One bad data point drags the line",
+            "setup": "Add a sixth \"sale\" to the five flats: 900 sq ft at ₹90 lakh (perhaps a typing error for ₹40 lakh). Refit.",
+            "steps": [
+              "Without the outlier: slope 4.3, intercept 9.",
+              "With the outlier: slope ≈ 3.44, intercept ≈ 24.5.",
+              "One point out of six cut the price-per-100-sq-ft estimate by a fifth and shifted every prediction."
+            ],
+            "result": "Because errors are squared, a single far-away point has an outsized pull. Always plot the data and investigate extreme points before trusting the line."
+          }
+        },
+        {
+          "bullets": [
+            "**Extrapolation:** a line fitted on 600–1,400 sq ft flats says nothing reliable about a 5,000 sq ft villa.",
+            "**Correlation is not causation:** a slope says the two move together in this data, not that changing one will change the other.",
+            "**Curved relationships:** fuel versus speed, sales versus discount. Use polynomial terms or tree-based models.",
+            "**One feature is rarely enough:** price also depends on locality, age and floor. Leaving them out can bias the slope. Use multiple regression."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Linear regression shines when…",
+              "items": [
+                "The target is a number",
+                "The scatter looks roughly straight",
+                "You need to explain the effect in one sentence",
+                "You want a fast, transparent baseline",
+                "Data is small or medium sized"
+              ]
+            },
+            "right": {
+              "title": "Reach for something else when…",
+              "items": [
+                "The pattern curves → **polynomial regression** or trees",
+                "Many correlated features → **ridge / lasso**",
+                "Target is yes/no → **logistic regression**",
+                "Target is a count → **Poisson regression**",
+                "Heavy outliers → **robust (Huber) regression**"
+              ]
+            },
+            "caption": "Linear regression is the starting point of the whole regression family. Each later chapter in this group fixes one of its limits."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is linear regression really machine learning? It feels like school statistics.",
+      "a": "Both. It learns its numbers from data and predicts new cases, which is what machine learning means. It is also the baseline every fancier model must beat."
+    },
+    {
+      "q": "What is a good R²?",
+      "a": "It depends on the field. Physical processes can give 0.95 or more; human behaviour (sales, prices) often gives 0.3 to 0.8 and is still useful. Judge a model by its error in business units (RMSE in rupees) on unseen data, and by whether it beats the simple alternatives."
+    },
+    {
+      "q": "The intercept is negative. Did something go wrong?",
+      "a": "Usually not. The intercept is the prediction at x = 0, which is often far outside your data (a 0 sq ft flat). It simply positions the line. Only interpret it when x = 0 is meaningful, as with zero output in the factory example."
+    },
+    {
+      "q": "How many data points do I need?",
+      "a": "Two points define a line but tell you nothing about its reliability. Aim for at least 20 to 30 for one feature, and hold some back for testing."
+    },
+    {
+      "q": "Should I use the formula or gradient descent?",
+      "a": "Libraries such as scikit-learn’s `LinearRegression` use exact linear algebra, which is perfect for typical business datasets. Gradient descent is used for enormous datasets or when the same idea is extended into neural networks."
+    },
+    {
+      "q": "Can linear regression handle categories like \"near metro: yes / no\"?",
+      "a": "Yes. Code them as 0/1 columns (called dummy variables) and use multiple regression. The coefficient then reads as the price difference between the two groups, holding everything else fixed."
+    }
+  ]
+}

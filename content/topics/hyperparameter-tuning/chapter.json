@@ -1,0 +1,360 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A new car leaves the factory with sensible default settings, but a rally team does not race it that way. They adjust tyre pressure, suspension stiffness and gear ratios for each track, test a lap, and adjust again. Machine learning models also come with dials that are set before training starts: how deep a tree may grow, how many neighbours to consult, how fast to learn. **Hyperparameter tuning** is the disciplined way of setting those dials without fooling yourself about how well the model will really perform.",
+  "sections": [
+    {
+      "heading": "The problem: dials the model cannot set for itself",
+      "blocks": [
+        {
+          "p": "When a model trains, it learns some numbers from the data: the slope of a regression line, the split points of a decision tree, the weights of a neural network. But other choices must be made **before** training begins, and the data cannot make them directly. How deep should the tree be allowed to grow? How strongly should large coefficients be penalised? How many trees should a forest contain?"
+        },
+        {
+          "term": "Parameter",
+          "def": "A number the model learns from the training data, such as a regression coefficient or a tree's split threshold. You do not set it by hand."
+        },
+        {
+          "term": "Hyperparameter",
+          "def": "A setting chosen before training that controls how the model learns: maximum tree depth, number of neighbours k, learning rate, regularisation strength. In scikit-learn these are the arguments you pass when creating the model, such as `max_depth=4`."
+        },
+        {
+          "p": "Defaults are a reasonable starting point but rarely the best choice for your data. A tree that is too shallow underfits; one that is too deep overfits. The right depth depends on how much data you have and how noisy it is. Tuning finds settings that work well for **your** problem, and it often brings a cheap, meaningful improvement."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "depth 1",
+              "depth 2",
+              "depth 4",
+              "depth 6",
+              "depth 8",
+              "no limit"
+            ],
+            "values": [
+              0.762,
+              0.86,
+              0.86,
+              0.86,
+              0.833,
+              0.833
+            ],
+            "highlight": 1,
+            "yLabel": "5-fold CV accuracy",
+            "caption": "Cross-validated accuracy of a decision tree on a 600-point noisy two-class dataset (scikit-learn's make_moons, noise 0.35). One hyperparameter, max_depth, moves accuracy from 0.76 to 0.86 and back down to 0.83. Depths 2, 4 and 6 tie; the simplest, depth 2, is highlighted."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: tuning a guitar",
+      "blocks": [
+        {
+          "p": "Think of tuning a guitar by ear. You cannot calculate the perfect peg position in advance. Instead you follow a loop."
+        },
+        {
+          "steps": [
+            "**Turn a peg a little.** This is choosing a hyperparameter value.",
+            "**Pluck the string and listen.** This is training the model and measuring how good it sounds on data it has not learned from.",
+            "**Compare with the reference note.** This is your validation score.",
+            "**Adjust and repeat,** keeping the position that sounds best.",
+            "**Then play a real song for an audience.** This is the final test set: you do not keep retuning in the middle of the concert."
+          ],
+          "title": "Tune, listen, repeat"
+        },
+        {
+          "p": "Two details of the analogy matter. First, you must **listen with a fresh ear**: judge each setting on data the model did not learn from, or every setting will sound perfect. Second, you **do not tune during the concert**: if you adjust settings after looking at the test score, the test score stops being honest."
+        },
+        {
+          "think": {
+            "q": "Why can't we pick max_depth by choosing the value with the best training accuracy?",
+            "a": "Training accuracy keeps rising as depth increases, reaching 100% with an unlimited tree, because a deep tree can memorise every row. It would always pick the most complex model. Hyperparameters must be judged on held-out data, usually with cross-validation."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How tuning works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Lock away** the test set",
+              "**Define a search space** of hyperparameter values",
+              "**For each candidate**, score it with k-fold CV on training data",
+              "**Pick** the candidate with the best mean CV score",
+              "**Refit** on all training data and **test once**"
+            ],
+            "caption": "The standard tuning loop. In scikit-learn, GridSearchCV and RandomizedSearchCV run the middle three steps and refit the winner automatically."
+          }
+        },
+        {
+          "steps": [
+            "**Choose the metric** that reflects the business goal (F1, recall at a given precision, MAE). Tuning optimises whatever you tell it to.",
+            "**Choose the hyperparameters that matter** for this model and a sensible range for each. For a random forest: `max_depth`, `min_samples_leaf`, `max_features`, `n_estimators`.",
+            "**Choose a search strategy**: grid, random or Bayesian (below).",
+            "**Run the search with cross-validation.** Every candidate is trained k times and its k validation scores averaged.",
+            "**Inspect the results**, not just the winner. If the best value sits at the edge of your range, widen the range and search again.",
+            "**Refit and test once.** Retrain the best configuration on all the training data and score it on the untouched test set."
+          ],
+          "title": "The procedure"
+        },
+        {
+          "term": "Search space",
+          "def": "The list or range of values you allow each hyperparameter to take, for example max_depth in {3, 5, 10, None} and learning rate between 0.01 and 0.3."
+        }
+      ]
+    },
+    {
+      "heading": "Under the hood: grid, random and Bayesian search",
+      "blocks": [
+        {
+          "p": "**Grid search** tries every combination of the values you list. It is thorough and easy to explain, but the number of combinations multiplies quickly."
+        },
+        {
+          "tex": "N_{\\text{fits}} = k \\times \\prod_{j=1}^{m} v_j",
+          "plain": "The number of model trainings equals the number of folds times the product of how many values you try for each hyperparameter.",
+          "symbols": [
+            [
+              "k",
+              "number of cross-validation folds"
+            ],
+            [
+              "m",
+              "number of hyperparameters being tuned"
+            ],
+            [
+              "v_j",
+              "number of values tried for hyperparameter j"
+            ],
+            [
+              "\\prod",
+              "multiply all the terms together"
+            ]
+          ]
+        },
+        {
+          "p": "Why multiply? Because a grid tries every value of the first hyperparameter with every value of the second, and so on. Three values of one and four of another is 12 combinations, not 7. Each extra hyperparameter multiplies the cost again."
+        },
+        {
+          "term": "Random search",
+          "def": "Instead of every combination, try a fixed number of combinations drawn at random from the search space. You control the budget directly."
+        },
+        {
+          "p": "Random search sounds careless, but it is usually better for the same budget. In most problems only one or two hyperparameters really matter. A grid wastes many trials repeating the same few values of the important ones while varying unimportant ones. Random search tries a new value of every hyperparameter on every trial. There is also a neat probability argument."
+        },
+        {
+          "tex": "P(\\text{at least one trial in the top } 5\\%) = 1 - 0.95^{\\,n}",
+          "plain": "Each random trial has a 5% chance of landing in the best 5% of the search space. The chance that all n trials miss is 0.95 multiplied by itself n times; one minus that is the chance at least one hits.",
+          "symbols": [
+            [
+              "n",
+              "number of random trials"
+            ]
+          ]
+        },
+        {
+          "p": "With n = 60, that probability is about 95%. So 60 random trials are very likely to find a configuration in the top 5% of the space, however many hyperparameters there are."
+        },
+        {
+          "term": "Bayesian optimisation",
+          "def": "A search that learns from earlier trials. It builds a rough model of \"which settings tend to score well\" and chooses the next trial where improvement looks most likely. Libraries such as Optuna and Hyperopt do this."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Grid search",
+              "items": [
+                "Tries every listed combination",
+                "Easy to explain and reproduce",
+                "Cost multiplies with each hyperparameter",
+                "Good for 1–2 hyperparameters with few values"
+              ]
+            },
+            "right": {
+              "title": "Random and Bayesian search",
+              "items": [
+                "Tries a fixed budget of combinations",
+                "Explores more distinct values of what matters",
+                "Bayesian versions learn where to look next",
+                "Standard for boosting models and neural networks"
+              ]
+            },
+            "caption": "Start with random search for most problems; switch to Bayesian optimisation when each training run is expensive."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Counting the cost of a grid",
+            "setup": "A random forest grid: n_estimators in {100, 300, 500}, max_depth in {5, 10, 20, None}, min_samples_leaf in {1, 3, 5}. 5-fold CV. Each fit takes about 20 seconds.",
+            "steps": [
+              "Combinations = 3 × 4 × 3 = 36.",
+              "Fits = 36 × 5 folds = 180.",
+              "Time = 180 × 20 s = 3,600 s = 1 hour (plus one final refit).",
+              "Adding max_features with 5 values: 36 × 5 = 180 combinations, 900 fits, about 5 hours.",
+              "A random search with 60 trials costs 60 × 5 = 300 fits, about 1 hour 40 minutes, and covers all four hyperparameters."
+            ],
+            "result": "Grids explode multiplicatively. Beyond two or three hyperparameters, a random search with a fixed budget is the practical choice."
+          }
+        },
+        {
+          "example": {
+            "title": "Tuning tree depth with real numbers",
+            "setup": "A decision tree on 600 noisy points (make_moons, noise 0.35), scored with 5-fold stratified CV. Training accuracy is on all 600 points.",
+            "steps": [
+              "Depth 1: training 0.785, CV 0.762. Both low: underfitting.",
+              "Depth 2: training 0.883, CV 0.860.",
+              "Depth 4: training 0.887, CV 0.860. Depth 6: training 0.918, CV 0.860.",
+              "Depth 8: training 0.950, CV 0.833. No limit: training 1.000, CV 0.833. The gap widens: overfitting.",
+              "Depths 2, 4 and 6 tie on CV. Prefer the simplest, depth 2: easier to explain and less likely to overfit new data."
+            ],
+            "result": "Training accuracy rose steadily to 100% while CV accuracy peaked and fell. Tuning with CV found the sweet spot that training accuracy would have missed."
+          }
+        },
+        {
+          "example": {
+            "title": "Tuning a churn model for a telecom operator (business case, illustrative)",
+            "setup": "A gradient-boosting churn model with 80,000 customers. The team holds out 20% as a test set and runs a 50-trial random search over learning rate, number of trees, tree depth and minimum leaf size, scored by 5-fold CV F1.",
+            "steps": [
+              "Default settings: CV F1 = 0.58.",
+              "50 trials × 5 folds = 250 fits, about 40 minutes on a laptop.",
+              "Best trial: learning rate 0.05, 400 trees, depth 4, minimum leaf size 50. CV F1 = 0.64.",
+              "Refit on all training data and score once on the test set: F1 = 0.63.",
+              "At the operator's retention economics, the extra six points of F1 mean several hundred more correctly targeted at-risk customers per monthly campaign."
+            ],
+            "result": "Tuning was worth 5–6 F1 points for under an hour of computer time, and the test score (0.63) close to the CV score (0.64) shows the search did not fool itself."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Which hyperparameters matter?",
+      "blocks": [
+        {
+          "p": "You do not need to tune everything. Each model family has a few dials that do most of the work."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Model",
+              "Tune first",
+              "Usually fine at default"
+            ],
+            "rows": [
+              [
+                "Ridge / Lasso / logistic",
+                "Regularisation strength (alpha or C)",
+                "Solver, tolerance"
+              ],
+              [
+                "k-NN",
+                "k, distance weighting",
+                "Algorithm, leaf size"
+              ],
+              [
+                "Decision tree",
+                "max_depth, min_samples_leaf",
+                "Split criterion"
+              ],
+              [
+                "Random forest",
+                "max_features, min_samples_leaf",
+                "n_estimators (more is safe, just slower)"
+              ],
+              [
+                "Gradient boosting",
+                "learning rate with number of trees, depth",
+                "Subsample rate (tune later)"
+              ],
+              [
+                "SVM (RBF kernel)",
+                "C and gamma together",
+                "Cache size"
+              ]
+            ],
+            "caption": "A starting map of where tuning effort pays off. Search wide first on a log scale for strengths and rates (0.001, 0.01, 0.1, 1, 10), then narrow."
+          }
+        },
+        {
+          "bullets": [
+            "**Use log scales** for anything that spans orders of magnitude, like regularisation strength or learning rate.",
+            "**Tune related dials together:** a smaller learning rate needs more trees.",
+            "**Use early stopping** for boosting and neural networks instead of tuning the number of rounds by grid.",
+            "**Check the edges:** if the best value is the largest you tried, the true optimum may be beyond your range."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Demand forecasting with a fixed overnight budget (illustrative)",
+            "story": "A consumer-goods company retrains its LightGBM demand model every week across 1,200 product–region series. A full grid search would take days. The team runs an Optuna search with a budget of 100 trials overnight, scored on a rolling-origin backtest of the last 12 weeks rather than shuffled folds, because the data is a time series. Most weeks the best settings barely change, so the search is warm-started from last week's best trials. The weekly report records the chosen settings and the backtest WAPE, so any sudden jump in error can be traced to data or to tuning."
+          }
+        },
+        {
+          "bullets": [
+            "**Kaggle competitions** routinely use Bayesian optimisation over boosting hyperparameters.",
+            "**AutoML tools** (Azure AutoML, AutoGluon, H2O) automate model choice and tuning together.",
+            "**Deep learning** teams tune learning rate first; it usually matters more than any other setting."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Tuning on the test set.** The most common and most damaging mistake. Tune with CV on the training data; test once.",
+            "**Overfitting the validation process.** Try a thousand configurations and the best CV score will be optimistic, partly through luck. Use nested CV or a final test set to get an honest number.",
+            "**Preprocessing outside the CV loop.** Scaling or feature selection on all the data before GridSearchCV leaks information. Put them in a Pipeline and tune the pipeline.",
+            "**Huge grids over dials that barely matter.** Spend the budget on the important hyperparameters.",
+            "**Chasing tiny differences.** A gain of 0.002 in CV score is usually noise. Prefer the simpler configuration when scores are within one standard deviation.",
+            "**Forgetting the seed.** Fix `random_state` so results can be reproduced and compared."
+          ]
+        },
+        {
+          "callout": "Tuning rarely rescues a weak model. Better features and cleaner data usually beat clever hyperparameter search. Tune after the features are sensible, not instead of building them.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is the number of trees in a random forest a hyperparameter?",
+      "a": "Yes. More trees rarely hurts accuracy; it mainly costs time. Choose a number where the CV score has stopped improving, often a few hundred."
+    },
+    {
+      "q": "Grid search or random search?",
+      "a": "Grid search for one or two hyperparameters with a handful of values each. Random search (or Bayesian) for anything larger."
+    },
+    {
+      "q": "What does GridSearchCV do after the search?",
+      "a": "With the default `refit=True` it retrains the best configuration on all the data you passed in. `best_params_`, `best_score_` and `best_estimator_` give the winner, its mean CV score and the refitted model."
+    },
+    {
+      "q": "Why is my test score lower than the best CV score?",
+      "a": "Usually a little optimism from picking the best of many candidates, plus ordinary noise. A small drop is normal; a large drop suggests leakage or a test set that differs from training data."
+    },
+    {
+      "q": "How many random-search trials are enough?",
+      "a": "Often 30–100. By the probability argument, 60 trials give about a 95% chance of landing in the top 5% of the search space."
+    },
+    {
+      "q": "Can I tune preprocessing choices too?",
+      "a": "Yes. Put the steps in a Pipeline and name them in the search space, for example `pca__n_components` or the imputer strategy. That is one of the best reasons to use pipelines."
+    }
+  ]
+}

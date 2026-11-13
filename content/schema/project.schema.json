@@ -1,0 +1,129 @@
+{
+  "$ref": "#/definitions/Project",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Project": {
+      "additionalProperties": false,
+      "description": "Hands-on project (content/projects/<id>.json).",
+      "properties": {
+        "business": {
+          "type": "string"
+        },
+        "dataset": {
+          "additionalProperties": false,
+          "properties": {
+            "how": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "how"
+          ],
+          "type": "object"
+        },
+        "deliverables": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "extensions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "hours": {
+          "type": "number"
+        },
+        "id": {
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "type": "number"
+        },
+        "rubric": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "criterion": {
+                "type": "string"
+              },
+              "good": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "criterion",
+              "good"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "steps": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "title",
+              "detail"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "topics": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "track": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "track",
+        "level",
+        "hours",
+        "summary",
+        "business",
+        "topics",
+        "dataset",
+        "steps",
+        "deliverables",
+        "rubric",
+        "extensions"
+      ],
+      "type": "object"
+    }
+  }
+}

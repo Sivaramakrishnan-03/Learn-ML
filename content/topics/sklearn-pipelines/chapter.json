@@ -1,0 +1,340 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "A data scientist builds a loan-approval model in a notebook. It fills in missing incomes, scales the numbers, encodes the city, and scores well. Six months later the IT team deploys it and the predictions are strange: someone re-implemented the preprocessing slightly differently, and a new city crashed the encoder. Meanwhile an auditor finds that the impressive validation score was inflated because the scaler had seen the validation rows. **scikit-learn Pipelines** solve all three problems by bolting preprocessing and model together into one object.",
+  "sections": [
+    {
+      "heading": "The problem: loose steps that leak and drift",
+      "blocks": [
+        {
+          "p": "Real data is messy. Before a model can learn, you usually fill in missing values, put numeric columns on a common scale, and turn text categories such as city names into numbers. Each of these steps **learns something from the data**: the median income, the average and spread of each column, the list of cities."
+        },
+        {
+          "term": "Preprocessing",
+          "def": "Everything done to the raw data before the model sees it: filling gaps, scaling, encoding categories, creating features."
+        },
+        {
+          "term": "Transformer",
+          "def": "In scikit-learn, an object that learns something from data with `.fit()` and then changes data with `.transform()`. A scaler learns each column's mean and standard deviation; an imputer learns the value used to fill gaps."
+        },
+        {
+          "p": "If these steps are run by hand, three things go wrong. First, it is easy to fit them on **all** the data before splitting, which leaks information from validation rows into training. Second, the same steps must be repeated exactly on new data in production, and hand-copied code drifts. Third, every cross-validation fold should refit the preprocessing on its own training part, which is tedious to do by hand and so is often skipped."
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Loose steps by hand",
+              "items": [
+                "Scaler fitted on all rows, then CV run",
+                "Preprocessing copied into production code",
+                "New categories crash the encoder",
+                "Several objects to save and keep in sync"
+              ]
+            },
+            "right": {
+              "title": "One Pipeline object",
+              "items": [
+                "Every step refitted inside each CV fold",
+                "The same fitted object used in production",
+                "Encoder set to ignore unseen categories",
+                "One file saved, loaded and versioned"
+              ]
+            },
+            "caption": "The same preprocessing, organised two ways. The right-hand column removes a whole class of bugs without changing the model at all."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the assembly line",
+      "blocks": [
+        {
+          "p": "Picture a car assembly line. Every car body passes through the same stations in the same order: welding, painting, engine fitting, inspection. Each station is set up once (calibrated) and then processes every car identically. No car skips the paint shop; no station is re-calibrated halfway through a shift using cars from tomorrow's batch."
+        },
+        {
+          "steps": [
+            "**Design the line once:** list the stations in order. In scikit-learn: imputer, then scaler, then model.",
+            "**Calibrate the stations on training cars only:** `.fit()` on training data sets up every station in turn.",
+            "**Run new cars down the same line:** `.predict()` on new data passes it through the calibrated stations, untouched by the new data itself.",
+            "**Ship the whole line, not individual machines:** save one object and production gets identical processing."
+          ],
+          "title": "The line, station by station"
+        },
+        {
+          "term": "Pipeline",
+          "def": "A scikit-learn object that chains several transformers and a final model into a single estimator. Calling `.fit()` fits each step in order; calling `.predict()` applies the fitted steps and then the model."
+        },
+        {
+          "think": {
+            "q": "Inside 5-fold cross-validation, how many times is a pipeline's scaler fitted, and on what data?",
+            "a": "Five times, once per fold, each time on that fold's training part only. The validation fold is transformed with a scaler that has never seen it, exactly as real new data would be."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How a pipeline works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Raw table: **income, age, city**",
+              "**Impute** missing values (median)",
+              "**Scale** numbers / **one-hot encode** city",
+              "**Model**: logistic regression",
+              "**Prediction**: approve or decline"
+            ],
+            "caption": "A typical tabular pipeline. During `.fit()`, each step learns from the training data and passes transformed data to the next; during `.predict()`, the same learned settings are applied to new rows."
+          }
+        },
+        {
+          "steps": [
+            "**List the steps.** `make_pipeline(SimpleImputer(strategy=\"median\"), StandardScaler(), LogisticRegression())`.",
+            "**Fit.** `pipe.fit(X_train, y_train)` calls `fit_transform` on the imputer, passes the result to the scaler's `fit_transform`, then calls `fit` on the model.",
+            "**Predict.** `pipe.predict(X_new)` calls only `transform` on the imputer and scaler (no re-learning), then `predict` on the model.",
+            "**Evaluate correctly.** `cross_val_score(pipe, X, y, cv=5)` clones the whole pipeline for each fold, so every step is refitted per fold.",
+            "**Save.** `joblib.dump(pipe, \"loan_model.joblib\")` stores every fitted step in one file."
+          ],
+          "title": "The procedure in code terms"
+        },
+        {
+          "p": "Most real tables mix numeric and categorical columns, which need different treatment. That is the job of the **ColumnTransformer**."
+        },
+        {
+          "term": "ColumnTransformer",
+          "def": "A scikit-learn tool that sends different columns to different preprocessing steps (for example, numbers to imputer + scaler, text categories to a one-hot encoder) and joins the results side by side."
+        },
+        {
+          "term": "One-hot encoding",
+          "def": "Turning a category column into several 0/1 columns, one per category. A row from Pune gets 1 in the \"Pune\" column and 0 elsewhere."
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "Pipeline",
+              "children": [
+                {
+                  "label": "ColumnTransformer",
+                  "edge": "step 1",
+                  "children": [
+                    {
+                      "label": "income, age → impute median → scale",
+                      "edge": "numeric"
+                    },
+                    {
+                      "label": "city → one-hot (ignore unknown)",
+                      "edge": "categorical"
+                    }
+                  ]
+                },
+                {
+                  "label": "LogisticRegression",
+                  "edge": "step 2"
+                }
+              ]
+            },
+            "caption": "The structure of a typical pipeline. The ColumnTransformer routes each column group to its own mini-pipeline, joins the outputs, and hands them to the model."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Under the hood: fit, transform and why leakage happens",
+      "blocks": [
+        {
+          "p": "Take standard scaling, the most common transformer. It learns two numbers per column from the training data and then applies a fixed formula."
+        },
+        {
+          "tex": "z = \\frac{x - \\mu_{\\text{train}}}{\\sigma_{\\text{train}}}",
+          "plain": "Subtract the training mean and divide by the training standard deviation. The same μ and σ, learned once from training rows, are used for every later row, including validation, test and production data.",
+          "symbols": [
+            [
+              "x",
+              "the original value"
+            ],
+            [
+              "\\mu_{\\text{train}}",
+              "mean of the column in the training data"
+            ],
+            [
+              "\\sigma_{\\text{train}}",
+              "standard deviation in the training data (scikit-learn divides by n)"
+            ],
+            [
+              "z",
+              "the scaled value"
+            ]
+          ]
+        },
+        {
+          "p": "Why must μ and σ come from training data only? Because in real use, a new loan application arrives alone. Nobody can compute statistics that include it in advance. If validation rows helped set μ and σ, the model was evaluated in a situation that can never occur in production, and the score is slightly too good. With feature selection, the effect can be enormous, as an example below shows."
+        },
+        {
+          "p": "The pipeline enforces the rule mechanically. `fit` is only ever called on training data; `transform` is used on everything else. You cannot forget, because you never call the steps yourself."
+        },
+        {
+          "callout": "Rule of thumb: any step that computes something from the data (a mean, a median, a vocabulary, a list of selected features, PCA directions) belongs inside the pipeline. Steps that do not learn (parsing dates, fixing typos) can happen before.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Tracing a tiny loan pipeline by hand",
+            "setup": "Training data: incomes (₹ thousand per month) 10, 20, missing, 15; cities Pune, Chennai, Pune, Delhi. Numeric pipeline: median imputer then standard scaler. Categorical: one-hot encoder with `handle_unknown=\"ignore\"`.",
+            "steps": [
+              "Imputer learns the median of the known incomes 10, 20, 15, which is 15. The missing income becomes 15: column = 10, 20, 15, 15.",
+              "Scaler learns mean = (10 + 20 + 15 + 15) / 4 = 15 and standard deviation = √((25 + 25 + 0 + 0) / 4) = √12.5 ≈ 3.536.",
+              "Scaled incomes: (10 − 15) / 3.536 ≈ −1.414, then +1.414, 0, 0.",
+              "Encoder learns the cities, in alphabetical order: Chennai, Delhi, Pune. Pune → (0, 0, 1), Chennai → (1, 0, 0), Delhi → (0, 1, 0).",
+              "New applicant: income 18, city Mumbai. Scaled income = (18 − 15) / 3.536 ≈ 0.849. Mumbai was never seen, so it becomes (0, 0, 0) instead of crashing."
+            ],
+            "result": "The new row reaches the model as (0.849, 0, 0, 0), using only settings learned from training data. These are exactly the numbers scikit-learn produces."
+          }
+        },
+        {
+          "example": {
+            "title": "Leakage in numbers",
+            "setup": "Same four training rows, plus two validation rows with incomes 60 and 80. Suppose the imputer and scaler are wrongly fitted on all six rows.",
+            "steps": [
+              "Wrong median of the known incomes 10, 20, 15, 60, 80 = 20, so the missing training income is filled with 20 instead of 15.",
+              "Wrong mean of 10, 20, 15, 15, 60, 80 = 200 / 6 ≈ 33.3 instead of 15.",
+              "Every training row is now shifted using information from the validation rows, which in real life would not exist yet.",
+              "Inside a pipeline, each fold's imputer and scaler are fitted only on that fold's training rows, so this cannot happen."
+            ],
+            "result": "With scaling the damage is usually small; the principle is what matters. With supervised steps, the next example shows it can be dramatic."
+          }
+        },
+        {
+          "example": {
+            "title": "Feature selection on pure noise",
+            "setup": "A simulation: 50 rows, 5,000 columns of random numbers, and a random yes/no label (25 of each). There is nothing to learn; honest accuracy should be about 50%. Pick the 20 columns most related to the label, then run 5-fold CV of logistic regression. Repeat 20 times with different random data.",
+            "steps": [
+              "Wrong way: select the 20 columns using all 50 rows, then cross-validate. Average CV accuracy = 95.5%.",
+              "Right way: put `SelectKBest(k=20)` inside a pipeline, so selection is redone on each fold's training rows only. Average CV accuracy = 51%.",
+              "The wrong way chose columns that happen, by chance, to match the labels of the validation rows too."
+            ],
+            "result": "A pipeline turned a fake 95.5% into an honest 51%. This classic trap appears in textbooks such as The Elements of Statistical Learning as \"the wrong way to do cross-validation\"."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Pipelines with tuning and deployment",
+      "blocks": [
+        {
+          "p": "Pipelines combine naturally with hyperparameter search. Each step has a name, and you refer to its settings with a double underscore: `logisticregression__C` or `columntransformer__pipeline__simpleimputer__strategy`. The search then tunes preprocessing and model together, refitting everything correctly in every fold."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Call",
+              "Training data",
+              "New / validation data"
+            ],
+            "rows": [
+              [
+                "fit",
+                "Each step learns its settings",
+                "Never used"
+              ],
+              [
+                "transform",
+                "Applied after fitting",
+                "Applied with training settings"
+              ],
+              [
+                "predict",
+                "Possible, but scores are optimistic",
+                "The real use"
+              ],
+              [
+                "fit_transform",
+                "Learn then apply in one go",
+                "Never used"
+              ]
+            ],
+            "caption": "Which calls touch which data. A pipeline makes sure \"fit\" only ever sees training rows."
+          }
+        },
+        {
+          "bullets": [
+            "**Save and load:** `joblib.dump(pipe, path)` and `joblib.load(path)`. Load with the same scikit-learn version you saved with.",
+            "**Unknown categories:** set `OneHotEncoder(handle_unknown=\"ignore\")` so new cities or product codes do not crash production.",
+            "**Inspect features:** `pipe[:-1].get_feature_names_out()` lists the columns the model actually receives.",
+            "**Custom steps:** wrap your own pandas function in `FunctionTransformer`, or write a small class with `fit` and `transform`, so it travels with the pipeline."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "One artefact from notebook to production (illustrative)",
+            "story": "A motor insurer's pricing team used to hand over a notebook and a document describing the preprocessing to the engineering team, which rewrote it in Java. Small differences, such as rounding of vehicle age and handling of blank postcodes, made production prices drift from the validated ones. The team moved to a single scikit-learn Pipeline containing a ColumnTransformer, a gradient-boosting model and a custom transformer for vehicle-age bands. The fitted pipeline is saved, versioned in a model registry and served behind an API. Validation, monitoring and production now run the identical object, and the drift disappeared."
+          }
+        },
+        {
+          "bullets": [
+            "**MLOps platforms** (Azure ML, MLflow, SageMaker) log and serve fitted pipelines as single models.",
+            "**Text classification:** a TfidfVectorizer plus a linear model in one pipeline keeps the vocabulary fitted on training text only.",
+            "**AutoML tools** output their best result as a pipeline, preprocessing included."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Preprocessing before the pipeline.** Scaling the whole DataFrame and then building a pipeline with only the model defeats the purpose.",
+            "**Row-changing steps.** Standard pipelines cannot drop rows or change the target. Remove duplicates and outliers before splitting, or use the `imbalanced-learn` Pipeline for resampling such as SMOTE so it is applied to training folds only.",
+            "**Target leakage is still possible.** A pipeline cannot help if a feature itself contains the answer (for example \"days in collections\" in a default model). Think about what is known at prediction time.",
+            "**Version mismatches.** A pipeline saved with one scikit-learn version may not load in another. Pin versions in production.",
+            "**Debugging is harder.** Inspect intermediate outputs with `pipe[:2].transform(X)` or `set_output(transform=\"pandas\")` to see named columns."
+          ]
+        },
+        {
+          "callout": "If your preprocessing is in pandas and your model in scikit-learn, move the learned parts into transformers. The small effort pays back every time you cross-validate, tune or deploy.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between Pipeline and make_pipeline?",
+      "a": "`Pipeline([(\"scale\", StandardScaler()), (\"model\", LogisticRegression())])` lets you name the steps. `make_pipeline(...)` names them automatically after the class, in lower case, for example `standardscaler`."
+    },
+    {
+      "q": "Does a pipeline make my model more accurate?",
+      "a": "Not directly. It makes the evaluation honest and the deployment consistent. Sometimes the honest score is lower, which is the point."
+    },
+    {
+      "q": "Can I use pandas DataFrames with pipelines?",
+      "a": "Yes. ColumnTransformer accepts column names, and `set_output(transform=\"pandas\")` makes steps return DataFrames with readable column names."
+    },
+    {
+      "q": "Where does scaling go for tree models?",
+      "a": "Trees do not need scaling, so you can leave it out. Imputation and encoding still belong in the pipeline."
+    },
+    {
+      "q": "How do I tune a step inside a pipeline?",
+      "a": "Use the step name, two underscores and the parameter name in the search space, for example `{\"logisticregression__C\": [0.1, 1, 10]}`, and pass the pipeline to GridSearchCV."
+    },
+    {
+      "q": "What happens to a category seen in production but not in training?",
+      "a": "With `handle_unknown=\"ignore\"`, all its one-hot columns are 0. Without it, `transform` raises an error. Monitor how often unknown categories appear; frequent ones mean it is time to retrain."
+    }
+  ]
+}

@@ -1,0 +1,489 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 18,
+  "hook": "A loan officer at a bank in Chennai explains her decisions like this: \"If income is below ₹13.5 lakh, I look hard at the credit score. Above 750, I approve; otherwise I decline. If income is higher, I only decline when the score is really poor.\" That is a **decision tree**: a short chain of yes/no questions leading to a decision. The machine-learning version builds the same kind of flowchart automatically, by finding the questions that best separate good loans from bad ones in thousands of past applications.",
+  "sections": [
+    {
+      "heading": "The problem: rules people can read",
+      "blocks": [
+        {
+          "p": "Banks, insurers and hospitals often face a dilemma. Accurate models can be hard to explain, yet regulators, customers and managers want to know **why** a decision was made. \"The model said no\" is not an acceptable answer to a rejected loan applicant."
+        },
+        {
+          "p": "A decision tree resolves this by producing rules that look exactly like the ones a human expert would write. You can print it on one page, walk a customer through it and check it against common sense. And because it learns those rules from data, it can find thresholds no human would have guessed."
+        },
+        {
+          "term": "Decision tree",
+          "def": "A model that makes predictions by asking a sequence of yes/no questions about the features, like a flowchart. Each answer sends you down a branch until you reach a final answer."
+        },
+        {
+          "term": "Node, branch and leaf",
+          "def": "A node is a point in the tree where a question is asked. Branches are the yes/no paths out of it. A leaf is an end point with no more questions; it holds the prediction. The top node is called the root."
+        },
+        {
+          "p": "Our running example throughout the app: predicting whether a loan applicant will **repay** or **default** from two features, annual income and credit score. We have 40 past applicants: 20 repaid and 20 defaulted."
+        },
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "Income ≤ ₹13.5 lakh?",
+              "children": [
+                {
+                  "label": "Credit score ≥ 750?",
+                  "edge": "yes (4 repaid / 16 defaulted)",
+                  "children": [
+                    {
+                      "label": "Approve (3 repaid / 1 defaulted)",
+                      "edge": "yes"
+                    },
+                    {
+                      "label": "Decline (1 repaid / 15 defaulted)",
+                      "edge": "no"
+                    }
+                  ]
+                },
+                {
+                  "label": "Credit score < 650?",
+                  "edge": "no (16 repaid / 4 defaulted)",
+                  "children": [
+                    {
+                      "label": "Decline (1 repaid / 3 defaulted)",
+                      "edge": "yes"
+                    },
+                    {
+                      "label": "Approve (15 repaid / 1 defaulted)",
+                      "edge": "no"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "The finished tree for our 40 loan applicants. Every leaf is far purer than the 20/20 starting mix. Notice the tree asks a different credit-score question on each side: it learned that lower-income applicants need a higher score."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: 20 Questions",
+      "blocks": [
+        {
+          "p": "You have probably played 20 Questions. Someone thinks of an animal and you may ask only yes/no questions. Good players never open with \"Is it a hedgehog?\". They ask \"Does it live in water?\", because whatever the answer, it cuts the possibilities roughly in half."
+        },
+        {
+          "steps": [
+            "**Look at everything that is still possible.** At the start, every animal.",
+            "**Find the question that splits the possibilities most usefully.** One that leaves each side as uniform as possible.",
+            "**Ask it and follow the answer.** You now face a smaller, more focused set.",
+            "**Repeat inside that smaller set** with a new best question.",
+            "**Stop** when you are confident or have run out of questions."
+          ],
+          "title": "How a good player thinks"
+        },
+        {
+          "p": "A decision tree plays this game against the data. At each node it looks at the cases that reached it and searches for the question that best separates the classes. \"Best\" means the groups on each side become as **pure** as possible: ideally all repaid on one side and all defaulted on the other."
+        },
+        {
+          "term": "Purity",
+          "def": "How uniform a group is. A node with 10 repaid and 0 defaulted is perfectly pure. A node with 5 of each is as mixed (impure) as it can be."
+        },
+        {
+          "think": {
+            "q": "Which first question is more useful: one that splits 40 applicants into 20 and 20 with a 10/10 mix on each side, or one that splits them into 30 and 10 where the 10 are all defaulters?",
+            "a": "The second. The first question produced two groups exactly as mixed as before, so it taught us nothing. The second created one perfectly pure group. Splitting evenly is not the goal; creating pure groups is."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How a tree is grown, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Start with **all cases** at the root",
+              "Try **every feature** and **every threshold**",
+              "Keep the split with the **biggest impurity drop**",
+              "Repeat **inside each child** node",
+              "**Stop** at max depth, small nodes or pure leaves"
+            ],
+            "caption": "Tree growing is greedy: at each node it takes the best split available right now and never revisits earlier choices."
+          }
+        },
+        {
+          "p": "**Step 1: Candidate questions.** For a numeric feature such as income, sort the values and try a threshold halfway between each pair of neighbouring values. For six applicants with six different incomes there are five candidate thresholds per feature."
+        },
+        {
+          "p": "**Step 2: Score each candidate.** Split the cases by the question and measure how impure each side is. Combine the two sides into one weighted score, weighting each side by how many cases it holds."
+        },
+        {
+          "p": "**Step 3: Keep the winner.** The question with the lowest weighted impurity (equivalently, the biggest drop from the parent) becomes this node's question."
+        },
+        {
+          "p": "**Step 4: Recurse.** Apply the same procedure separately to the cases in each child. The left branch might pick a completely different feature from the right branch."
+        },
+        {
+          "p": "**Step 5: Stop.** Growth stops when a node is pure, when it has too few cases to split, or when the tree reaches a depth limit you set."
+        },
+        {
+          "term": "Greedy algorithm",
+          "def": "A method that makes the best-looking choice at each step without planning ahead. Fast and usually good, but not guaranteed to find the best possible tree overall."
+        },
+        {
+          "p": "To **predict**, drop a new applicant down the tree, answering each question, until you reach a leaf. The leaf's majority class is the prediction, and its class mix gives a probability: a leaf with 15 repaid and 1 defaulted says \"repay, about 94%\"."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "We need a number for \"how mixed is this node\". The default in scikit-learn is Gini impurity."
+        },
+        {
+          "term": "Gini impurity",
+          "def": "The chance that two cases picked at random (with replacement) from a node have different labels. 0 for a pure node; 0.5 for a 50/50 mix of two classes."
+        },
+        {
+          "tex": "G = 1 - \\sum_{c} p_c^{\\,2}",
+          "plain": "Square the share of each class, add those squares, and subtract from 1. If one class has everything, its share is 1, the square is 1, and G = 0.",
+          "symbols": [
+            [
+              "G",
+              "Gini impurity of the node"
+            ],
+            [
+              "p_c",
+              "share of cases in the node that belong to class c"
+            ]
+          ]
+        },
+        {
+          "p": "Why squares? p² is the chance of drawing two cases of class c in a row. Adding over classes gives the chance two random draws match; 1 minus that is the chance they differ, which is exactly \"mixedness\"."
+        },
+        {
+          "tex": "G_{\\text{split}} = \\frac{n_L}{n} G_L + \\frac{n_R}{n} G_R",
+          "plain": "The quality of a split is the average of the two children's impurities, weighted by how many cases went each way. A tiny pure child cannot make up for a huge messy one.",
+          "symbols": [
+            [
+              "n_L, n_R",
+              "number of cases in the left and right child"
+            ],
+            [
+              "n",
+              "number of cases in the parent"
+            ],
+            [
+              "G_L, G_R",
+              "Gini impurity of each child"
+            ]
+          ]
+        },
+        {
+          "p": "An alternative measure, **entropy**, comes from information theory. It behaves very similarly: 0 for pure nodes and largest for an even mix (1 bit for two classes). The drop in entropy is called **information gain**."
+        },
+        {
+          "tex": "H = -\\sum_{c} p_c \\log_2 p_c",
+          "plain": "Entropy: for each class, multiply its share by the logarithm of its share, add up and flip the sign. It measures how many yes/no questions you would need, on average, to pin down the label.",
+          "symbols": [
+            [
+              "H",
+              "entropy of the node, in bits"
+            ],
+            [
+              "\\log_2",
+              "logarithm base 2"
+            ]
+          ]
+        },
+        {
+          "callout": "Gini and entropy pick the same split in the vast majority of cases. Gini is slightly faster to compute, which is why it is the default. Do not spend time agonising over the choice.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Choosing the root question for the loan tree",
+            "setup": "40 applicants: 20 repaid, 20 defaulted. Candidate A: \"income ≤ ₹13.5 lakh?\" sends 4 repaid + 16 defaulted left and 16 repaid + 4 defaulted right. Candidate B: \"credit score < 650?\" sends 3 repaid + 12 defaulted left (15 people) and 17 repaid + 8 defaulted right (25 people).",
+            "steps": [
+              "Root Gini = 1 − (0.5² + 0.5²) = 1 − 0.5 = 0.50.",
+              "Candidate A, left: shares 4/20 = 0.2 and 16/20 = 0.8 → Gini = 1 − (0.04 + 0.64) = 0.32. Right is the mirror image → 0.32.",
+              "Candidate A weighted: (20/40) × 0.32 + (20/40) × 0.32 = 0.32. Drop from root = 0.18.",
+              "Candidate B, left: 3/15 = 0.2 and 12/15 = 0.8 → Gini = 0.32. Right: 17/25 = 0.68 and 8/25 = 0.32 → Gini = 1 − (0.4624 + 0.1024) = 0.4352.",
+              "Candidate B weighted: (15/40) × 0.32 + (25/40) × 0.4352 = 0.12 + 0.272 = 0.392. Drop = 0.108."
+            ],
+            "result": "Income wins (0.32 beats 0.392), so \"income ≤ ₹13.5 lakh?\" becomes the root question. Credit score is not discarded; it will be tried again inside each branch."
+          }
+        },
+        {
+          "example": {
+            "title": "Finding the best income threshold",
+            "setup": "Six applicants with incomes (₹ lakh) 8, 10, 12, 15, 18, 22 and outcomes default, default, default, repaid, repaid, default. Which threshold should the tree use?",
+            "steps": [
+              "Parent: 2 repaid, 4 defaulted → Gini = 1 − ((1/3)² + (2/3)²) ≈ 0.444.",
+              "Candidate thresholds are midpoints: 9, 11, 13.5, 16.5 and 20.",
+              "≤ 9: left {D} Gini 0; right 2R/3D Gini 0.48 → weighted (1×0 + 5×0.48)/6 = 0.400.",
+              "≤ 11: left {D, D} Gini 0; right 2R/2D Gini 0.5 → weighted 0.333.",
+              "≤ 13.5: left {D, D, D} Gini 0; right 2R/1D Gini ≈ 0.444 → weighted 0.222.",
+              "≤ 16.5: left 1R/3D Gini 0.375; right 1R/1D Gini 0.5 → weighted 0.417. ≤ 20: left 2R/3D Gini 0.48; right {D} 0 → weighted 0.400."
+            ],
+            "result": "Threshold 13.5 gives the lowest weighted Gini (0.222), so the tree asks \"income ≤ ₹13.5 lakh?\". Notice the high-income defaulter at ₹22 lakh: a deeper tree would add a question just to isolate this one person. That is overfitting in action."
+          }
+        },
+        {
+          "example": {
+            "title": "Second level and a prediction",
+            "setup": "Inside the high-income branch (16 repaid, 4 defaulted), the tree tests \"credit score < 650?\": 1 repaid + 3 defaulted go left, 15 repaid + 1 defaulted go right. Then a new applicant earns ₹11 lakh with a credit score of 780.",
+            "steps": [
+              "Branch Gini before splitting: 1 − (0.8² + 0.2²) = 0.32.",
+              "Left child: 1 − (0.25² + 0.75²) = 0.375. Right child: 1 − ((15/16)² + (1/16)²) ≈ 0.117.",
+              "Weighted: (4/20) × 0.375 + (16/20) × 0.117 ≈ 0.075 + 0.094 = 0.169. Drop ≈ 0.151, a strong split.",
+              "Entropy check on the root split: root entropy = 1 bit; each child (0.2/0.8) has entropy ≈ 0.722 bits; information gain ≈ 0.278 bits. Entropy agrees with Gini that income is a strong first question.",
+              "New applicant: income ₹11 lakh ≤ 13.5 → yes, go left. Credit score 780 ≥ 750 → yes. Leaf: 3 repaid / 1 defaulted."
+            ],
+            "result": "Predict \"repay\" with an estimated probability of 3/4 = 75%, and the explanation writes itself: \"income below ₹13.5 lakh, but credit score above 750\"."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "annual income (₹ lakh)",
+            "yLabel": "credit score",
+            "caption": "Applicants plotted by income and credit score: blue repaid, red defaulted. The tree cuts this space with vertical and horizontal lines only (income = 13.5, then score = 750 on the left and 650 on the right), producing rectangular \"staircase\" regions.",
+            "points": [
+              [
+                8,
+                780,
+                0
+              ],
+              [
+                11,
+                790,
+                0
+              ],
+              [
+                12,
+                760,
+                0
+              ],
+              [
+                9,
+                700,
+                1
+              ],
+              [
+                7,
+                640,
+                1
+              ],
+              [
+                10,
+                680,
+                1
+              ],
+              [
+                12,
+                720,
+                1
+              ],
+              [
+                6,
+                600,
+                1
+              ],
+              [
+                16,
+                700,
+                0
+              ],
+              [
+                20,
+                760,
+                0
+              ],
+              [
+                18,
+                680,
+                0
+              ],
+              [
+                25,
+                720,
+                0
+              ],
+              [
+                15,
+                810,
+                0
+              ],
+              [
+                17,
+                620,
+                1
+              ],
+              [
+                22,
+                600,
+                1
+              ],
+              [
+                19,
+                630,
+                1
+              ],
+              [
+                14,
+                660,
+                0
+              ],
+              [
+                23,
+                790,
+                0
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Controlling overfitting: depth, leaves and pruning",
+      "blocks": [
+        {
+          "p": "Left alone, a tree keeps splitting until every leaf is pure. On real data that means building leaves for single unusual applicants, like our ₹22 lakh defaulter. The tree then memorises the training data and performs worse on new applicants."
+        },
+        {
+          "term": "Overfitting",
+          "def": "When a model learns the noise and quirks of its training data instead of the general pattern, so it scores brilliantly on training data and poorly on new data."
+        },
+        {
+          "bullets": [
+            "**`max_depth`:** limit how many questions can be asked in a row. Depth 3–6 is common for readable trees.",
+            "**`min_samples_leaf`:** every leaf must hold at least this many cases (say 20), so no rule is built on one person.",
+            "**`min_samples_split`:** do not split a node smaller than this.",
+            "**Cost-complexity pruning (`ccp_alpha`):** grow a big tree, then cut back branches whose accuracy gain does not justify the extra complexity.",
+            "**Choose these settings by cross-validation**, not by training accuracy."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "depth 1",
+              "depth 2",
+              "depth 3",
+              "depth 4",
+              "depth 6",
+              "depth 10",
+              "no limit"
+            ],
+            "values": [
+              70,
+              78,
+              82,
+              83,
+              80,
+              75,
+              72
+            ],
+            "highlight": 3,
+            "yLabel": "test accuracy %",
+            "caption": "A typical pattern (illustrative): test accuracy improves with depth up to about 3–4 questions, then falls as the tree starts memorising noise. Training accuracy, not shown, would keep rising towards 100%."
+          }
+        },
+        {
+          "p": "Trees are also **unstable**: change a handful of training rows and the root question may change, reshaping the whole tree. This weakness is exactly what random forests and gradient boosting fix, by combining many trees."
+        }
+      ]
+    },
+    {
+      "heading": "Decision trees in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Explainable credit pre-screening (illustrative)",
+            "story": "A consumer-lending company wants a fast pre-screen for personal-loan applications that its credit committee can review line by line. A tree limited to depth 4 and at least 200 applicants per leaf is trained on three years of outcomes, using income, credit score, existing EMIs as a share of income, employment type and years at current employer. The result is 11 leaves, each a readable rule. The committee spots one rule that relies on a postcode-like feature and removes it on fairness grounds before retraining. The final tree approves clear cases instantly and sends borderline leaves, those with default rates between 8% and 20%, to human underwriters."
+          }
+        },
+        {
+          "bullets": [
+            "**Medical triage:** checklists such as \"chest pain → age over 60 → abnormal ECG → urgent\" mirror tree logic and are easy for staff to follow.",
+            "**Manufacturing root cause:** a tree trained on line settings can show that defects concentrate where temperature > 210 °C and line speed > 1.2 m/s.",
+            "**Customer service scripts:** routing rules derived from a tree trained on resolved tickets.",
+            "**Building blocks:** random forests, XGBoost and LightGBM, the most accurate models for tabular business data, are all made of decision trees."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Overfitting** if depth and leaf size are not limited.",
+            "**Instability:** small data changes can produce a very different tree, so do not over-interpret a single tree's structure.",
+            "**Staircase boundaries:** trees split on one feature at a time, so a simple diagonal rule such as \"approve when income + score is high\" needs many small steps.",
+            "**Biased feature importance:** impurity-based importance favours features with many distinct values, such as IDs. Use permutation importance instead.",
+            "**Greedy choices:** the best first question is not always part of the best overall tree."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "A single tree is right when…",
+              "items": [
+                "Rules must be read and audited",
+                "Features mix numbers and categories",
+                "You do not want to scale data",
+                "Interactions matter (income changes what score is needed)",
+                "You need a quick, transparent baseline"
+              ]
+            },
+            "right": {
+              "title": "Move to something else when…",
+              "items": [
+                "You need top accuracy → **random forest** or **gradient boosting**",
+                "Boundaries are smooth or diagonal → **logistic regression** or **SVM**",
+                "Data is tiny and noisy → simpler linear models",
+                "Stability across retrains matters → ensembles"
+              ]
+            },
+            "caption": "One tree is the most explainable model you have; many trees are among the most accurate."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to scale features for a decision tree?",
+      "a": "No. Trees only compare a feature with a threshold, so its units do not matter. Income in rupees and credit score in points can be used as they are."
+    },
+    {
+      "q": "Gini or entropy?",
+      "a": "They nearly always choose the same splits. Use the default (Gini) unless you have a specific reason to change it."
+    },
+    {
+      "q": "How deep should my tree be?",
+      "a": "Choose by cross-validation. For readable trees, depth 3 to 5 with a sensible minimum leaf size is common. Deeper trees are usually only worth it inside an ensemble."
+    },
+    {
+      "q": "Can trees predict numbers as well as classes?",
+      "a": "Yes. A regression tree predicts the average value in each leaf and chooses splits that reduce the squared error rather than Gini impurity."
+    },
+    {
+      "q": "Why did my tree change completely when I added a little data?",
+      "a": "Trees are unstable: a small shift can change the root question, and everything below changes with it. Random forests average many trees precisely to fix this."
+    },
+    {
+      "q": "How does a tree handle categorical features like employment type?",
+      "a": "Conceptually it asks questions such as \"employment type is salaried?\". In scikit-learn you usually one-hot encode categories first; some libraries like LightGBM handle categories natively."
+    }
+  ]
+}

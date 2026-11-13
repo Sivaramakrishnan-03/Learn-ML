@@ -1,0 +1,457 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 19,
+  "hook": "Every October, a sweets company in Chennai sees orders jump before Diwali, and every January they slump, while the business also grows steadily. A planner who forecasts next October by averaging the last twelve months will order far too little stock. Before you can forecast any series, you must take it apart and see what it is made of: a slow **trend**, a repeating **seasonal** rhythm and leftover **noise**. That is what this chapter teaches.",
+  "sections": [
+    {
+      "heading": "The problem: numbers that arrive in order",
+      "blocks": [
+        {
+          "p": "Most datasets in statistics are a pile of separate observations: 500 customers, 2,000 loans. You could shuffle the rows and nothing would change. Sales by month and electricity demand by hour are different. **Order is the whole point.** This month depends on last month, and October looks like last October."
+        },
+        {
+          "term": "Time series",
+          "def": "A sequence of measurements of the same thing taken at regular, ordered time steps: daily footfall, monthly revenue, hourly temperature. The position in time is part of the information."
+        },
+        {
+          "term": "Forecast",
+          "def": "An estimate of a future value of a time series, made using only information available today. A forecast for next March is made without knowing what March will bring."
+        },
+        {
+          "p": "Why should a business person care? Because almost every planning decision is a forecast in disguise: how much stock to order, how many staff to roster, how many cars to build next quarter. A guess that ignores the structure of the past will be wrong in a predictable, expensive way."
+        },
+        {
+          "p": "In the made-up monthly sales series below, your eye sees two things at once: the line drifts upwards, and it wiggles in a regular yearly wave. Those are the two most important **components** of a time series."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "100+2*x+20*Math.sin(2*Math.PI*x/12)",
+            "xMin": 0,
+            "xMax": 48,
+            "xLabel": "month",
+            "yLabel": "sales (units)",
+            "caption": "Four years of monthly sales. Notice two patterns layered together: a steady climb of about 2 units a month (the trend) and a wave that repeats every 12 months (the seasonality). Real data adds random noise on top."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the sea, the tide and the waves",
+      "blocks": [
+        {
+          "p": "Imagine standing on a pier and watching the water level against a marker post. Three different things are moving the water at once, on three different timescales."
+        },
+        {
+          "steps": [
+            "**The sea level itself rises slowly over decades.** You cannot see it in a day, but over years the average level creeps up. This is the **trend**: the long-run direction.",
+            "**The tide goes in and out on a fixed schedule.** You can set your watch by it, and it repeats twice a day, every day. This is **seasonality**: a pattern with a fixed, known period.",
+            "**Waves splash up and down unpredictably.** Each one is different, and knowing the last wave tells you little about the next. This is **noise**: what is left when the predictable parts are removed."
+          ],
+          "title": "Three movements in one water level"
+        },
+        {
+          "p": "The measured water level is a messy line. Separate the three movements and each is simple: a slow ramp, a regular wave, random splashes. The first two are easy to forecast; the third is impossible, which tells you how accurate you can ever hope to be."
+        },
+        {
+          "term": "Trend",
+          "def": "The long-term direction of a series: rising, falling or flat. It changes slowly, over many periods."
+        },
+        {
+          "term": "Seasonality",
+          "def": "A pattern that repeats at a fixed, known interval: every 7 days, every 12 months, every 24 hours. Weekend peaks, festival peaks and summer air-conditioner demand are all seasonal."
+        },
+        {
+          "term": "Noise (residual)",
+          "def": "The irregular part left over after trend and seasonality are removed. If the decomposition is good, the residual looks random, with no pattern left to exploit."
+        },
+        {
+          "callout": "Seasonality is not the same as a **cycle**. A season has a fixed calendar length (Diwali comes every year). A business cycle (boom and recession) rises and falls with irregular length, so the calendar cannot predict it. Textbooks usually fold cycles into the trend.",
+          "tone": "key"
+        },
+        {
+          "think": {
+            "q": "A cinema chain sees ticket sales spike every Friday to Sunday, and also whenever a big-star film releases. Which part is seasonality?",
+            "a": "The Friday-to-Sunday spike is seasonality: it repeats every 7 days, on schedule. Big releases are not on a fixed calendar, so they are not seasonal. They are events that should be modelled separately, for example with a \"release week\" flag."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How decomposition works, step by step",
+      "blocks": [
+        {
+          "p": "Taking a series apart into its components is called **decomposition**. The classical method, still taught everywhere and available in Python as `seasonal_decompose`, needs only averages and subtraction."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Plot** the series and spot the season length",
+              "**Smooth** it with a moving average to get the trend",
+              "**Remove** the trend (subtract or divide)",
+              "**Average** what is left, season by season",
+              "**Residual** = what remains after trend and season"
+            ],
+            "caption": "Classical decomposition in five moves. Each step peels off one component so the next one becomes visible."
+          }
+        },
+        {
+          "term": "Moving average",
+          "def": "The average of a window of neighbouring values, slid along the series one step at a time. Averaging over exactly one full season cancels the seasonal ups and downs, leaving the trend."
+        },
+        {
+          "steps": [
+            "**Plot first** and find the season length: 12 for monthly data, 7 for daily data with weekday effects, 4 for quarterly.",
+            "**Estimate the trend** with a moving average covering exactly one season. A 12-month window contains every month once, so the Diwali high and January low cancel out.",
+            "**Remove the trend** by subtracting it (additive model) or dividing by it (multiplicative model).",
+            "**Average the detrended values** for each season position: all Januaries together, all Februaries together. Noise tends to cancel.",
+            "**Residual** = what is left. It should look like random scatter."
+          ],
+          "title": "The procedure"
+        },
+        {
+          "p": "There is one important choice in step 3: does the seasonal swing stay the **same size** as the business grows, or does it **grow with** the business? The picture below shows both."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "50+2*x+15*Math.sin(2*Math.PI*x/12)",
+            "fn2": "(50+2*x)*(1+0.3*Math.sin(2*Math.PI*x/12))",
+            "xMin": 0,
+            "xMax": 48,
+            "xLabel": "month",
+            "yLabel": "sales",
+            "legend": [
+              "additive: swing stays ±15",
+              "multiplicative: swing is ±30% of trend"
+            ],
+            "caption": "Same trend, two kinds of seasonality. In the additive series the waves keep a constant height. In the multiplicative series the waves get taller as sales grow, because the season is a percentage of the level. Most growing businesses look multiplicative."
+          }
+        },
+        {
+          "term": "Additive vs multiplicative",
+          "def": "Additive: the seasonal effect is a fixed amount (December adds 200 units every year). Multiplicative: the seasonal effect is a percentage (December is 30% above the trend, whatever the trend is)."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "The two decomposition models are just the pier story written as an equation."
+        },
+        {
+          "tex": "y_t = T_t + S_t + R_t",
+          "plain": "Additive model: the value at time t is the trend plus the seasonal effect plus noise.",
+          "symbols": [
+            [
+              "y_t",
+              "the observed value at time t"
+            ],
+            [
+              "T_t",
+              "trend at time t"
+            ],
+            [
+              "S_t",
+              "seasonal effect for the season t falls in"
+            ],
+            [
+              "R_t",
+              "residual (noise) at time t"
+            ]
+          ]
+        },
+        {
+          "tex": "y_t = T_t \\times S_t \\times R_t",
+          "plain": "Multiplicative model: the seasonal effect and noise scale the trend up or down by a factor. A seasonal factor of 1.3 means \"30% above trend\"."
+        },
+        {
+          "p": "A useful trick: taking logarithms turns multiplication into addition, so log(y) = log(T) + log(S) + log(R). That is why analysts often take the log of a growing series and then use additive tools."
+        },
+        {
+          "p": "For monthly data, the trend is usually estimated with a \"2×12\" centred moving average. A 12-month window has no middle month, so we average two neighbouring 12-month windows, which centres the result exactly on month t."
+        },
+        {
+          "tex": "T_t = \\tfrac{1}{24}y_{t-6} + \\tfrac{1}{12}\\left(y_{t-5} + \\dots + y_{t+5}\\right) + \\tfrac{1}{24}y_{t+6}",
+          "plain": "The trend at month t is a weighted average of the 13 months centred on t. The two end months get half weight because together they represent the same calendar month."
+        },
+        {
+          "p": "Notice that this uses six months **into the future** of t. Fine for describing history, but there is no trend value for the last six months, and such values must never be used as forecasting features."
+        },
+        {
+          "term": "Lag",
+          "def": "A shifted copy of the series. Lag 1 of this month's sales is last month's sales; lag 12 is the same month last year."
+        },
+        {
+          "term": "Autocorrelation (ACF)",
+          "def": "The correlation between a series and its own lagged copy. High autocorrelation at lag 12 means \"this month looks like the same month last year\". The autocorrelation function (ACF) lists it for lag 1, 2, 3 and so on."
+        },
+        {
+          "tex": "r_k = \\frac{\\sum_{t=k+1}^{n} (y_t - \\bar y)(y_{t-k} - \\bar y)}{\\sum_{t=1}^{n} (y_t - \\bar y)^2}",
+          "plain": "Pair every value with the value k steps earlier. Multiply their deviations from the average and add up. Divide by the total variation so the answer lies between −1 and +1.",
+          "symbols": [
+            [
+              "r_k",
+              "autocorrelation at lag k"
+            ],
+            [
+              "\\bar y",
+              "mean of the whole series"
+            ],
+            [
+              "n",
+              "number of observations"
+            ]
+          ]
+        },
+        {
+          "p": "Why does this work? If values above average tend to be followed (k steps later) by values above average, the products are mostly positive and r is large. If highs are followed by lows, the products are negative."
+        },
+        {
+          "term": "Stationary",
+          "def": "A series whose average level, spread and autocorrelation pattern do not change over time. A trending series is not stationary (its average keeps moving). Many classical models, such as ARIMA, assume stationarity."
+        },
+        {
+          "term": "Differencing",
+          "def": "Replacing each value by its change from the previous period. It turns a steadily rising series into a roughly flat one, removing the trend."
+        },
+        {
+          "tex": "\\Delta y_t = y_t - y_{t-1} \\qquad \\Delta_{12} y_t = y_t - y_{t-12}",
+          "plain": "Ordinary differencing takes the change from last period and removes trend. Seasonal differencing takes the change from the same season last year and removes a stable seasonal pattern."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Decomposing three years of quarterly sales (₹ lakh)",
+            "setup": "A two-wheeler accessories dealer records quarterly sales. Year 1: 80, 120, 100, 100. Year 2: 90, 130, 110, 110. Year 3: 100, 140, 120, 120. Separate trend and seasonality with a simple additive approach, using yearly averages as a rough trend.",
+            "steps": [
+              "Yearly averages: Year 1 = 400 / 4 = 100. Year 2 = 440 / 4 = 110. Year 3 = 480 / 4 = 120. Trend: +10 lakh per year.",
+              "Subtract each year's average from its quarters. Year 1: −20, +20, 0, 0. Year 2: −20, +20, 0, 0. Year 3: −20, +20, 0, 0.",
+              "Seasonal effects: Q1 = −20, Q2 = +20, Q3 = 0, Q4 = 0. They add to zero, as additive seasonal effects should.",
+              "Residuals: every value equals average + seasonal effect exactly, so the residual is 0 (real data is never this tidy).",
+              "Forecast Year 4: trend continues to 130. Q1 = 130 − 20 = 110, Q2 = 130 + 20 = 150, Q3 = 130, Q4 = 130."
+            ],
+            "result": "The dealer should plan for about ₹150 lakh in Q2 of Year 4, not the ₹130 lakh a plain average would suggest. (A real analysis would use a moving-average trend, which also captures growth within each year.)"
+          }
+        },
+        {
+          "example": {
+            "title": "Multiplicative seasonality for an ice-cream brand",
+            "setup": "Trend sales are ₹50 lakh a month. Seasonal factors: April 1.4, December 0.7. Two years later the trend has doubled to ₹100 lakh.",
+            "steps": [
+              "April now: 50 × 1.4 = ₹70 lakh (₹20 lakh above trend).",
+              "December now: 50 × 0.7 = ₹35 lakh (₹15 lakh below trend).",
+              "April in two years: 100 × 1.4 = ₹140 lakh (₹40 lakh above trend).",
+              "An additive model fitted today would have predicted only 100 + 20 = ₹120 lakh for that April."
+            ],
+            "result": "When the seasonal swing grows with the business, the multiplicative model is right and the additive one under-forecasts the peak by ₹20 lakh."
+          }
+        },
+        {
+          "example": {
+            "title": "Computing autocorrelation by hand",
+            "setup": "A tiny series with a 4-step cycle: 2, 4, 6, 4, 2, 4, 6, 4. Mean = 32 / 8 = 4.",
+            "steps": [
+              "Deviations from the mean: −2, 0, +2, 0, −2, 0, +2, 0. Sum of squares (denominator) = 4 + 0 + 4 + 0 + 4 + 0 + 4 + 0 = 16.",
+              "Lag 2: pair each deviation with the one two steps earlier: (2×−2) + (0×0) + (−2×2) + (0×0) + (2×−2) + (0×0) = −12. r₂ = −12 / 16 = −0.75.",
+              "Lag 4: pairs (−2×−2) + (0×0) + (2×2) + (0×0) = 8. r₄ = 8 / 16 = +0.5.",
+              "Lag 1 and lag 3: every product contains a zero, so r₁ = r₃ = 0."
+            ],
+            "result": "Lag 2 is strongly negative (half a cycle away: peaks meet troughs) and lag 4 is positive (one full cycle: peaks meet peaks). r₄ is 0.5 rather than 1 only because just four pairs overlap in such a short series."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading ACF plots and checking stationarity",
+      "blocks": [
+        {
+          "p": "The ACF is usually drawn as a bar chart: one bar per lag. You read it like a fingerprint. Below is the ACF of five years of noisy monthly sales with a yearly pattern."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12"
+            ],
+            "values": [
+              0.76,
+              0.43,
+              0.05,
+              -0.36,
+              -0.66,
+              -0.76,
+              -0.66,
+              -0.41,
+              -0.08,
+              0.3,
+              0.58,
+              0.68
+            ],
+            "highlight": 11,
+            "yLabel": "autocorrelation",
+            "caption": "ACF of monthly sales with yearly seasonality. Values fall to strongly negative at lag 6 (half a year: summer peak versus winter trough) and climb back to +0.68 at lag 12 (same month last year). A wave like this is the signature of seasonality."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14"
+            ],
+            "values": [
+              0.48,
+              -0.26,
+              -0.68,
+              -0.66,
+              -0.22,
+              0.46,
+              0.82,
+              0.43,
+              -0.22,
+              -0.65,
+              -0.63,
+              -0.21,
+              0.44,
+              0.78
+            ],
+            "highlight": 6,
+            "yLabel": "autocorrelation",
+            "caption": "ACF of daily store footfall with a weekend peak. The spikes at lags 7 and 14 say \"today looks like the same weekday last week\". This is how you discover a weekly pattern you had not been told about."
+          }
+        },
+        {
+          "bullets": [
+            "**Slow, steady decay from a high value** (0.95, 0.92, 0.90 …): a trend is present. The series is not stationary; difference it.",
+            "**Regular spikes at multiples of a lag** (7, 14, 21 or 12, 24): seasonality with that period.",
+            "**All bars small after lag 0**: little left to predict. The series behaves like noise.",
+            "**Bars inside the shaded band** that plotting libraries draw (roughly ±2/√n) are not statistically different from zero."
+          ]
+        },
+        {
+          "p": "Formal stationarity checks exist: the **ADF test** starts from \"not stationary\" (a small p-value suggests stationary) and the **KPSS test** starts from \"stationary\". In practice, a plot plus the ACF tells you most of what you need."
+        },
+        {
+          "callout": "Run the ACF on the residuals after decomposition too. If clear spikes remain, your decomposition has missed something, such as a weekly pattern hiding inside monthly data or a festival that moves between months.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Components in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Electricity demand planning (illustrative)",
+            "story": "A state power distributor must buy electricity a day ahead. Hourly demand contains three seasonal patterns at once: a daily one (evening peak when lights and fans come on), a weekly one (lower on Sundays when offices close) and a yearly one (summer air-conditioning). On top sits a trend from new connections. The team decomposes the series with STL, a robust method that lets seasonality change slowly, and studies each layer. The yearly component shows peak summer demand growing faster than average demand, which changes how much peak capacity is contracted. The residuals reveal spikes on cricket-final days, which become an extra model input."
+          }
+        },
+        {
+          "bullets": [
+            "**Retail and FMCG:** separating festival peaks from underlying growth tells you whether a strong October was real growth or just Diwali falling earlier.",
+            "**Automotive:** monthly car registrations have year-end and financial-year-end effects; decomposition stops planners from mistaking a March push for a demand shift.",
+            "**Manufacturing:** removing the weekly shift pattern from sensor data makes slow machine drift (a trend) visible early."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Shuffling the rows.** Random splits leak the future into the past. Keep time order (see Forecast Validation).",
+            "**Ignoring the calendar.** Months have different numbers of days and weekends, and festivals such as Diwali, Eid and Holi move between months. Add holiday flags and working-day counts.",
+            "**Assuming the season never changes.** Classical decomposition forces every January to have the same effect. If shopping habits shift (say, online sales flatten the weekend peak), use STL, which lets seasonality evolve.",
+            "**Structural breaks.** A lockdown, a new competitor or a price change can permanently shift the level. Mark the break or model the periods separately."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Classical decomposition",
+              "items": [
+                "Moving-average trend, fixed seasonal pattern",
+                "Very easy to explain to managers",
+                "No trend estimate for the first and last half-season",
+                "Sensitive to outliers",
+                "Good for a first look"
+              ]
+            },
+            "right": {
+              "title": "Better options when…",
+              "items": [
+                "Seasonality drifts or outliers exist → **STL**",
+                "Several seasons (daily + weekly + yearly) → **MSTL** or **Prophet**",
+                "You want forecasts, not just description → **Holt-Winters / ETS**",
+                "You need stationarity for modelling → **differencing + ARIMA**"
+              ]
+            },
+            "caption": "Decomposition is a diagnostic tool. Once you know the components, pick the forecasting method that matches them."
+          }
+        },
+        {
+          "callout": "Decomposition describes the past; it does not forecast by itself. Its real value is telling you which forecasting model to choose and what accuracy is realistic given the size of the noise.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I know the season length?",
+      "a": "Usually from the business calendar: 7 for daily data with weekday effects, 12 for monthly data, 4 for quarterly, 24 for hourly. Confirm it with the ACF, where seasonality shows up as spikes at that lag and its multiples."
+    },
+    {
+      "q": "Additive or multiplicative: how do I choose?",
+      "a": "Plot the series. If the seasonal swings get bigger as the level rises, use multiplicative (or take logs and use additive). If they stay the same size, additive is fine."
+    },
+    {
+      "q": "Does every series have a trend and seasonality?",
+      "a": "No. Some series have neither and look like noise around a constant level. Decomposition will still produce components, so check that the seasonal effects are large compared with the residuals."
+    },
+    {
+      "q": "What does \"stationary\" mean in everyday words?",
+      "a": "The series behaves the same way throughout its history: it wobbles around a constant average with a constant spread. A growing sales series is not stationary; its month-to-month changes often are."
+    },
+    {
+      "q": "Is differencing the same as decomposition?",
+      "a": "No. Decomposition separates and keeps the components so you can study them. Differencing removes trend (and, with a seasonal difference, seasonality) to produce a stable series for models like ARIMA."
+    },
+    {
+      "q": "Which Python tools should I use?",
+      "a": "`statsmodels` offers `seasonal_decompose` (classical), `STL` (robust, evolving seasonality) and `plot_acf`. pandas handles dates, resampling and `.diff()` for differencing."
+    }
+  ]
+}

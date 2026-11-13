@@ -1,0 +1,420 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "Every Monday, a regional sales manager opens last week's order export in Excel, deletes the junk rows, adds a revenue column, builds a pivot table by city and pastes the result into an email. It takes two hours, and if a number looks wrong nobody can retrace exactly what was clicked. **pandas** does the same work in ten lines of Python that run again next Monday in two seconds, and every step is written down for anyone to check.",
+  "sections": [
+    {
+      "heading": "The problem: spreadsheets do not scale or remember",
+      "blocks": [
+        {
+          "p": "Spreadsheets are wonderful for looking at a few thousand rows. They struggle when files reach millions of rows, when the same cleaning must be repeated every week, or when an auditor asks, \"How exactly did you get this number?\" Clicks leave no trail."
+        },
+        {
+          "term": "pandas",
+          "def": "A free Python library for working with tables of data: loading files, filtering rows, adding columns, grouping, joining and reshaping. Its name comes from \"panel data\", an economics term for tables observed over time."
+        },
+        {
+          "term": "DataFrame",
+          "def": "pandas' name for a table: rows and named columns, where each column has one data type (numbers, text, dates). Think of one Excel sheet with tidy headers."
+        },
+        {
+          "term": "Series",
+          "def": "A single column of a DataFrame: a list of values plus a label for each row. Selecting `df[\"price\"]` gives you a Series."
+        },
+        {
+          "p": "pandas gives you the familiar spreadsheet ideas, filters, formulas, pivot tables and VLOOKUPs, as short commands. Because they are commands in a script, they can be rerun on next week's file, reviewed by a colleague, and scaled to tens of millions of rows on an ordinary laptop."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Excel habit",
+              "pandas command",
+              "What it does"
+            ],
+            "rows": [
+              [
+                "Open a file",
+                "`pd.read_csv(\"orders.csv\")`",
+                "Load the table"
+              ],
+              [
+                "Look at the top",
+                "`df.head()`",
+                "First 5 rows"
+              ],
+              [
+                "AutoFilter",
+                "`df[df[\"city\"] == \"Chennai\"]`",
+                "Keep matching rows"
+              ],
+              [
+                "New formula column",
+                "`df[\"revenue\"] = df.units * df.price`",
+                "Row-by-row calculation"
+              ],
+              [
+                "Pivot table",
+                "`df.groupby(\"city\")[\"revenue\"].sum()`",
+                "Summarise by group"
+              ],
+              [
+                "VLOOKUP",
+                "`df.merge(targets, on=\"city\")`",
+                "Bring in columns from another table"
+              ]
+            ],
+            "caption": "If you know Excel, you already know what pandas does. Only the way you ask changes, and every request is recorded."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: Excel with a memory",
+      "blocks": [
+        {
+          "p": "Imagine an assistant who does exactly what you ask in a spreadsheet, but writes every instruction in a notebook: \"Open the orders file. Remove rows where units is blank. Add revenue = units × price. Total revenue by city.\" Next week you hand them a new file and the same notebook. They repeat everything perfectly, in seconds."
+        },
+        {
+          "p": "That notebook is your pandas script. Three habits make the assistant reliable:"
+        },
+        {
+          "steps": [
+            "**Columns have one type.** A \"units\" column holds numbers only. If someone typed \"ten\" in one cell, pandas will treat the whole column as text until you fix it, which is a useful warning.",
+            "**Every row has a label.** pandas keeps an **index** (by default 0, 1, 2 ...) so it can line rows up correctly when tables are combined.",
+            "**Most operations return a new table.** Filtering does not delete rows from the original; it hands you a filtered copy. Your raw data stays safe."
+          ],
+          "title": "How the assistant thinks"
+        },
+        {
+          "term": "Index",
+          "def": "The row labels of a DataFrame. They can be plain numbers, dates or IDs. pandas uses them to match rows when combining tables or doing arithmetic between columns."
+        },
+        {
+          "think": {
+            "q": "Your colleague says, \"I filtered the DataFrame to Chennai, but the original still has all cities. Is pandas broken?\"",
+            "a": "No. Filtering returns a new DataFrame. To keep it, assign it: `chennai = df[df[\"city\"] == \"Chennai\"]`. The original is untouched by design, so you can never lose raw data by accident."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How a pandas analysis works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Load** a file into a DataFrame",
+              "**Inspect** with head, info, describe",
+              "**Clean and filter** rows and columns",
+              "**Create** new columns",
+              "**Group, join, reshape** and report"
+            ],
+            "caption": "The shape of almost every pandas analysis. Inspection comes before anything else."
+          }
+        },
+        {
+          "p": "**Step 1: Load.** `import pandas as pd` then `df = pd.read_csv(\"orders.csv\")`. There are matching functions for Excel (`read_excel`), databases (`read_sql`) and Parquet files."
+        },
+        {
+          "p": "**Step 2: Inspect.** Run three commands every time. `df.head()` shows the first rows. `df.info()` lists every column, its type and how many values are not missing. `df.describe()` gives count, mean, standard deviation, minimum, quartiles and maximum for numeric columns."
+        },
+        {
+          "p": "**Step 3: Clean and filter.** Select columns with `df[[\"city\", \"units\"]]`. Keep rows with a condition, `df[df[\"units\"] > 5]`. For conditions plus assignment, use `.loc`: `df.loc[df[\"units\"] < 0, \"units\"] = 0`."
+        },
+        {
+          "term": ".loc",
+          "def": "pandas' main tool for selecting by label: `df.loc[rows, columns]`. The rows part can be a True/False condition. Using it for assignment guarantees you change the original table."
+        },
+        {
+          "p": "**Step 4: Create columns.** Arithmetic on columns is vectorised, exactly like NumPy: `df[\"revenue\"] = df[\"units\"] * df[\"price\"]` computes every row at once."
+        },
+        {
+          "p": "**Step 5: Group, join, reshape.** `groupby` summarises by category, `merge` combines tables on a shared key, and `pivot_table` turns long lists into cross-tables. These three cover most reporting work."
+        }
+      ]
+    },
+    {
+      "heading": "Under the hood: columns, alignment and split-apply-combine",
+      "blocks": [
+        {
+          "p": "**Columns are NumPy arrays.** A DataFrame is essentially a set of NumPy arrays, one per column, sharing one index. That is why column arithmetic is fast and why each column must have one type. A column that mixes numbers and text falls back to the slow \"object\" type, which `df.info()` will reveal."
+        },
+        {
+          "p": "**Alignment by label.** When you add two Series, pandas matches rows by their index labels, not by position. If a label exists in only one of them, the result for that label is NaN (missing). This protects you from silently adding Chennai's numbers to Pune's, but surprises people who expect position-by-position maths."
+        },
+        {
+          "p": "**Split-apply-combine.** This is the idea behind `groupby`, and behind every pivot table you have ever made."
+        },
+        {
+          "term": "Split-apply-combine",
+          "def": "A three-step pattern: split the rows into groups by a key (such as city), apply a calculation to each group separately (sum, mean, count), then combine the results into one new table with one row per group."
+        },
+        {
+          "tex": "\\bar{x}_g = \\frac{1}{n_g} \\sum_{i \\,:\\, \\text{group}(i) = g} x_i",
+          "plain": "The mean for group g adds up the values of only those rows that belong to g, then divides by how many such rows there are. `groupby(\"city\")[\"revenue\"].mean()` computes this once per city.",
+          "symbols": [
+            [
+              "\\bar{x}_g",
+              "the mean of group g"
+            ],
+            [
+              "n_g",
+              "number of rows in group g"
+            ],
+            [
+              "x_i",
+              "the value in row i"
+            ]
+          ]
+        },
+        {
+          "p": "Internally, pandas does not physically cut your table into pieces. It computes a group number for each row, then runs one fast pass that accumulates sums and counts per group. That is why a groupby on ten million rows usually finishes in about a second."
+        },
+        {
+          "term": "Join (merge)",
+          "def": "Combining two tables by matching values in a shared column, called the key. A left join keeps every row of the left table and fills in matches from the right, like VLOOKUP."
+        },
+        {
+          "callout": "Before any join, check that the key is unique on the lookup side. If the targets table lists Chennai twice, every Chennai order is duplicated after the merge and your revenue doubles without warning. `merge(..., validate=\"many_to_one\")` makes pandas check this for you.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "order_id",
+              "city",
+              "product",
+              "units",
+              "price",
+              "revenue"
+            ],
+            "rows": [
+              [
+                "1",
+                "Chennai",
+                "Tea",
+                "10",
+                "50",
+                "500"
+              ],
+              [
+                "2",
+                "Pune",
+                "Coffee",
+                "4",
+                "120",
+                "480"
+              ],
+              [
+                "3",
+                "Chennai",
+                "Coffee",
+                "6",
+                "120",
+                "720"
+              ],
+              [
+                "4",
+                "Kochi",
+                "Tea",
+                "12",
+                "50",
+                "600"
+              ],
+              [
+                "5",
+                "Pune",
+                "Tea",
+                "8",
+                "50",
+                "400"
+              ],
+              [
+                "6",
+                "Chennai",
+                "Tea",
+                "5",
+                "50",
+                "250"
+              ]
+            ],
+            "caption": "Six orders from a beverage distributor (illustrative). The revenue column was created with one line, `df[\"revenue\"] = df.units * df.price`."
+          }
+        },
+        {
+          "example": {
+            "title": "Filter and create a column",
+            "setup": "Load the six orders above (without the revenue column). Add revenue and find Chennai orders.",
+            "steps": [
+              "`df[\"revenue\"] = df[\"units\"] * df[\"price\"]` computes 10 × 50 = 500, 4 × 120 = 480, 6 × 120 = 720, 12 × 50 = 600, 8 × 50 = 400 and 5 × 50 = 250.",
+              "`df[\"revenue\"].sum()` = 2,950 in total.",
+              "`df[df[\"city\"] == \"Chennai\"]` keeps orders 1, 3 and 6.",
+              "Their revenues are 500 + 720 + 250 = ₹1,470."
+            ],
+            "result": "Two lines replaced a formula column and an AutoFilter, and they will work identically on next week's file of 60,000 orders."
+          }
+        },
+        {
+          "example": {
+            "title": "Split-apply-combine by city",
+            "setup": "Find total revenue, average order value and number of orders per city.",
+            "steps": [
+              "Split by city: Chennai {500, 720, 250}, Kochi {600}, Pune {480, 400}.",
+              "Apply sum: 1,470, 600, 880. Apply mean: 1,470 / 3 = 490; 600 / 1 = 600; 880 / 2 = 440. Apply count: 3, 1, 2.",
+              "Combine: `df.groupby(\"city\")[\"revenue\"].agg([\"sum\", \"mean\", \"count\"])` returns one row per city, sorted alphabetically: Chennai, Kochi, Pune."
+            ],
+            "result": "Kochi has the highest average order (₹600) but only one order, so that average deserves little trust. Always show the count next to a mean."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Chennai",
+              "Kochi",
+              "Pune"
+            ],
+            "values": [
+              1470,
+              600,
+              880
+            ],
+            "highlight": 0,
+            "yLabel": "revenue (₹)",
+            "caption": "Total revenue by city from the groupby. Chennai leads, but the next example asks the more useful business question: how does each city compare with its target?"
+          }
+        },
+        {
+          "example": {
+            "title": "Joining targets: the VLOOKUP replacement",
+            "setup": "A second table holds monthly targets: Chennai ₹1,500, Pune ₹800, Kochi ₹700. Compute achievement percentage per city.",
+            "steps": [
+              "`totals = df.groupby(\"city\", as_index=False)[\"revenue\"].sum()` gives a small table with columns city and revenue.",
+              "`report = totals.merge(targets, on=\"city\", validate=\"one_to_one\")` attaches each city's target.",
+              "`report[\"pct\"] = (report.revenue / report.target * 100).round(1)`.",
+              "Chennai: 1,470 / 1,500 × 100 = 98.0%. Kochi: 600 / 700 × 100 = 85.7%. Pune: 880 / 800 × 100 = 110.0%."
+            ],
+            "result": "The city with the lowest revenue, Pune, is the only one that beat its target. Joining context onto raw totals often reverses the story."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading what pandas tells you",
+      "blocks": [
+        {
+          "p": "pandas is chatty, and its output is full of clues. Learning to read three outputs saves hours."
+        },
+        {
+          "bullets": [
+            "**df.info()**: if \"Non-Null Count\" is lower than the number of rows, that column has missing values. If a numeric-looking column shows type `object`, some cells contain text (often \"N/A\", a comma in \"1,200\", or a stray space).",
+            "**df.describe()**: compare mean and median (the 50% row). A mean far above the median signals a few very large values. A minimum of -1 for \"units\" or a maximum of 999 for \"age\" signals data-entry codes or errors.",
+            "**value_counts()**: `df[\"city\"].value_counts()` lists every category and its frequency. \"Chennai\", \"chennai\" and \"Chennai \" appearing separately tell you text needs tidying before any groupby.",
+            "**SettingWithCopyWarning**: this warning means you tried to assign into something that might be a temporary copy, as in `df[df.units > 5][\"price\"] = 0`. Rewrite it as `df.loc[df.units > 5, \"price\"] = 0`."
+          ]
+        },
+        {
+          "think": {
+            "q": "Two cities both have an average flat price of ₹70 lakh: Chennai from 60 and 80, Pune from 50, 70 and 90. Are the markets the same?",
+            "a": "No. `agg([\"mean\", \"std\", \"count\"])` shows Chennai has a standard deviation of about 14.1 lakh over 2 flats, Pune 20.0 lakh over 3. Same centre, different spread and sample size. A single mean hides both."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "pandas in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Automating a weekly dealer report (illustrative)",
+            "story": "A two-wheeler manufacturer receives weekly sales files from 400 dealers in slightly different formats. An analyst used to spend most of Monday merging them by hand. A 60-line pandas script now reads every file in the folder with `read_excel`, standardises column names, fixes dealer codes with `str.strip().str.upper()`, removes duplicate invoices with `drop_duplicates`, joins a dealer master table for region and target, and writes a pivot of units by region and model to a new workbook. The report is ready by 9 a.m., and when a regional head questions a number, the analyst can point to the exact line of code that produced it."
+          }
+        },
+        {
+          "bullets": [
+            "**Finance:** reconciling ledger extracts between two systems with `merge(..., indicator=True)` to find rows present in only one.",
+            "**Retail:** turning raw till transactions into customer-level features (visits, average basket, days since last visit) with groupby.",
+            "**Operations:** resampling machine logs from per-second to per-hour averages with `resample(\"h\").mean()` on a date index.",
+            "**Machine learning:** nearly every scikit-learn project starts by preparing features in a DataFrame."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Chained assignment.** `df[cond][\"col\"] = value` may change a temporary copy and nothing else. Always use `.loc[cond, \"col\"]`.",
+            "**Duplicated join keys.** An unexpected many-to-many merge multiplies rows. Check row counts before and after every merge.",
+            "**Numbers stored as text.** \"1,200\" sorts and sums as text. Convert with `pd.to_numeric(df[\"units\"].str.replace(\",\", \"\"), errors=\"coerce\")`.",
+            "**Dates stored as text.** Convert with `pd.to_datetime` before sorting or computing durations, or \"10/02\" may be read as October instead of February.",
+            "**Looping over rows.** `for i, row in df.iterrows()` is slow. Vectorised column maths or groupby is nearly always possible."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "pandas is a great fit when…",
+              "items": [
+                "Data fits in your computer's memory (up to a few GB)",
+                "You need repeatable cleaning and reporting",
+                "Tables have named columns, dates and text",
+                "You are preparing features for scikit-learn"
+              ]
+            },
+            "right": {
+              "title": "Consider something else when…",
+              "items": [
+                "Data is tens of GB or more → **PySpark** or Databricks",
+                "You need faster single-machine speed → **Polars** or DuckDB",
+                "Data lives in a warehouse → push work into **SQL** first",
+                "Pure numeric grids → plain **NumPy**"
+              ]
+            },
+            "caption": "pandas is the everyday workhorse. Bigger data needs tools that share its ideas but spread the work."
+          }
+        },
+        {
+          "callout": "The habit that matters most: after every step, check the row count and look at a few rows. Most pandas bugs are silent; they produce a table that looks fine and is wrong.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is pandas a replacement for Excel?",
+      "a": "For repeated, large or auditable work, yes. For quick looks and sharing with non-technical colleagues, Excel is still handy. Many teams prepare data in pandas and export to Excel with `df.to_excel()`."
+    },
+    {
+      "q": "What is the difference between df[\"col\"] and df[[\"col\"]]?",
+      "a": "Single brackets return a Series (one column). Double brackets, a list of names inside, return a DataFrame, even if the list has only one name. scikit-learn usually wants the DataFrame form for features."
+    },
+    {
+      "q": "What does NaN mean?",
+      "a": "\"Not a Number\": pandas' marker for a missing value. Most summaries skip it by default (`mean()` ignores NaN), but arithmetic between columns produces NaN wherever either side is missing."
+    },
+    {
+      "q": "Why does groupby return the cities in alphabetical order?",
+      "a": "By default `groupby` sorts the keys. Pass `sort=False` to keep the order of first appearance, or sort the result by a value with `sort_values`."
+    },
+    {
+      "q": "How large a file can pandas handle?",
+      "a": "A useful rule is that pandas needs several times the file's size in memory. A 1 GB CSV is fine on a 16 GB laptop; 30 GB is not. Read only the columns you need with `usecols`, or move to Polars, DuckDB or PySpark."
+    },
+    {
+      "q": "Should I use inplace=True?",
+      "a": "Generally no. It rarely saves memory and makes code harder to follow. Assign the result instead: `df = df.drop_duplicates()`."
+    }
+  ]
+}

@@ -1,15 +1,22 @@
 {
   "name": "learnpath-ml",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:single": "tsc -b && vite build --mode single",
+    "build": "vite build",
+    "build:single": "vite build --mode single && cp dist-single/index.html LearnPath-ML.html",
     "preview": "vite preview",
     "verify:stats": "esbuild scripts/verify-stats.ts --bundle --platform=node --outfile=scripts/.verify.cjs --log-level=warning && node scripts/.verify.cjs | python scripts/verify_stats.py",
-    "verify:snippets": "esbuild scripts/dump-snippets.ts --bundle --platform=node --outfile=scripts/.snippets.cjs --log-level=warning && node scripts/.snippets.cjs | python scripts/verify_snippets.py"
+    "verify:snippets": "esbuild scripts/dump-snippets.ts --bundle --platform=node --outfile=scripts/.snippets.cjs --log-level=warning && node scripts/.snippets.cjs | python scripts/verify_snippets.py",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "validate": "tsx scripts/validate-content.ts",
+    "snippets": "tsx scripts/check-snippets.ts",
+    "schemas": "for t in LessonFile:lesson DeepLesson:chapter QuizBank:quiz Project:project; do ts-json-schema-generator --path src/content/types.ts --type ${t%%:*} --no-type-check -o content/schema/${t##*:}.schema.json; done",
+    "check:anim": "node scripts/check-anim.cjs",
+    "verify": "npm run typecheck && npm run test && npm run validate && npm run build"
   },
   "dependencies": {
     "d3": "7.9.0",
@@ -25,9 +32,14 @@
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",
+    "esbuild": "0.21.5",
+    "playwright": "1.63.0",
+    "ts-json-schema-generator": "2.3.0",
+    "tsx": "4.19.2",
     "typescript": "5.6.3",
     "vite": "5.4.11",
     "vite-plugin-singlefile": "2.0.3",
-    "esbuild": "0.21.5"
+    "vitest": "2.1.8",
+    "wait-on": "8.0.1"
   }
 }

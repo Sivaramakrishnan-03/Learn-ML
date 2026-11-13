@@ -1,0 +1,613 @@
+{
+  "$ref": "#/definitions/DeepLesson",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Block": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "p": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "p"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "def": {
+              "type": "string"
+            },
+            "term": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "term",
+            "def"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "plain": {
+              "type": "string"
+            },
+            "symbols": {
+              "items": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "tex": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "tex",
+            "plain"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "steps": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "steps"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "bullets": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "bullets"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagram": {
+              "$ref": "#/definitions/Diagram"
+            }
+          },
+          "required": [
+            "diagram"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "example": {
+              "additionalProperties": false,
+              "properties": {
+                "result": {
+                  "type": "string"
+                },
+                "setup": {
+                  "type": "string"
+                },
+                "steps": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "setup",
+                "steps",
+                "result"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "example"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "callout": {
+              "type": "string"
+            },
+            "tone": {
+              "enum": [
+                "tip",
+                "warn",
+                "key"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "callout",
+            "tone"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "case": {
+              "additionalProperties": false,
+              "properties": {
+                "story": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "story"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "case"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "think": {
+              "additionalProperties": false,
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "q",
+                "a"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "think"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "DeepLesson": {
+      "additionalProperties": false,
+      "properties": {
+        "faq": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "q": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "q",
+              "a"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "hook": {
+          "type": "string"
+        },
+        "minutes": {
+          "type": "number"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/definitions/DeepSection"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "minutes",
+        "hook",
+        "sections",
+        "faq"
+      ],
+      "type": "object"
+    },
+    "DeepSection": {
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "items": {
+            "$ref": "#/definitions/Block"
+          },
+          "type": "array"
+        },
+        "heading": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "heading",
+        "blocks"
+      ],
+      "type": "object"
+    },
+    "Diagram": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "caption": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "flow",
+              "type": "string"
+            },
+            "nodes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "nodes",
+            "caption"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "caption": {
+              "type": "string"
+            },
+            "highlight": {
+              "type": "number"
+            },
+            "kind": {
+              "const": "bars",
+              "type": "string"
+            },
+            "labels": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "values": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "yLabel": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "labels",
+            "values",
+            "caption"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "caption": {
+              "type": "string"
+            },
+            "fn": {
+              "type": "string"
+            },
+            "fn2": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "curve",
+              "type": "string"
+            },
+            "legend": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "marks": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "x": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "label"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "shade": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "xLabel": {
+              "type": "string"
+            },
+            "xMax": {
+              "type": "number"
+            },
+            "xMin": {
+              "type": "number"
+            },
+            "yLabel": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "fn",
+            "xMin",
+            "xMax",
+            "caption"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "caption": {
+              "type": "string"
+            },
+            "centers": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "scatter",
+              "type": "string"
+            },
+            "line": {
+              "additionalProperties": false,
+              "properties": {
+                "b": {
+                  "type": "number"
+                },
+                "m": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "m",
+                "b"
+              ],
+              "type": "object"
+            },
+            "points": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 2,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "xLabel": {
+              "type": "string"
+            },
+            "yLabel": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "points",
+            "caption"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "caption": {
+              "type": "string"
+            },
+            "head": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "table",
+              "type": "string"
+            },
+            "rows": {
+              "items": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "head",
+            "rows",
+            "caption"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "caption": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "compare",
+              "type": "string"
+            },
+            "left": {
+              "additionalProperties": false,
+              "properties": {
+                "items": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "items"
+              ],
+              "type": "object"
+            },
+            "right": {
+              "additionalProperties": false,
+              "properties": {
+                "items": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "items"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "left",
+            "right",
+            "caption"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "caption": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "tree",
+              "type": "string"
+            },
+            "root": {
+              "$ref": "#/definitions/TreeNodeSpec"
+            }
+          },
+          "required": [
+            "kind",
+            "root",
+            "caption"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "Diagrams are described as data; the app draws them in the dark theme. Keep values in sensible ranges."
+    },
+    "TreeNodeSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "items": {
+            "$ref": "#/definitions/TreeNodeSpec"
+          },
+          "type": "array"
+        },
+        "edge": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "type": "object"
+    }
+  }
+}

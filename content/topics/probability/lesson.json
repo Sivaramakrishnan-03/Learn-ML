@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Define probability, conditional probability and independence",
+    "Compute the probability of \"A and B\" and \"A or B\"",
+    "Calculate an expected value"
+  ],
+  "why": "Classifiers output probabilities, A/B tests are probability statements, and risk models price uncertainty. Misreading conditional probability is one of the most common analytics mistakes.",
+  "explain": [
+    "A **probability** is a number from 0 (impossible) to 1 (certain). Think of it as a budget of 100% belief spread across everything that could happen.",
+    "**Conditional probability** P(A | B) is the probability of A **given** that B happened. It shrinks your world to the cases where B is true. P(rain | dark clouds) is much higher than P(rain).",
+    "Events are **independent** if knowing one tells you nothing about the other (two coin flips). Then P(A and B) = P(A) × P(B). For \"or\", add and subtract the overlap: P(A or B) = P(A) + P(B) − P(A and B).",
+    "The **expected value** is the long-run average: multiply each outcome by its probability and add. Insurers and casinos run entirely on expected value."
+  ],
+  "formula": {
+    "tex": "P(A \\mid B) = \\frac{P(A \\cap B)}{P(B)}",
+    "plain": "Probability of A given B = probability of both, divided by probability of B."
+  },
+  "example": {
+    "title": "Is a promotion worth it?",
+    "steps": [
+      "A coupon costs ₹50 to send",
+      "20% of customers redeem it and spend an extra ₹400",
+      "80% ignore it (extra spend ₹0)",
+      "Expected extra spend = 0.2 × 400 + 0.8 × 0 = ₹80"
+    ],
+    "result": "Expected gain ₹80 vs cost ₹50: positive expected value of ₹30 per customer, so send it (if the 20% estimate is reliable)."
+  },
+  "mistakes": [
+    "Confusing P(A | B) with P(B | A): P(positive test | disease) is not P(disease | positive test).",
+    "Multiplying probabilities of events that are not independent."
+  ],
+  "takeaways": [
+    "Probability is between 0 and 1",
+    "Conditioning restricts attention to cases where B is true",
+    "Expected value = Σ outcome × probability"
+  ],
+  "check": [
+    {
+      "q": "Two fair dice. P(both show 6)?",
+      "options": [
+        "1/6",
+        "1/12",
+        "1/36",
+        "2/6"
+      ],
+      "answer": 2,
+      "why": "Independent: 1/6 × 1/6 = 1/36."
+    },
+    {
+      "q": "A bet pays ₹100 with probability 0.3, else ₹0. Expected value?",
+      "options": [
+        "₹30",
+        "₹70",
+        "₹100",
+        "₹3"
+      ],
+      "answer": 0,
+      "why": "0.3 × 100 = 30."
+    }
+  ],
+  "practice": {
+    "code": "import numpy as np\nrng = np.random.default_rng(1)\nrolls = rng.integers(1, 7, size=(100_000, 2))\nprint(np.mean((rolls == 6).all(axis=1)))   # ≈ 1/36 = 0.0278"
+  },
+  "chapterMinutes": 15
+}

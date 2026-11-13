@@ -1,0 +1,70 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Model curved relationships with polynomial terms",
+    "Choose the degree with validation",
+    "Recognise polynomial overfitting"
+  ],
+  "why": "Many relationships curve: fuel use vs speed, yield vs fertiliser, sales vs price. Polynomial terms let a linear model bend while staying simple and interpretable.",
+  "explain": [
+    "Add new features x², x³ … and fit an ordinary linear regression on them. The model is still \"linear in the coefficients\", so the same least-squares machinery works.",
+    "Degree 2 gives one bend (a U or an inverted U); degree 3 gives two bends.",
+    "High degrees overfit dramatically: a degree-15 polynomial threads through every training point and swings wildly in between and at the edges.",
+    "Choose the degree by cross-validation, scale the features first, and consider splines as a smoother alternative."
+  ],
+  "example": {
+    "title": "Fuel consumption vs speed",
+    "steps": [
+      "Litres per 100 km at 40, 60, 80, 100, 120 km/h: 7.5, 6.0, 5.6, 6.2, 7.8",
+      "A straight line misses the U-shape badly",
+      "Degree 2 fit: L ≈ 0.00129v² − 0.202v + 13.5",
+      "Minimum at v = 0.202 / (2 × 0.00129) ≈ 78 km/h"
+    ],
+    "result": "The quadratic captures the \"sweet spot\" speed, which no straight line can."
+  },
+  "mistakes": [
+    "Picking a high degree because the training R² is higher.",
+    "Extrapolating a polynomial (it explodes outside the data range)."
+  ],
+  "takeaways": [
+    "Add powers of x to model curves",
+    "Choose the degree by validation",
+    "High degree = overfitting"
+  ],
+  "use": [
+    "Smooth curved relationships with a known shape (one peak or trough)"
+  ],
+  "avoid": [
+    "Extrapolation",
+    "Many features (the number of terms explodes): use trees or GAMs"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import PolynomialFeatures\nfrom sklearn.linear_model import LinearRegression\nv = np.array([40, 60, 80, 100, 120]).reshape(-1, 1); L = np.array([7.5, 6.0, 5.6, 6.2, 7.8])\nm = make_pipeline(PolynomialFeatures(2), LinearRegression()).fit(v, L)\nprint(m.predict([[70], [90]]).round(2))"
+  },
+  "check": [
+    {
+      "q": "Polynomial regression is still \"linear\" because…",
+      "options": [
+        "The curve is straight",
+        "It is linear in the coefficients",
+        "It only uses x",
+        "It uses gradient descent"
+      ],
+      "answer": 1,
+      "why": "The model is a weighted sum of (transformed) features."
+    },
+    {
+      "q": "Training R² rises from degree 3 to 12, but CV error rises too. Choose…",
+      "options": [
+        "Degree 12",
+        "Degree 3 (or whichever has the lowest CV error)",
+        "Degree 1",
+        "Always the highest"
+      ],
+      "answer": 1,
+      "why": "Choose by validation error, not training fit."
+    }
+  ],
+  "chapterMinutes": 16
+}

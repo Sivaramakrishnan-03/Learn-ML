@@ -1,0 +1,384 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "Imagine adjusting a mixing desk with a hundred sliders to get the perfect sound. Moving one slider at a time and listening would take all day. What you really want is a single instruction: \"nudge these sliders up, those down, and this one a lot\". In machine learning, that instruction is the **gradient**. And because models are built as chains of simple steps, a second tool, the **chain rule**, is what lets a computer work out the gradient for millions of sliders at once.",
+  "sections": [
+    {
+      "heading": "The problem: many dials, one goal",
+      "blocks": [
+        {
+          "p": "The previous chapter handled one input: one price, one weight. Real models have many. A house-price model might have a weight for area, one for bedrooms, one for age and one for location. A large neural network has billions. The error depends on all of them at the same time."
+        },
+        {
+          "p": "We need to answer, for every weight at once: if I nudge this one, how does the error change? And then combine those answers into one direction to move in. That combined direction is the gradient."
+        },
+        {
+          "term": "Multivariable function",
+          "def": "A function with more than one input, such as error(m, b) or profit(price, advertising). Its graph is a surface (like a landscape) rather than a curve."
+        },
+        {
+          "term": "Parameter",
+          "def": "A number inside a model that training adjusts, such as a weight or an intercept. The error of the model is a function of all its parameters."
+        },
+        {
+          "p": "Picture the error as a landscape. East–west is one parameter, north–south another, and height is the error. Training means finding the lowest valley. The gradient is the compass needle that says which way is steepest uphill, so you know to walk the opposite way."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the foggy hillside",
+      "blocks": [
+        {
+          "p": "You are on a hillside in thick fog and want the steepest way up. You cannot see, but you can test the ground with your feet."
+        },
+        {
+          "steps": [
+            "**Test east–west:** take a tiny step east. The ground rises by 2 cm. That is the slope in the east direction.",
+            "**Test north–south:** take a tiny step north. The ground rises by 12 cm. That is the slope in the north direction.",
+            "**Combine the two:** the steepest way up is mostly north, a little east: the arrow (2, 12). That arrow is the gradient.",
+            "**To descend**, walk the opposite way: (−2, −12), mostly south."
+          ],
+          "title": "Finding the steepest direction by feel"
+        },
+        {
+          "term": "Partial derivative",
+          "def": "The slope of a multivariable function along one input only, holding all the other inputs fixed. Written ∂f/∂x, read \"partial f by partial x\"."
+        },
+        {
+          "term": "Gradient",
+          "def": "The list (vector) of all the partial derivatives of a function. It points in the direction of steepest increase, and its length says how steep that is. Written ∇f, read \"grad f\" or \"nabla f\"."
+        },
+        {
+          "p": "The second idea, the **chain rule**, comes from a different everyday situation: chains of rates. If a car covers 40 km per hour, uses 1 litre per 15 km, and fuel costs ₹100 per litre, then fuel spending rises at 40 × (1/15) × 100 ≈ ₹267 per hour. You multiplied the rates along the chain. That is all the chain rule says."
+        },
+        {
+          "think": {
+            "q": "The gradient at your position is (0, 0). What does the ground feel like?",
+            "a": "Flat in every direction. You are at a minimum, a maximum or a saddle point. In training, a gradient near zero means the parameters have stopped changing much; hopefully because you have reached a valley."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**List the inputs** you care about (for training: every parameter).",
+            "**For each input, take the partial derivative:** treat every other input as a fixed number and differentiate as in the previous chapter.",
+            "**Stack the partial derivatives** into a vector. That is the gradient.",
+            "**Evaluate it at your current point** by plugging in the current values.",
+            "**Read it:** each entry says how strongly, and in which direction, that input affects the output right now."
+          ],
+          "title": "Computing a gradient"
+        },
+        {
+          "p": "When the function is a chain of steps (input → step 1 → step 2 → output), work out the slope of each step and multiply them, starting from the output end. Neural networks are long chains, and doing this efficiently from the end backwards is called **back-propagation**."
+        },
+        {
+          "term": "Chain rule",
+          "def": "The rule for differentiating a function inside a function: multiply the slope of the outer step by the slope of the inner step. If y depends on u and u depends on x, then dy/dx = (dy/du) × (du/dx)."
+        },
+        {
+          "term": "Back-propagation",
+          "def": "The algorithm that applies the chain rule backwards through a neural network, reusing intermediate results, to get the gradient for every weight in one sweep."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Input x**, weight w",
+              "**z = w·x + b** (weighted sum)",
+              "**a = σ(z)** (squash to 0–1)",
+              "**L = (a − y)²** (loss)",
+              "**Backwards:** ∂L/∂w = ∂L/∂a · ∂a/∂z · ∂z/∂w"
+            ],
+            "caption": "A single artificial neuron as a chain. The forward pass computes the loss left to right; the chain rule multiplies local slopes right to left to find how the loss depends on the weight."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\nabla f(x_1, \\dots, x_n) = \\left( \\frac{\\partial f}{\\partial x_1}, \\; \\frac{\\partial f}{\\partial x_2}, \\; \\dots, \\; \\frac{\\partial f}{\\partial x_n} \\right)",
+          "plain": "The gradient is the vector of slopes, one per input. Entry i answers: \"if I nudge input i alone, how fast does f change?\"",
+          "symbols": [
+            [
+              "\\nabla f",
+              "the gradient of f"
+            ],
+            [
+              "\\partial f / \\partial x_i",
+              "partial derivative of f with respect to input i"
+            ]
+          ]
+        },
+        {
+          "p": "Why does this list of separate slopes point in the steepest direction overall? Close to any point, a smooth surface looks like a tilted flat plane. On a tilted plane, the change for a small step d is simply the dot product ∇f · d. A dot product is largest when the step points the same way as ∇f (the previous chapters showed this). So the gradient direction is steepest uphill, and −∇f is steepest downhill."
+        },
+        {
+          "tex": "\\frac{dy}{dx} = \\frac{dy}{du} \\cdot \\frac{du}{dx}",
+          "plain": "Chain rule: the overall rate of change is the product of the rates along the chain. Small change in x causes a change in u, which causes a change in y.",
+          "symbols": [
+            [
+              "u",
+              "an intermediate quantity between x and y"
+            ]
+          ]
+        },
+        {
+          "p": "A classic trap: for y = (3x + 1)², it is tempting to write dy/dx = 2(3x + 1). That forgets the inner step. The outer step (squaring) has slope 2u with u = 3x + 1, and the inner step has slope 3. Multiply: 2(3x + 1) × 3 = 6(3x + 1)."
+        },
+        {
+          "p": "For model training, the most important gradient is that of mean squared error. For a straight-line model ŷ = m·x + b on n data points:"
+        },
+        {
+          "tex": "\\frac{\\partial L}{\\partial m} = -\\frac{2}{n} \\sum_{i=1}^{n} x_i (y_i - \\hat{y}_i), \\qquad \\frac{\\partial L}{\\partial b} = -\\frac{2}{n} \\sum_{i=1}^{n} (y_i - \\hat{y}_i)",
+          "plain": "The slope for each parameter is built from the errors (y − ŷ). The slope for m weights each error by its x value, because m's influence on a prediction is proportional to x. Both come from the chain rule applied to the square.",
+          "symbols": [
+            [
+              "L",
+              "mean squared error loss"
+            ],
+            [
+              "y_i",
+              "actual value for point i"
+            ],
+            [
+              "\\hat{y}_i",
+              "predicted value m x_i + b"
+            ],
+            [
+              "n",
+              "number of data points"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "A gradient on a two-parameter bowl",
+            "setup": "f(m, b) = m² + 3b². Find the gradient at (m, b) = (1, 2).",
+            "steps": [
+              "∂f/∂m: treat b as a constant. The 3b² term has slope 0; m² has slope 2m. So ∂f/∂m = 2m.",
+              "∂f/∂b: treat m as a constant. ∂f/∂b = 6b.",
+              "At (1, 2): ∇f = (2 × 1, 6 × 2) = (2, 12).",
+              "Steepness = length of the gradient = √(2² + 12²) = √148 ≈ 12.17."
+            ],
+            "result": "Steepest descent direction is (−2, −12): change b much more than m, because the bowl is six times steeper in the b direction near this point."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "x*x+12",
+            "fn2": "1+3*x*x",
+            "xMin": -0.5,
+            "xMax": 2.5,
+            "marks": [
+              {
+                "x": 1,
+                "label": "m = 1"
+              },
+              {
+                "x": 2,
+                "label": "b = 2"
+              }
+            ],
+            "xLabel": "value of the one input being changed",
+            "yLabel": "f",
+            "legend": [
+              "vary m, hold b = 2",
+              "vary b, hold m = 1"
+            ],
+            "caption": "Two slices through the surface f(m, b) = m² + 3b². A partial derivative is the slope of a slice: the first curve has slope 2 at m = 1, the second has slope 12 at b = 2. Together they make the gradient (2, 12)."
+          }
+        },
+        {
+          "example": {
+            "title": "The chain rule on fuel costs (business)",
+            "setup": "A delivery van drives at 40 km per hour, does 15 km per litre, and diesel costs ₹100 per litre. How fast does fuel spending grow per hour of driving?",
+            "steps": [
+              "Distance per hour: dd/dt = 40 km per hour.",
+              "Litres per km: dL/dd = 1/15 litre per km.",
+              "Rupees per litre: dC/dL = ₹100 per litre.",
+              "Chain rule: dC/dt = 100 × (1/15) × 40 = 4,000 / 15 ≈ ₹266.67 per hour."
+            ],
+            "result": "About ₹267 of fuel per hour of driving. Each link is a simple rate; the chain rule multiplies them. Back-propagation does the same along the layers of a network."
+          }
+        },
+        {
+          "example": {
+            "title": "The gradient of a real model's error",
+            "setup": "Advertising spend x (₹ lakh) = [1, 2, 3] and sales y (₹ lakh) = [3, 5, 7]. The model ŷ = m·x + b starts at m = 0, b = 0, so every prediction is 0.",
+            "steps": [
+              "Errors y − ŷ = [3, 5, 7]. Loss L = (9 + 25 + 49) / 3 = 83 / 3 ≈ 27.67.",
+              "∂L/∂m = −(2/3) × (1 × 3 + 2 × 5 + 3 × 7) = −(2/3) × 34 ≈ −22.67.",
+              "∂L/∂b = −(2/3) × (3 + 5 + 7) = −(2/3) × 15 = −10.",
+              "Gradient = (−22.67, −10). Both entries are negative, so increasing m and b lowers the loss, m more strongly."
+            ],
+            "result": "The gradient says \"raise the slope a lot, raise the intercept somewhat\". The next chapter takes steps in that direction and lands near the true line ŷ = 2x + 1."
+          }
+        },
+        {
+          "example": {
+            "title": "Back-propagation through one neuron",
+            "setup": "Input x = 2, weight w = 0.5, bias b = 0, target y = 1. The neuron computes z = w·x + b, then a = σ(z) = 1/(1 + e⁻ᶻ), then loss L = (a − y)².",
+            "steps": [
+              "Forward: z = 0.5 × 2 + 0 = 1. a = σ(1) ≈ 0.7311. L = (0.7311 − 1)² ≈ 0.0723.",
+              "Backward, step 1: ∂L/∂a = 2(a − y) ≈ 2 × (−0.2689) ≈ −0.5379.",
+              "Step 2: ∂a/∂z = σ(z)(1 − σ(z)) ≈ 0.7311 × 0.2689 ≈ 0.1966.",
+              "Step 3: ∂z/∂w = x = 2.",
+              "Multiply: ∂L/∂w ≈ −0.5379 × 0.1966 × 2 ≈ −0.2115. A numerical nudge test gives the same value."
+            ],
+            "result": "The negative sign says \"increase w to reduce the loss\". A network with millions of weights repeats exactly this multiplication of local slopes, layer by layer."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading a gradient",
+      "blocks": [
+        {
+          "bullets": [
+            "**Sign of an entry:** positive means increasing that parameter increases the loss; negative means increasing it reduces the loss.",
+            "**Size of an entry:** how sensitive the loss is to that parameter right now. Large entries get large updates in gradient descent.",
+            "**Length of the whole vector:** overall steepness. It shrinks as you approach a minimum, which is a useful sign of convergence.",
+            "**Very unequal entries:** the landscape is a long narrow valley, often because features are on different scales. Standardising features evens this out."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Point (m, b)",
+              "∂f/∂m = 2m",
+              "∂f/∂b = 6b",
+              "Steepest descent"
+            ],
+            "rows": [
+              [
+                "(1, 2)",
+                "2",
+                "12",
+                "(−2, −12)"
+              ],
+              [
+                "(3, 0)",
+                "6",
+                "0",
+                "(−6, 0)"
+              ],
+              [
+                "(−1, −1)",
+                "−2",
+                "−6",
+                "(2, 6)"
+              ],
+              [
+                "(0, 0)",
+                "0",
+                "0",
+                "none: at the minimum"
+              ]
+            ],
+            "caption": "The gradient of f(m, b) = m² + 3b² at four points. It always points away from the bottom at (0, 0), and it vanishes exactly there."
+          }
+        },
+        {
+          "callout": "Modern libraries never ask you to derive gradients. PyTorch's `loss.backward()` runs back-propagation automatically. Your job is to understand what the numbers mean, so you can spot exploding or vanishing gradients when training goes wrong.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Back-propagation and the deep-learning boom",
+            "story": "Back-propagation was popularised for neural networks by Rumelhart, Hinton and Williams in a well-known 1986 paper. It turned the chain rule into an efficient recipe: one forward pass to compute the loss, one backward pass to get the gradient for every weight, at roughly the cost of a couple of forward passes. Combined with graphics cards and large datasets, this is what made training today's image, speech and language models practical. Every time a large language model is trained, the chain rule is applied across billions of parameters, again and again."
+          }
+        },
+        {
+          "bullets": [
+            "**Marketing mix models:** partial derivatives of sales with respect to each channel's spend give the marginal return of TV, digital and print.",
+            "**Pricing:** cross-price effects (how one product's sales respond to another's price) are partial derivatives.",
+            "**Engineering design:** gradients of weight or drag with respect to many design dimensions guide optimisation of car parts.",
+            "**Explainability:** \"saliency maps\" show which pixels or words a model's output is most sensitive to by looking at gradients with respect to the input."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Moving with the gradient instead of against it** when minimising. Uphill is +∇; downhill is −∇.",
+            "**Forgetting the inner derivative** in the chain rule, the single most common hand-calculation error.",
+            "**Vanishing gradients:** multiplying many small slopes (such as sigmoid slopes below 0.25) through deep chains gives almost zero, so early layers stop learning. ReLU activations and careful initialisation help.",
+            "**Exploding gradients:** multiplying many large slopes gives enormous updates. Gradient clipping caps their size.",
+            "**Non-smooth functions:** corners (like |x|) have no single slope; libraries use subgradients."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Ordinary derivative",
+              "items": [
+                "One input",
+                "One number: the slope",
+                "Curve on a 2D chart",
+                "df/dx"
+              ]
+            },
+            "right": {
+              "title": "Gradient",
+              "items": [
+                "Many inputs",
+                "A vector of slopes",
+                "Surface or landscape",
+                "∇f = (∂f/∂x₁, …, ∂f/∂xₙ)"
+              ]
+            },
+            "caption": "A gradient is just many derivatives side by side, one per input, read together as a direction."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why is the symbol ∂ different from d?",
+      "a": "The curly ∂ signals a partial derivative: other inputs are being held fixed. With only one input, d and ∂ mean the same thing."
+    },
+    {
+      "q": "Is the gradient a number or a vector?",
+      "a": "A vector, with one entry per input. For a function of one input it reduces to a single number, the ordinary derivative."
+    },
+    {
+      "q": "Why does the gradient point uphill rather than downhill?",
+      "a": "By definition each entry is the rate of increase. Optimisers that minimise loss simply move in the opposite direction, −∇."
+    },
+    {
+      "q": "Do I need to do back-propagation by hand?",
+      "a": "No. Frameworks compute it automatically. Doing one small example by hand, like the single neuron above, is the best way to understand what `backward()` does."
+    },
+    {
+      "q": "What is a Jacobian or a Hessian?",
+      "a": "The Jacobian collects gradients when there are several outputs. The Hessian is the matrix of second derivatives, describing curvature. Second-order optimisers use it; most deep learning avoids it because it is huge."
+    },
+    {
+      "q": "How can I check a gradient I derived?",
+      "a": "Compare with a numerical estimate: nudge each input by a tiny h (say 0.000001), measure the change in the function, and divide by h. If the two agree to several decimal places, your formula is right."
+    }
+  ]
+}

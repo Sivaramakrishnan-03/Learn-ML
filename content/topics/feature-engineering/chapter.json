@@ -1,0 +1,404 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "Two loan applicants. One earns ₹10 lakh a year and already pays ₹4 lakh in EMIs. The other earns ₹30 lakh and pays ₹6 lakh. Look only at the EMI column and the second applicant seems riskier; look at the ratio and the first is spending 40% of income on debt against the second's 20%. The raw columns were there all along; the useful signal appeared only when someone combined them. That act of turning raw data into informative inputs is **feature engineering**.",
+  "sections": [
+    {
+      "heading": "The problem: raw columns rarely speak the model's language",
+      "blocks": [
+        {
+          "p": "Data arrives in the shape that suited the system that recorded it: a transaction log, a timestamp, a city name, a product code. A model, however, only sees numbers, and it only finds patterns that those numbers make visible. A timestamp like \"2026-03-14 19:42\" hides the facts that matter: it was a Saturday, in the evening, two weeks before the financial year end."
+        },
+        {
+          "term": "Feature engineering",
+          "def": "Creating new input columns, or transforming existing ones, so that the patterns a model needs are easier to see. It includes ratios, date parts, aggregates, transformations and converting categories into numbers."
+        },
+        {
+          "term": "Categorical variable",
+          "def": "A column whose values are labels rather than quantities, such as city, product type or payment method. Models need these converted into numbers, which is called encoding."
+        },
+        {
+          "p": "Experienced practitioners repeat one lesson: **better features usually beat fancier algorithms**. A simple model with a well-chosen debt-to-income ratio often outperforms a complex model fed raw income and EMI columns, and it is far easier to explain to a credit committee."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Raw column",
+              "Engineered feature",
+              "Why it helps"
+            ],
+            "rows": [
+              [
+                "income, emi",
+                "emi / income",
+                "Debt burden, comparable across salaries"
+              ],
+              [
+                "order timestamp",
+                "weekday, hour, is_month_end",
+                "Exposes weekly and payday patterns"
+              ],
+              [
+                "last_purchase_date",
+                "days_since_last_purchase",
+                "Recency predicts churn"
+              ],
+              [
+                "transactions log",
+                "avg spend, last 90 days",
+                "Summarises behaviour per customer"
+              ],
+              [
+                "city",
+                "is_chennai, is_pune, ...",
+                "Text turned into usable numbers"
+              ]
+            ],
+            "caption": "Typical transformations. Each engineered column states a business idea in a form a model can use."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the detective and the clues",
+      "blocks": [
+        {
+          "p": "A detective arrives at a scene full of raw facts: a train ticket, a muddy shoe, a receipt timed at 9:14 p.m. None of these alone solves the case. The skill lies in turning them into meaningful statements: \"the suspect was in Chennai that evening\", \"the receipt contradicts the alibi\". Those derived statements, not the raw objects, point to the answer."
+        },
+        {
+          "steps": [
+            "**Know the story.** What usually causes the outcome? Debt burden causes default; long gaps between visits precede churn.",
+            "**Look for relationships between clues.** Ratios and differences often matter more than raw amounts.",
+            "**Put time in context.** \"When\" becomes weekday, season, festival, days since an event.",
+            "**Summarise histories.** A thousand transactions become a handful of numbers: count, average, trend.",
+            "**Translate labels into numbers** without inventing false meaning."
+          ],
+          "title": "How a detective builds a case"
+        },
+        {
+          "think": {
+            "q": "A churn model gets \"date of last purchase\" as a raw date. Why might \"days since last purchase\" work far better?",
+            "a": "A raw date is just a large number that keeps increasing over calendar time, so its meaning drifts. \"Days since last purchase\", measured at the prediction date, directly expresses recency, the classic warning sign of churn, and means the same thing every month."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How to engineer features, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Understand** the business process and outcome",
+              "**Create** ratios, dates, aggregates",
+              "**Encode** categories as numbers",
+              "**Transform** skewed numbers",
+              "**Validate** on held-out data; drop what does not help"
+            ],
+            "caption": "Feature engineering is a loop: create, test, keep what improves held-out performance, discard the rest."
+          }
+        },
+        {
+          "p": "**Step 1: Understand.** Talk to the people who run the process. A credit officer will tell you that debt burden and job stability matter; a plant engineer will tell you that temperature drift matters more than temperature."
+        },
+        {
+          "p": "**Step 2: Create.** Ratios (`df.emi / df.income`), differences (`(df.as_of - df.last_purchase).dt.days`), date parts (`df.date.dt.weekday`), flags (`df.amount > 50000`) and per-customer aggregates with groupby."
+        },
+        {
+          "p": "**Step 3: Encode categories.** Choose one-hot, ordinal or target encoding depending on whether the categories have an order and how many there are (see the dedicated section below)."
+        },
+        {
+          "term": "One-hot encoding",
+          "def": "Turning a category with k possible values into k columns of 0s and 1s, one per value. A row gets a 1 in the column for its own value and 0 elsewhere."
+        },
+        {
+          "term": "Ordinal encoding",
+          "def": "Replacing ordered categories with ordered numbers, such as small = 1, medium = 2, large = 3. Appropriate only when the order is real."
+        },
+        {
+          "p": "**Step 4: Transform.** Very skewed amounts such as income or order value are often logged so that a jump from ₹1 lakh to ₹10 lakh counts as much as one from ₹10 lakh to ₹1 crore."
+        },
+        {
+          "p": "**Step 5: Validate.** Add features one group at a time and check performance on held-out data. A feature that helps on training data but not on validation data is noise."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Most feature engineering is simple arithmetic, but three formulas deserve a closer look because each solves a specific problem."
+        },
+        {
+          "tex": "\\text{DTI} = \\frac{\\text{annual EMI payments}}{\\text{annual income}}",
+          "plain": "Debt-to-income expresses debt as a share of what someone earns, so applicants on very different salaries become comparable. A ratio removes the effect of size and keeps the effect of burden."
+        },
+        {
+          "tex": "x' = \\log(1 + x)",
+          "plain": "The log transform squashes large values and spreads out small ones. With base-10 logs, ₹1,000, ₹10,000 and ₹1,00,000 become about 3, 4 and 5: equal steps for each tenfold increase. Adding 1 first keeps zero amounts valid, since log(0) is undefined. In NumPy this is `np.log1p`.",
+          "symbols": [
+            [
+              "x",
+              "the original amount"
+            ],
+            [
+              "x'",
+              "the transformed value"
+            ]
+          ]
+        },
+        {
+          "term": "Target encoding",
+          "def": "Replacing each category with the average value of the target for that category, for example each city with its historical churn rate. Powerful for categories with many values, but it must be computed on training data only."
+        },
+        {
+          "term": "Cardinality",
+          "def": "The number of distinct values a categorical column has. \"Gender\" might have 3; \"product ID\" might have 50,000. High cardinality makes one-hot encoding impractical."
+        },
+        {
+          "p": "Plain target encoding has a weakness: a category seen only five times gets an average from five rows, which is mostly luck. **Smoothing** blends each category's average with the overall average, trusting the category more the more rows it has."
+        },
+        {
+          "tex": "\\text{enc}(c) = \\frac{n_c \\, \\bar{y}_c + m \\, \\bar{y}}{n_c + m}",
+          "plain": "A weighted average of the category's own mean and the global mean. With many rows (large n_c), the category's own mean dominates; with few rows, the result is pulled towards the global mean.",
+          "symbols": [
+            [
+              "n_c",
+              "number of training rows in category c"
+            ],
+            [
+              "\\bar{y}_c",
+              "average target in category c"
+            ],
+            [
+              "\\bar{y}",
+              "average target over all training rows"
+            ],
+            [
+              "m",
+              "smoothing strength: how many rows it takes to trust a category"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Debt-to-income separates two applicants",
+            "setup": "Applicant A: income ₹10 lakh a year, EMIs ₹4 lakh a year. Applicant B: income ₹30 lakh, EMIs ₹6 lakh.",
+            "steps": [
+              "On raw EMIs alone, B (₹6 lakh) looks more indebted than A (₹4 lakh).",
+              "DTI for A = 4 / 10 = 0.40, so 40% of income already goes to EMIs.",
+              "DTI for B = 6 / 30 = 0.20, so 20% goes to EMIs.",
+              "Many lenders treat a burden around 40% or more as a warning sign, though thresholds vary by lender and product."
+            ],
+            "result": "The engineered ratio reverses the raw conclusion: A carries twice the debt burden of B. One division created the most informative feature in the table."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "customer",
+              "city",
+              "city_Chennai",
+              "city_Mumbai",
+              "city_Pune"
+            ],
+            "rows": [
+              [
+                "C1",
+                "Chennai",
+                "1",
+                "0",
+                "0"
+              ],
+              [
+                "C2",
+                "Pune",
+                "0",
+                "0",
+                "1"
+              ],
+              [
+                "C3",
+                "Mumbai",
+                "0",
+                "1",
+                "0"
+              ],
+              [
+                "C4",
+                "Pune",
+                "0",
+                "0",
+                "1"
+              ]
+            ],
+            "caption": "One-hot encoding of city with `pd.get_dummies(df, columns=[\"city\"])`. Each row has exactly one 1. No city is \"bigger\" than another, which is the point."
+          }
+        },
+        {
+          "example": {
+            "title": "One-hot versus a wrong ordinal code",
+            "setup": "Four customers from Chennai, Pune, Mumbai and Pune. A beginner codes Chennai = 1, Mumbai = 2, Pune = 3 and feeds this to a linear regression.",
+            "steps": [
+              "The linear model multiplies the code by one weight, so it assumes Pune's effect is exactly three times Chennai's and Mumbai sits precisely halfway. Nothing in reality says so.",
+              "Renaming the codes alphabetically or by size would give a different model: a sign the encoding carries invented information.",
+              "One-hot encoding creates three 0/1 columns (table above), letting the model learn a separate effect for each city.",
+              "For a linear model without regularisation, drop one column (`drop=\"first\"`): the remaining two already imply the third, and the dropped city becomes the baseline."
+            ],
+            "result": "Use one-hot for unordered categories. Keep ordinal codes for real orders such as education level or T-shirt size."
+          }
+        },
+        {
+          "example": {
+            "title": "Smoothed target encoding for city churn (illustrative)",
+            "setup": "A broadband provider's training data: overall churn 20%. Chennai: 400 customers, 100 churned (25%). Kochi: 5 customers, 3 churned (60%). Smoothing strength m = 20.",
+            "steps": [
+              "Chennai: (400 × 0.25 + 20 × 0.20) / (400 + 20) = (100 + 4) / 420 ≈ 0.248, barely changed from 25%.",
+              "Kochi: (5 × 0.60 + 20 × 0.20) / (5 + 20) = (3 + 4) / 25 = 0.28.",
+              "Kochi's raw 60% came from just five customers; smoothing pulls it most of the way back towards the 20% average.",
+              "Compute these encodings inside each cross-validation fold so a row's own outcome never feeds its own feature."
+            ],
+            "result": "Well-supported categories keep their own rate; thin ones are treated cautiously. scikit-learn's `TargetEncoder` does this smoothing and the cross-fitting for you."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing an encoding",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "tree",
+            "root": {
+              "label": "Categorical column",
+              "children": [
+                {
+                  "label": "Ordinal encoding",
+                  "edge": "real order (S < M < L)"
+                },
+                {
+                  "label": "No order",
+                  "edge": "unordered",
+                  "children": [
+                    {
+                      "label": "One-hot",
+                      "edge": "few values (< ~20)"
+                    },
+                    {
+                      "label": "Target or frequency encoding",
+                      "edge": "many values"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caption": "A quick decision tree. Order first, then cardinality. Tree-based models are more forgiving, but linear and distance-based models need this done properly."
+          }
+        },
+        {
+          "bullets": [
+            "**Frequency encoding:** replace each category with how often it appears. Simple, leak-free, useful for very high cardinality.",
+            "**Group rare values:** merge categories with fewer than, say, 1% of rows into \"Other\" before one-hot encoding.",
+            "**Unknown categories:** a new city will appear in production. `OneHotEncoder(handle_unknown=\"ignore\")` turns it into all zeros instead of crashing.",
+            "**Tree models:** gradient-boosting libraries such as LightGBM and CatBoost can handle categories natively."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Feature engineering in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Demand forecasting for a grocery chain (illustrative)",
+            "story": "A retailer forecasts daily sales of 5,000 products in 300 stores. Raw data is a table of date, store, product and units. The team adds lag features (units sold 7 and 14 days ago), rolling averages (mean of the last 28 days), calendar features (weekday, month, payday week), a festival flag for Diwali, Pongal and Eid with \"days until festival\", promotion indicators and the product's price relative to its usual price. With the same gradient-boosting model, forecast error drops markedly compared with the raw columns alone, and the largest gains come from the lag and festival features, the ones that encode what store managers already knew."
+          }
+        },
+        {
+          "bullets": [
+            "**Fraud:** number of transactions in the last hour, distance from the customer's usual location, amount relative to their typical spend.",
+            "**Predictive maintenance:** rolling standard deviation of vibration, temperature change over the last 30 minutes, hours since last service.",
+            "**Marketing:** recency, frequency and monetary value (RFM) per customer.",
+            "**Text:** word counts or embeddings turn free-text complaints into numeric features."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Using the future.** A \"total purchases this year\" feature computed on the full year leaks future behaviour into a mid-year prediction. Always compute features as of the prediction date.",
+            "**Target encoding on all data.** Each row's own label leaks into its feature, inflating scores. Fit encoders on training folds only.",
+            "**One-hot explosion.** 50,000 product IDs become 50,000 mostly-zero columns. Group rare values or use target or frequency encoding.",
+            "**Too many features.** Hundreds of weak features add noise and slow everything down. Keep what improves validation performance.",
+            "**Features the business cannot supply.** A brilliant feature that is unavailable in real time at the point of decision is useless in production."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Hand-crafted features",
+              "items": [
+                "Use domain knowledge directly",
+                "Explainable to stakeholders",
+                "Work well with simple models",
+                "Take human time and thought"
+              ]
+            },
+            "right": {
+              "title": "Learned features",
+              "items": [
+                "Deep learning learns them from raw images, text or audio",
+                "Embeddings capture similarity between categories",
+                "Need much more data and compute",
+                "Harder to explain"
+              ]
+            },
+            "caption": "For tabular business data, hand-crafted features plus gradient boosting remain hard to beat. For images and text, learned features dominate."
+          }
+        },
+        {
+          "callout": "Fit every encoder and transformer inside a scikit-learn Pipeline with a ColumnTransformer. The same code then runs identically in cross-validation and in production, which removes a whole class of leakage bugs.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do tree models need feature engineering?",
+      "a": "Less encoding care, since trees split on thresholds and do not need scaling. But they still benefit enormously from ratios, aggregates and date features, which they cannot easily invent on their own."
+    },
+    {
+      "q": "What is the dummy variable trap?",
+      "a": "With all k one-hot columns plus an intercept in an unregularised linear regression, the columns always add up to 1, so the model cannot separate their effects. Dropping one column fixes it. Regularised and tree models do not need this."
+    },
+    {
+      "q": "How do I know if a new feature helps?",
+      "a": "Compare cross-validated performance with and without it. Feature importance plots are a hint, but held-out performance is the real test."
+    },
+    {
+      "q": "Should I log-transform every skewed column?",
+      "a": "For linear models and neural networks it often helps. Tree models are unaffected by monotonic transformations like logs, because the order of values is unchanged."
+    },
+    {
+      "q": "Is target encoding the same as leakage?",
+      "a": "Not if done properly. It becomes leakage when a row's own label is used to compute its encoding. Computing it on training folds only, with smoothing, avoids this."
+    },
+    {
+      "q": "Can feature engineering be automated?",
+      "a": "Partly. Tools can generate many aggregates and date features automatically, and deep learning learns features for images and text. Domain knowledge still produces the features that matter most in business data."
+    }
+  ]
+}

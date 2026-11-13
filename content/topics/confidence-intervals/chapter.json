@@ -1,0 +1,413 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "A logistics head presents: “Our average delivery time is 52 minutes.” The CFO asks the right question: “How sure are you? Is it 52 give or take 1 minute, or give or take 15?” A single number without its uncertainty is half an answer. A **confidence interval** is the other half: a range, built from the sample, that comes with a stated reliability.",
+  "sections": [
+    {
+      "heading": "The problem: a point estimate hides its own uncertainty",
+      "blocks": [
+        {
+          "p": "From the previous chapter you know that every sample gives a slightly different average, and the standard error measures how much. A confidence interval packages that knowledge into something a manager can use: a lower and an upper value."
+        },
+        {
+          "term": "Point estimate",
+          "def": "A single best guess for an unknown population value, such as a sample mean of 52 minutes used to estimate the true average delivery time."
+        },
+        {
+          "term": "Confidence interval (CI)",
+          "def": "A range of values, calculated from sample data, produced by a method that captures the true population value in a stated percentage of repeated samples (for example 95%). Reported as “52 minutes, 95% CI 50.0 to 54.0”."
+        },
+        {
+          "p": "Compare two headlines: “Conversion rose by 2 percentage points” and “Conversion rose by 2 points (95% CI −1 to +5)”. The first sounds like a win. The second admits the truth: the data are consistent with a small fall, no change or a solid rise. Decisions should be made on the second."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: throwing a net for a fish you cannot see",
+      "blocks": [
+        {
+          "p": "Imagine a fish resting at a fixed spot under murky water. You cannot see it. You can only throw a net, and the net lands somewhere around the fish, sometimes a little left, sometimes a little right."
+        },
+        {
+          "steps": [
+            "**The fish is the true value.** It does not move. It is the real average delivery time across all deliveries.",
+            "**Each throw is one sample.** Where the net lands depends on the luck of the sample.",
+            "**The net’s width is chosen in advance.** A wider net catches the fish more often; a narrower net is more precise but misses more.",
+            "**A 95% net** is a width chosen so that, over many throws, 95% of nets land around the fish.",
+            "**After one throw**, you cannot see whether this net caught the fish. You only know the method catches it 95% of the time."
+          ],
+          "title": "The net analogy"
+        },
+        {
+          "p": "This is exactly what “95% confidence” means. The confidence is in the **method**, not in any one particular interval. Once your interval is calculated, the true value is either inside it or not; you simply do not know which."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Sample",
+              "Sample mean (min)",
+              "95% CI (min)",
+              "Contains true 52?"
+            ],
+            "rows": [
+              [
+                "1",
+                "54.5",
+                "49.9 to 59.1",
+                "Yes"
+              ],
+              [
+                "2",
+                "53.2",
+                "49.5 to 56.9",
+                "Yes"
+              ],
+              [
+                "3",
+                "50.8",
+                "47.2 to 54.4",
+                "Yes"
+              ],
+              [
+                "4",
+                "50.6",
+                "46.9 to 54.3",
+                "Yes"
+              ],
+              [
+                "5",
+                "49.9",
+                "44.9 to 54.9",
+                "Yes"
+              ],
+              [
+                "6",
+                "53.3",
+                "49.4 to 57.2",
+                "Yes"
+              ],
+              [
+                "7",
+                "52.8",
+                "48.1 to 57.5",
+                "Yes"
+              ],
+              [
+                "8",
+                "56.9",
+                "53.5 to 60.3",
+                "No"
+              ]
+            ],
+            "caption": "Eight simulated samples of 25 deliveries from a process whose true mean is 52 minutes (SD 10). Each sample gives a different interval; seven contain 52 and one misses. Over 10,000 such samples, 94.9% of intervals contained 52, as a 95% method should."
+          }
+        },
+        {
+          "think": {
+            "q": "A colleague says: “Our 95% CI is 50 to 54, so there is a 95% probability the true mean is between 50 and 54.” What is wrong?",
+            "a": "In standard (frequentist) statistics the true mean is a fixed number, not a random one, so it is either between 50 and 54 or it is not. The 95% describes how often the method succeeds over many samples. The safe phrasing is: “We are 95% confident, meaning this interval comes from a procedure that captures the true mean 95% of the time.” (A Bayesian credible interval does allow a direct probability statement, but it is built differently and needs a prior.)"
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How to build a confidence interval, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Collect** a random sample: n, x̄, s",
+              "**Standard error**: SE = s / √n",
+              "**Critical value** for the confidence level (t or z)",
+              "**Margin of error** = critical value × SE",
+              "**Interval** = x̄ ± margin"
+            ],
+            "caption": "Every classic confidence interval follows this recipe: estimate plus or minus a multiple of its standard error."
+          }
+        },
+        {
+          "steps": [
+            "**Compute the estimate** from your sample (mean, proportion or difference).",
+            "**Compute its standard error.** For a mean: s / √n. For a proportion: √(p̂(1 − p̂) / n).",
+            "**Choose a confidence level**, usually 95%. Higher confidence means a wider interval.",
+            "**Find the critical value.** For a proportion with a large sample, use the normal: 1.96 for 95%. For a mean with the SD estimated from the data, use the t-distribution with n − 1 degrees of freedom (2.064 for n = 25, 1.984 for n = 100).",
+            "**Multiply** the critical value by the SE to get the margin of error.",
+            "**Add and subtract** the margin from the estimate, and report the interval with its confidence level."
+          ],
+          "title": "The recipe"
+        },
+        {
+          "term": "Margin of error",
+          "def": "The half-width of the confidence interval: critical value × standard error. “±3 percentage points” in a poll is a margin of error."
+        },
+        {
+          "term": "Critical value",
+          "def": "The number of standard errors needed on each side to achieve the chosen confidence. For 95% with the normal distribution it is 1.96, because 95% of a normal curve lies within ±1.96 SDs of the centre."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "From the CLT, the sample mean is approximately normal around the true mean μ with SD equal to the standard error. So 95% of sample means land within 1.96 SEs of μ. Turn that sentence around: in 95% of samples, μ lies within 1.96 SEs of the sample mean. That reversal is the whole idea."
+        },
+        {
+          "tex": "\\bar x ;\\pm; z_{0.975} \\cdot \\frac{\\sigma}{\\sqrt{n}}, \\qquad z_{0.975} = 1.96",
+          "plain": "Sample mean plus or minus 1.96 standard errors. This version assumes we know the population SD σ, which is rare.",
+          "symbols": [
+            [
+              "\\bar x",
+              "sample mean"
+            ],
+            [
+              "z_{0.975}",
+              "the point with 97.5% of the normal curve below it, leaving 2.5% in each tail"
+            ],
+            [
+              "\\sigma / \\sqrt{n}",
+              "standard error of the mean"
+            ]
+          ]
+        },
+        {
+          "p": "In practice σ is unknown and we plug in the sample SD s. That adds extra uncertainty, especially with small samples, so we replace 1.96 with a slightly larger number from the t-distribution, whose fatter tails account for not knowing σ."
+        },
+        {
+          "tex": "\\bar x ;\\pm; t_{0.975,\\,n-1} \\cdot \\frac{s}{\\sqrt{n}}",
+          "plain": "The practical CI for a mean. The t critical value depends on the degrees of freedom n − 1: it is 2.776 for n = 5, 2.262 for n = 10, 2.045 for n = 30 and approaches 1.96 as n grows.",
+          "symbols": [
+            [
+              "t_{0.975,\\,n-1}",
+              "t critical value with n − 1 degrees of freedom"
+            ],
+            [
+              "s",
+              "sample standard deviation"
+            ]
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)",
+            "xMin": -4,
+            "xMax": 4,
+            "shade": [
+              -1.96,
+              1.96
+            ],
+            "marks": [
+              {
+                "x": -1.96,
+                "label": "μ − 1.96 SE"
+              },
+              {
+                "x": 0,
+                "label": "true μ"
+              },
+              {
+                "x": 1.96,
+                "label": "μ + 1.96 SE"
+              }
+            ],
+            "xLabel": "sample mean (in standard errors from the truth)",
+            "yLabel": "density",
+            "caption": "The sampling distribution of the mean. In 95% of samples, x̄ lands in the shaded zone, and whenever it does, the interval x̄ ± 1.96 SE reaches back to cover μ. In the 5% of samples that land in the tails, the interval misses."
+          }
+        },
+        {
+          "tex": "\\hat p ;\\pm; 1.96\\sqrt{\\frac{\\hat p(1-\\hat p)}{n}}",
+          "plain": "The large-sample CI for a proportion: observed share plus or minus 1.96 times its standard error. For small samples or shares near 0% or 100%, use the Wilson interval instead.",
+          "symbols": [
+            [
+              "\\hat p",
+              "observed proportion in the sample"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Average delivery time (large sample)",
+            "setup": "A food-delivery company samples 100 deliveries: mean 52 minutes, SD 10 minutes. Build a 95% CI for the true mean.",
+            "steps": [
+              "SE = 10 / √100 = 1.0 minute.",
+              "Degrees of freedom = 99; t critical value = 1.984 (close to 1.96).",
+              "Margin = 1.984 × 1.0 = 1.98 minutes.",
+              "95% CI = 52 ± 1.98 = 50.02 to 53.98 minutes.",
+              "For comparison: 90% CI uses 1.660 → 50.34 to 53.66; 99% CI uses 2.626 → 49.37 to 54.63."
+            ],
+            "result": "“About 52 minutes, 95% CI roughly 50 to 54.” More confidence costs width: the 99% interval is about a third wider than the 95% one."
+          }
+        },
+        {
+          "example": {
+            "title": "EV range from a small test fleet",
+            "setup": "An automotive team measures the real-world range of 12 test cars: mean 412 km, SD 18 km. Build a 95% CI for the model’s average range.",
+            "steps": [
+              "SE = 18 / √12 = 18 / 3.464 = 5.196 km.",
+              "Degrees of freedom = 11; t critical value = 2.201 (noticeably more than 1.96).",
+              "Margin = 2.201 × 5.196 = 11.44 km.",
+              "95% CI = 412 ± 11.44 = 400.6 to 423.4 km.",
+              "Using 1.96 by mistake would give ±10.18 km, an interval that is too narrow and over-confident."
+            ],
+            "result": "Marketing can claim “around 410 km” with evidence that the average is very likely above 400 km. Claiming 420 km would be ahead of the data. With small samples, always use the t value."
+          }
+        },
+        {
+          "example": {
+            "title": "Share of customers who would recommend (proportion)",
+            "setup": "A survey of 1,000 random customers finds 420 would recommend the brand. Build a 95% CI for the true share.",
+            "steps": [
+              "p̂ = 420 / 1,000 = 0.42.",
+              "SE = √(0.42 × 0.58 / 1,000) = √0.0002436 = 0.0156.",
+              "Margin = 1.96 × 0.0156 = 0.0306.",
+              "95% CI = 0.42 ± 0.0306 = 0.389 to 0.451."
+            ],
+            "result": "Between about 39% and 45% of customers would recommend the brand. If last year’s figure was 40%, this survey alone cannot show a real improvement, because 40% sits inside the interval."
+          }
+        },
+        {
+          "example": {
+            "title": "Planning the sample size in advance",
+            "setup": "Before collecting data, the delivery team wants a 95% CI no wider than ±2 minutes. From past data, the SD is about 10 minutes. How many deliveries should they sample?",
+            "steps": [
+              "Margin = 1.96 × s / √n. Set it to 2: 1.96 × 10 / √n = 2.",
+              "√n = 19.6 / 2 = 9.8, so n = 96.04.",
+              "Round up: n = 97 deliveries.",
+              "For ±1 minute: n = (19.6)² = 384.2 → 385 deliveries, four times as many."
+            ],
+            "result": "Decide the precision you need, then compute n. This avoids both wasted effort and inconclusive studies."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "What controls the width, and how to read an interval",
+      "blocks": [
+        {
+          "p": "Three levers decide how wide an interval is: **variability** (bigger s, wider interval), **sample size** (bigger n, narrower, but only by √n) and **confidence level** (99% is wider than 95%, which is wider than 90%)."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "n = 25",
+              "n = 100",
+              "n = 400",
+              "n = 1,600"
+            ],
+            "values": [
+              4.13,
+              1.98,
+              0.98,
+              0.49
+            ],
+            "highlight": 1,
+            "yLabel": "95% margin of error (minutes)",
+            "caption": "Margin of error for a mean when the SD is 10 minutes. Each quadrupling of the sample halves the margin (n = 25 is slightly more than double n = 100 because its t value is larger)."
+          }
+        },
+        {
+          "bullets": [
+            "**Does the interval include a meaningful threshold?** If a CI for a price change’s effect on revenue is −₹2 lakh to +₹8 lakh, the data cannot rule out a loss.",
+            "**Compare width with what matters.** A CI of 50 to 54 minutes is decision-ready if the SLA is 60 minutes; useless if the SLA is 52.",
+            "**Overlap is a rough guide only.** Two intervals that overlap slightly can still come from significantly different groups. Compute a CI for the difference itself.",
+            "**A CI is not a range for individual values.** 95% of single deliveries do not fall between 50 and 54 minutes; with SD 10, individual times range roughly from 32 to 72. That wider range is a prediction interval."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Correct readings",
+              "items": [
+                "95% of intervals built this way capture the true mean",
+                "We are 95% confident the true mean is between 50 and 54",
+                "Values inside are plausible given the data",
+                "A narrower interval means a more precise estimate"
+              ]
+            },
+            "right": {
+              "title": "Common mistakes",
+              "items": [
+                "There is a 95% probability μ is in this specific interval",
+                "95% of individual deliveries fall in this range",
+                "Values outside the interval are impossible",
+                "Values near the centre are much more “true” than values at the edges"
+              ]
+            },
+            "caption": "Precise language matters in front of a CFO. The 95% belongs to the method, not to one calculated interval."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Confidence intervals in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Reporting an A/B test result (illustrative)",
+            "story": "An Indian travel website tested a new checkout page. Of 20,000 visitors on the old page, 4.0% booked; of 20,000 on the new page, 4.5% booked. Instead of only saying “significant, p < 0.05”, the analyst reported the lift as 0.5 percentage points with a 95% CI of about 0.1 to 0.9 points. Finance could then translate both ends into rupees: at the low end the change barely paid for itself; at the high end it was worth a sizeable sum annually. Management rolled out the page but kept monitoring, because the interval showed the true gain might be small. The interval, not the p-value, drove a sensible decision."
+          }
+        },
+        {
+          "bullets": [
+            "**Clinical trials** report treatment effects with 95% CIs; regulators look at whether the whole interval shows a meaningful benefit.",
+            "**Opinion polls** publish a margin of error, the half-width of a CI.",
+            "**Forecasting** reports prediction intervals (for individual future values) around point forecasts so planners can hold safety stock.",
+            "**Machine learning** reports a model’s accuracy with a CI from cross-validation or the bootstrap, so a 0.3% “improvement” is not mistaken for progress."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Misreading the 95%.** It describes the long-run success rate of the procedure.",
+            "**Forgetting bias.** A CI only covers random sampling error. A biased sample produces a narrow interval around the wrong value.",
+            "**Using z instead of t with small samples.** The interval is too narrow and you will miss the truth more often than 5% of the time.",
+            "**Ignoring dependence or clustering.** Customers from the same store or repeated measures on the same machine are not independent; the true SE is larger.",
+            "**Skewed data with small n.** The formula relies on the CLT. For small skewed samples, use a bootstrap interval or transform the data (for example with logarithms).",
+            "**Proportions near 0 or 1.** The simple formula can give intervals below 0% or above 100%. Use the Wilson interval (statsmodels `proportion_confint(method='wilson')`)."
+          ]
+        },
+        {
+          "callout": "Always report an estimate with its interval. Good practice in many journals and analytics teams is: effect size, 95% CI, and only then the p-value.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why 95% and not 100%?",
+      "a": "A 100% interval would have to include every conceivable value, which is useless. 95% is a convention balancing reliability and precision. Use 90% when decisions are low-stakes and 99% when errors are costly."
+    },
+    {
+      "q": "When do I use t instead of z?",
+      "a": "Use t for means when the SD is estimated from the sample, which is almost always. For large n the two give nearly the same answer. Use z for proportions with large samples."
+    },
+    {
+      "q": "If two confidence intervals overlap, is there no significant difference?",
+      "a": "Not necessarily. Two 95% intervals can overlap a little while the difference is still significant at 5%. To compare groups, build a confidence interval for the difference, or run a test."
+    },
+    {
+      "q": "How is a confidence interval related to a hypothesis test?",
+      "a": "Closely. A two-sided test at the 5% level rejects a hypothesised value exactly when that value lies outside the 95% CI (for the matching test and interval). The interval tells you more, because it shows every value that would not be rejected."
+    },
+    {
+      "q": "How do I compute a CI in Python?",
+      "a": "For a mean: `scipy.stats.t.interval(0.95, n-1, loc=x.mean(), scale=scipy.stats.sem(x))`. For a proportion: `statsmodels.stats.proportion.proportion_confint(count, n, method='wilson')`. For anything else: bootstrap."
+    }
+  ]
+}

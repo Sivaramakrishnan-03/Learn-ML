@@ -1,0 +1,64 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain bootstrap resampling",
+    "Build a bootstrap confidence interval",
+    "Know when the bootstrap is useful"
+  ],
+  "why": "The bootstrap gives uncertainty estimates for almost any statistic (median, ratio, model accuracy) without formulas. It is also the \"bagging\" inside random forests.",
+  "explain": [
+    "You have one sample. Pretend it is the population: draw a new sample of the **same size with replacement** (some rows appear twice, some not at all) and compute your statistic.",
+    "Repeat thousands of times. The spread of those statistics approximates the sampling uncertainty.",
+    "A **percentile CI**: take the 2.5th and 97.5th percentiles of the bootstrap statistics.",
+    "Great for medians, percentiles, ratios and custom business metrics where no simple formula exists."
+  ],
+  "example": {
+    "title": "Median delivery time",
+    "steps": [
+      "50 delivery times; observed median 38 min",
+      "Resample 50 times with replacement → median 37; again → 39; …",
+      "Repeat 10,000 times",
+      "2.5th and 97.5th percentiles of the medians: 35 and 41 min"
+    ],
+    "result": "95% bootstrap CI for the median: 35–41 minutes, with no formula needed."
+  },
+  "mistakes": [
+    "Resampling without replacement (that just shuffles the data).",
+    "Bootstrapping very small samples (fewer than ~20) and trusting the result.",
+    "Ignoring dependence (time series need a block bootstrap)."
+  ],
+  "takeaways": [
+    "Resample with replacement, recompute, repeat",
+    "The spread of the results = uncertainty",
+    "Works for almost any statistic"
+  ],
+  "practice": {
+    "code": "import numpy as np\nrng = np.random.default_rng(0)\nx = rng.gamma(4, 10, 50)\nmeds = [np.median(rng.choice(x, len(x), replace=True)) for _ in range(10_000)]\nprint(round(np.median(x), 1), np.percentile(meds, [2.5, 97.5]).round(1))"
+  },
+  "check": [
+    {
+      "q": "Bootstrap samples are drawn…",
+      "options": [
+        "Without replacement, half size",
+        "With replacement, same size",
+        "From a normal distribution",
+        "From the test set"
+      ],
+      "answer": 1,
+      "why": "Same size, with replacement."
+    },
+    {
+      "q": "Which ensemble method is built on the bootstrap?",
+      "options": [
+        "Gradient boosting",
+        "Bagging / random forest",
+        "k-means",
+        "PCA"
+      ],
+      "answer": 1,
+      "why": "Bagging = bootstrap aggregating."
+    }
+  ],
+  "chapterMinutes": 14
+}

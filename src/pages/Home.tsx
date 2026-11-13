@@ -59,6 +59,9 @@ export default function Home() {
       <div className="grid g3">
         <Link to="/chooser" className="card mode-card"><div className="icon">🔀</div><h3>Which model should I use?</h3><p className="muted small" style={{ margin: 0 }}>Answer 2–3 questions about your problem and get a recommended model with reasons.</p></Link>
         <Link to="/compare" className="card mode-card"><div className="icon">⚖️</div><h3>Compare models</h3><p className="muted small" style={{ margin: 0 }}>See how three classifiers draw different boundaries on the same data.</p></Link>
+        <Link to="/exams" className="card mode-card"><div className="icon">🎓</div><h3>Track exams</h3><p className="muted small" style={{ margin: 0 }}>15-question exams per track, drawn from a bank of hundreds of questions.</p></Link>
+        <Link to="/projects" className="card mode-card"><div className="icon">🛠</div><h3>Hands-on projects</h3><p className="muted small" style={{ margin: 0 }}>End-to-end projects with data, starter code and a rubric.</p></Link>
+        <Link to="/settings" className="card mode-card"><div className="icon">⚙️</div><h3>Settings & backup</h3><p className="muted small" style={{ margin: 0 }}>Light theme, reading width, and saving your progress to a file.</p></Link>
         <Link to="/glossary" className="card mode-card"><div className="icon">📖</div><h3>Glossary</h3><p className="muted small" style={{ margin: 0 }}>Every term defined in one line, linked to the lesson that teaches it.</p></Link>
       </div>
     </div>

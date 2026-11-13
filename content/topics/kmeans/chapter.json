@@ -1,0 +1,555 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 18,
+  "hook": "A supermarket chain has two million loyalty-card customers and one marketing budget. Sending everyone the same offer wastes money: the student who buys instant noodles twice a week and the family that does one huge weekly shop want very different things. Nobody has labelled these customers as \"students\" or \"families\". The groups are hiding in the data. **K-means** is the simplest, fastest way to find them.",
+  "sections": [
+    {
+      "heading": "The problem: finding groups nobody has labelled",
+      "blocks": [
+        {
+          "p": "Most machine learning you meet first is **supervised**: you have past examples with the right answer attached (this loan was repaid, this email was spam) and the model learns to predict that answer. Clustering is different. There is **no right answer in the data**. You only have descriptions of things (customers, stores, machines) and you want to know whether they naturally fall into groups."
+        },
+        {
+          "term": "Clustering",
+          "def": "Automatically grouping items so that items in the same group are similar to each other and different from items in other groups. Nobody tells the algorithm what the groups should be."
+        },
+        {
+          "term": "Unsupervised learning",
+          "def": "Learning from data that has no \"correct answer\" column. The algorithm looks for structure on its own."
+        },
+        {
+          "p": "Why does this matter in business? Because groups are actionable. Marketing can design one campaign per segment instead of one for everybody. Operations can plan stock for \"high-street stores\" differently from \"highway stores\". Engineers can discover that machines fall into \"normal\", \"warming up\" and \"about to fail\" patterns."
+        },
+        {
+          "p": "K-means answers one specific question: **\"If I want exactly k groups, where should their centres be, and which items belong to which centre?\"** You choose k (the number of groups); the algorithm does the rest."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "store visits per month",
+            "yLabel": "average basket (₹ thousand)",
+            "caption": "Ninety customers described by two numbers. Your eye already sees three groups: frequent small-basket shoppers (bottom right), occasional big-basket shoppers (top left) and frequent big spenders (top right). K-means finds these groups mathematically, even when there are 20 dimensions and you cannot draw them.",
+            "points": [
+              [
+                2.1,
+                7.8
+              ],
+              [
+                2.6,
+                8.4
+              ],
+              [
+                1.8,
+                7.1
+              ],
+              [
+                3,
+                7.6
+              ],
+              [
+                2.4,
+                6.9
+              ],
+              [
+                1.5,
+                8
+              ],
+              [
+                2.9,
+                8.8
+              ],
+              [
+                3.3,
+                7.2
+              ],
+              [
+                7.4,
+                2.4
+              ],
+              [
+                8.1,
+                2.9
+              ],
+              [
+                7,
+                1.8
+              ],
+              [
+                8.6,
+                2.2
+              ],
+              [
+                7.7,
+                3.3
+              ],
+              [
+                6.8,
+                2.7
+              ],
+              [
+                8.9,
+                3
+              ],
+              [
+                7.2,
+                2
+              ],
+              [
+                7.5,
+                7.4
+              ],
+              [
+                8.2,
+                7.9
+              ],
+              [
+                6.9,
+                6.8
+              ],
+              [
+                8.7,
+                7.1
+              ],
+              [
+                7.8,
+                8.5
+              ],
+              [
+                7.1,
+                7.7
+              ],
+              [
+                8.4,
+                6.6
+              ],
+              [
+                9,
+                8.1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the pizza-shop game",
+      "blocks": [
+        {
+          "p": "Forget formulas for a moment and play a game. You own **3 pizza shops** and you may put them anywhere in a city. Every house orders from whichever shop is **nearest**. Your goal: make deliveries as short as possible overall."
+        },
+        {
+          "steps": [
+            "**Drop the shops anywhere.** Your first guess will be poor. That is fine.",
+            "**Every house picks its nearest shop.** The city is now split into three delivery zones.",
+            "**Move each shop to the middle of its own zone.** If most of a shop's customers live to its east, moving east shortens their trips.",
+            "**Houses re-check which shop is nearest.** Some houses near a border now find a different shop closer and switch.",
+            "**Repeat steps 3 and 4** until no house switches. The shops have settled."
+          ],
+          "title": "The game, round by round"
+        },
+        {
+          "p": "That is the whole of k-means. The shops are called **centroids**, the zones are **clusters**, and the two repeated moves are called the **assignment step** and the **update step**."
+        },
+        {
+          "term": "Centroid",
+          "def": "The centre point of a cluster, calculated as the average position of all items in it. In the game, it is the pizza shop."
+        },
+        {
+          "think": {
+            "q": "Why can moving a shop to the middle of its customers never make total delivery distance worse for those customers?",
+            "a": "The middle (the average position) is, by definition, the point that minimises the total squared distance to a set of points. Any other position would make the sum of squared distances bigger. So the update step can only help, or at worst change nothing."
+          }
+        },
+        {
+          "callout": "K-means never \"understands\" what a group means. It only knows distances. Naming the groups (\"bargain hunters\", \"weekly family shop\") is your job afterwards.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How the algorithm works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Choose k** and place k starting centroids",
+              "**Assign** every point to its nearest centroid",
+              "**Update** each centroid to the mean of its points",
+              "Did any point change cluster? **Yes → repeat**",
+              "**No → stop.** Report clusters and centroids"
+            ],
+            "caption": "The k-means loop. Steps 2 and 3 alternate until nothing changes."
+          }
+        },
+        {
+          "p": "**Step 1: Initialise.** Pick k starting centroids. The naive way is to pick k random data points. The modern default, **k-means++**, picks the first centre at random and then prefers points that are far from the centres already chosen, so the starting centres are spread out. This simple trick avoids many bad results."
+        },
+        {
+          "p": "**Step 2: Assign.** For every data point, measure the distance to each centroid (usually the ordinary straight-line distance) and attach the point to the closest one."
+        },
+        {
+          "term": "Euclidean distance",
+          "def": "The straight-line distance between two points, like measuring with a ruler. For two features it is Pythagoras: √((difference in x)² + (difference in y)²). With more features, you add more squared differences under the root."
+        },
+        {
+          "p": "**Step 3: Update.** For each cluster, compute the average of its points, feature by feature. That average becomes the new centroid. This is literally where the name comes from: k clusters, each represented by a **mean**."
+        },
+        {
+          "p": "**Step 4: Check.** If no point changed cluster in the last assignment step, the algorithm has **converged**: running it again would produce exactly the same result. Otherwise go back to Step 2."
+        },
+        {
+          "term": "Converged",
+          "def": "Finished: another round would change nothing."
+        },
+        {
+          "p": "In practice this takes surprisingly few rounds, often fewer than 20, even for millions of points, which is why k-means is so popular for large datasets."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "K-means is trying to make one number as small as possible: the total squared distance from every point to the centre of its own cluster. This number has a name, **inertia** (or \"within-cluster sum of squares\")."
+        },
+        {
+          "term": "Inertia",
+          "def": "Add up, for every point, the squared distance to its own cluster's centroid. Small inertia = tight, compact clusters. Large inertia = spread-out clusters."
+        },
+        {
+          "tex": "J = \\sum_{j=1}^{k} \\; \\sum_{x \\in C_j} \\lVert x - \\mu_j \\rVert^2",
+          "plain": "Go through each cluster j. For each point x in that cluster, measure how far it is from the cluster centre μⱼ, square that distance, and add everything up.",
+          "symbols": [
+            [
+              "J",
+              "inertia, the number we want small"
+            ],
+            [
+              "k",
+              "number of clusters"
+            ],
+            [
+              "C_j",
+              "the set of points in cluster j"
+            ],
+            [
+              "\\mu_j",
+              "centroid (mean) of cluster j"
+            ],
+            [
+              "\\lVert x-\\mu_j \\rVert",
+              "distance from point x to its centroid"
+            ]
+          ]
+        },
+        {
+          "p": "Why square the distances? Squaring makes every term positive, punishes far-away points more than nearby ones, and makes the maths neat: the point that minimises a sum of squared distances is exactly the average. That is why the update step uses the mean."
+        },
+        {
+          "tex": "\\mu_j = \\frac{1}{|C_j|} \\sum_{x \\in C_j} x",
+          "plain": "The new centroid is the average of the points in the cluster: add their coordinates and divide by how many there are.",
+          "symbols": [
+            [
+              "|C_j|",
+              "the number of points in cluster j"
+            ]
+          ]
+        },
+        {
+          "p": "Here is the clever part. The assignment step can only lower J (each point moves to a closer centre). The update step can only lower J (the mean is the best possible centre). A number that never goes up, and can only take finitely many values (there are only so many ways to split the points), must eventually stop changing. **So k-means always finishes.**"
+        },
+        {
+          "callout": "Always finishing is not the same as finding the best answer. K-means finds a **local minimum**: a solution that no single assign or update move can improve, but a completely different arrangement might be better. That is why libraries run it several times from different starts (`n_init=10`) and keep the run with the lowest inertia.",
+          "tone": "warn"
+        },
+        {
+          "term": "Local minimum",
+          "def": "A solution that looks best compared with its immediate neighbours but is not the best overall, like a valley in the hills that is not the lowest valley in the country."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "K-means by hand on six numbers",
+            "setup": "Daily orders from six small shops: 1, 2, 3, 10, 11, 12. Find k = 2 clusters, starting (badly) with centroids at 1 and 2.",
+            "steps": [
+              "Assign: 1 is nearest to centroid 1. Every other number (2, 3, 10, 11, 12) is nearer to centroid 2. Clusters: {1} and {2, 3, 10, 11, 12}.",
+              "Update: centroid A = 1. Centroid B = (2 + 3 + 10 + 11 + 12) / 5 = 38 / 5 = 7.6.",
+              "Assign again: 2 is 1 away from A and 5.6 from B → moves to A. 3 is 2 from A, 4.6 from B → moves to A. 10, 11, 12 stay with B.",
+              "Update: A = (1 + 2 + 3) / 3 = 2. B = (10 + 11 + 12) / 3 = 11.",
+              "Assign again: nothing changes → converged.",
+              "Inertia = (1−2)² + (2−2)² + (3−2)² + (10−11)² + (11−11)² + (12−11)² = 1 + 0 + 1 + 1 + 0 + 1 = 4."
+            ],
+            "result": "Two clean groups, small shops {1, 2, 3} and big shops {10, 11, 12}, found in two rounds despite a poor start."
+          }
+        },
+        {
+          "example": {
+            "title": "One round in two dimensions",
+            "setup": "Five customers described by (visits per month, average basket in ₹ thousand): A (2, 8), B (3, 7), C (8, 2), D (9, 3), E (8, 3). Start with centroids at A and C.",
+            "steps": [
+              "B: distance to A = √(1² + 1²) ≈ 1.41; to C = √(5² + 5²) ≈ 7.07 → joins A's cluster.",
+              "D: distance to C = √(1² + 1²) ≈ 1.41 → joins C. E: distance to C = √(0² + 1²) = 1 → joins C.",
+              "Update cluster 1 (A, B): ((2 + 3)/2, (8 + 7)/2) = (2.5, 7.5).",
+              "Update cluster 2 (C, D, E): ((8 + 9 + 8)/3, (2 + 3 + 3)/3) ≈ (8.33, 2.67)."
+            ],
+            "result": "Cluster 1 = \"occasional big-basket shoppers\" centred at 2.5 visits and ₹7,500. Cluster 2 = \"frequent small-basket shoppers\" centred at about 8.3 visits and ₹2,670."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "visits per month",
+            "yLabel": "basket (₹ thousand)",
+            "caption": "The five customers after one round. Crosses show the updated centroids (2.5, 7.5) and (8.33, 2.67).",
+            "points": [
+              [
+                2,
+                8,
+                0
+              ],
+              [
+                3,
+                7,
+                0
+              ],
+              [
+                8,
+                2,
+                1
+              ],
+              [
+                9,
+                3,
+                1
+              ],
+              [
+                8,
+                3,
+                1
+              ]
+            ],
+            "centers": [
+              [
+                2.5,
+                7.5
+              ],
+              [
+                8.33,
+                2.67
+              ]
+            ]
+          }
+        },
+        {
+          "example": {
+            "title": "Why scaling matters, in numbers",
+            "setup": "Two customers: (income ₹5,00,000, age 25) and (income ₹8,00,000, age 60). Compute the unscaled distance.",
+            "steps": [
+              "Income difference = 3,00,000. Age difference = 35.",
+              "Distance = √(300000² + 35²) = √(90,000,000,000 + 1,225) ≈ 300,000.002.",
+              "Age changed the distance by 0.002. It is effectively invisible.",
+              "After standardising (each feature divided by its standard deviation, e.g. income SD ₹2,00,000, age SD 12): differences become 1.5 and 2.9, and both features now matter."
+            ],
+            "result": "Without scaling, k-means would cluster on income alone. Always standardise features before k-means."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing k: how many groups?",
+      "blocks": [
+        {
+          "p": "K-means needs you to say how many clusters you want. There is no single correct answer, but three tools help."
+        },
+        {
+          "p": "**1. The elbow method.** Run k-means for k = 1, 2, 3 … and plot the inertia. Inertia always falls as k grows (with k = number of points it reaches zero, because every point is its own cluster). Look for the \"elbow\": the k after which adding clusters stops buying much improvement."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "k=1",
+              "k=2",
+              "k=3",
+              "k=4",
+              "k=5",
+              "k=6"
+            ],
+            "values": [
+              900,
+              400,
+              150,
+              120,
+              100,
+              88
+            ],
+            "highlight": 2,
+            "yLabel": "inertia",
+            "caption": "Inertia falls by 500, then 250, then only 30, 20 and 12. The big gains stop after k = 3, so k = 3 is the elbow."
+          }
+        },
+        {
+          "p": "**2. The silhouette score.** For each point, compare how close it is to its own cluster with how close it is to the nearest other cluster. Scores range from −1 to +1; values above about 0.5 indicate well-separated clusters. Pick the k with the highest average silhouette."
+        },
+        {
+          "tex": "s(i) = \\frac{b(i) - a(i)}{\\max(a(i), b(i))}",
+          "plain": "a = average distance to points in my own cluster; b = average distance to points in the nearest other cluster. If b is much bigger than a, I clearly belong where I am (s close to 1).",
+          "symbols": [
+            [
+              "a(i)",
+              "mean distance to my own cluster"
+            ],
+            [
+              "b(i)",
+              "mean distance to the nearest other cluster"
+            ]
+          ]
+        },
+        {
+          "p": "**3. Business sense.** Can the marketing team actually run 7 different campaigns? If not, k = 7 is useless however good its silhouette is. The best k is often the largest number of groups the business can act on, among the statistically reasonable options."
+        },
+        {
+          "think": {
+            "q": "Inertia for k = 10 is lower than for k = 3. Does that make k = 10 better?",
+            "a": "No. Inertia always decreases as k grows, so it cannot be used alone to pick k. You need a trade-off rule (elbow), a measure that penalises poor separation (silhouette), and business usefulness."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "K-means in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Retail customer segmentation (illustrative, based on common practice)",
+            "story": "A grocery chain describes each loyalty customer by visits per month, average basket, share of fresh produce, share of promotional items and days since last visit. After standardising these five features and testing k = 2 to 10, the elbow and silhouette both point to k = 5. Profiling the centroids gives segments the business can name: \"weekly family stock-up\", \"daily top-up\", \"promotion hunters\", \"premium fresh\" and \"lapsing\". Each gets its own offer: bulk discounts, convenience bundles, coupon alerts, new organic lines, and win-back vouchers. Success is measured with an A/B test against the old one-size-fits-all mailing, not by the clustering score."
+          }
+        },
+        {
+          "bullets": [
+            "**Image compression:** cluster the colours of an image's pixels into k = 16 colours and replace each pixel with its centroid colour. The image keeps its look while needing far less storage.",
+            "**Logistics:** place k warehouses or EV chargers at the centroids of demand locations.",
+            "**Automotive telemetry:** cluster driving segments by speed, acceleration and braking into \"city\", \"highway\" and \"aggressive\" profiles to test batteries and components under realistic loads.",
+            "**Document grouping:** cluster text embeddings to discover the main themes in thousands of support tickets."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Segment",
+              "Visits / month",
+              "Avg basket",
+              "Action"
+            ],
+            "rows": [
+              [
+                "Weekly stock-up",
+                "4",
+                "₹4,800",
+                "Bulk-buy discounts"
+              ],
+              [
+                "Daily top-up",
+                "18",
+                "₹450",
+                "Convenience bundles"
+              ],
+              [
+                "Promotion hunters",
+                "6",
+                "₹1,200",
+                "Coupon alerts"
+              ],
+              [
+                "Lapsing",
+                "0.5",
+                "₹900",
+                "Win-back voucher"
+              ]
+            ],
+            "caption": "Profiling centroids turns abstract clusters into segments with a business action. Numbers are illustrative."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "p": "K-means makes hidden assumptions. When they are wrong, it fails silently: it always returns k clusters, even when the data has no real groups at all."
+        },
+        {
+          "bullets": [
+            "**It assumes round, similar-sized clusters.** Each point joins its nearest centre, so the boundaries between clusters are always straight lines. Long thin clusters, rings or crescent moons get chopped up wrongly.",
+            "**It is sensitive to scale.** Unscaled rupee columns dominate distance calculations (see the worked example).",
+            "**It is sensitive to outliers.** One extreme customer drags a mean towards it. K-medoids, which uses actual data points as centres, is more robust.",
+            "**It needs numbers.** Categorical features (city, plan type) do not have meaningful averages. Use k-modes or k-prototypes, or encode carefully.",
+            "**Results depend on the start.** Use k-means++ and several restarts."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "K-means works well when…",
+              "items": [
+                "Clusters are roughly round blobs",
+                "Clusters have similar sizes and spreads",
+                "Features are numeric and scaled",
+                "You know (roughly) how many groups you want",
+                "Data is large: it is very fast"
+              ]
+            },
+            "right": {
+              "title": "Choose something else when…",
+              "items": [
+                "Clusters have odd shapes or noise → **DBSCAN**",
+                "Clusters overlap and you want probabilities → **Gaussian Mixture Model**",
+                "You want a hierarchy of groups → **Hierarchical clustering**",
+                "Data is categorical → **k-modes**",
+                "Heavy outliers → **k-medoids**"
+              ]
+            },
+            "caption": "K-means is the right first try for segmentation, but know its limits."
+          }
+        },
+        {
+          "callout": "Clusters are a lens, not the truth. Different features or a different k give different, equally valid segmentations. Judge a clustering by whether it leads to better decisions.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is k-means supervised or unsupervised?",
+      "a": "Unsupervised. It never sees a \"correct answer\" column. It only groups points by similarity."
+    },
+    {
+      "q": "Why did I get different clusters when I ran it twice?",
+      "a": "The starting centroids are random, and k-means can settle in different local minima. Set `random_state` for reproducibility and `n_init=10` (or more) so the best of several runs is kept."
+    },
+    {
+      "q": "Do I really have to scale my features?",
+      "a": "Yes, unless all features are already in the same units and you want them to matter in proportion to their spread. K-means uses distances, so a feature measured in large numbers dominates."
+    },
+    {
+      "q": "Can k-means tell me how many clusters there \"really\" are?",
+      "a": "Not by itself. You choose k. The elbow method and silhouette score guide the choice, and business usefulness makes the final call."
+    },
+    {
+      "q": "How is k-means different from k-NN?",
+      "a": "They only share the letter k. K-means is unsupervised clustering (k = number of groups). k-NN is supervised classification (k = number of neighbours that vote on a label)."
+    },
+    {
+      "q": "How big a dataset can k-means handle?",
+      "a": "Millions of rows comfortably. Each round costs about (points × clusters × features) operations. For very large data, MiniBatchKMeans updates centroids using small random batches and is much faster."
+    }
+  ]
+}

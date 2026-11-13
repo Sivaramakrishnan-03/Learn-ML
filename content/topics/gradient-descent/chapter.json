@@ -1,0 +1,377 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "Blindfold someone on a hillside and ask them to reach the valley floor. A sensible strategy: feel the slope under your feet, take a step downhill, feel again, step again. You never see the valley, yet you get there. That is **gradient descent**, and it is arguably the most important algorithm in machine learning. It trains logistic regression, gradient-boosted trees, and every neural network up to today's largest language models.",
+  "sections": [
+    {
+      "heading": "The problem: finding the best parameters when algebra runs out",
+      "blocks": [
+        {
+          "p": "Every model has parameters and a loss that measures how wrong it is. Training means finding the parameter values that make the loss as small as possible. For simple linear regression there is a direct formula. For almost everything else, such as logistic regression, neural networks and models with millions of parameters, no formula exists, or it is far too slow to compute."
+        },
+        {
+          "p": "So we search. Start somewhere, improve a little, repeat. The previous two chapters gave us the compass: the gradient points uphill, so its negative points downhill. Gradient descent is the walking strategy."
+        },
+        {
+          "term": "Optimisation",
+          "def": "Finding the inputs that make a function as small (or as large) as possible. In ML, minimising the loss over the model's parameters."
+        },
+        {
+          "term": "Learning rate",
+          "def": "The step size in gradient descent, usually written α (alpha) or `lr`. It multiplies the gradient to decide how far to move each step. Choosing it well is the most important practical skill with this algorithm."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "(x-3)*(x-3)",
+            "xMin": -0.5,
+            "xMax": 6.5,
+            "marks": [
+              {
+                "x": 0,
+                "label": "start"
+              },
+              {
+                "x": 1.5,
+                "label": "step 1"
+              },
+              {
+                "x": 2.25,
+                "label": "step 2"
+              },
+              {
+                "x": 2.625,
+                "label": "step 3"
+              }
+            ],
+            "xLabel": "weight w",
+            "yLabel": "loss L(w)",
+            "caption": "Gradient descent on L(w) = (w − 3)² with learning rate 0.25. Steps are large where the curve is steep and shrink automatically as the slope flattens near the bottom at w = 3."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the blindfolded walker",
+      "blocks": [
+        {
+          "steps": [
+            "**Feel the slope.** With your feet, sense which way the ground tilts and how steeply. (Compute the gradient.)",
+            "**Step downhill.** Move in the downhill direction, taking a bigger step when the slope is steep and a smaller one when it is gentle. (Subtract learning rate × gradient.)",
+            "**Repeat.** Feel again from your new spot.",
+            "**Stop** when the ground feels flat or you are barely moving. (Gradient near zero, or loss no longer improving.)"
+          ],
+          "title": "The walker's routine"
+        },
+        {
+          "p": "Notice what the walker controls: **stride length**. Tiny strides are safe but take forever. Huge strides can carry you clean over the valley and up the opposite slope, possibly higher than where you started. A good stride is big enough to make progress and small enough not to overshoot."
+        },
+        {
+          "term": "Iteration",
+          "def": "One round of the loop: compute the gradient, update the parameters. Also called a step. Training typically runs thousands to millions of iterations."
+        },
+        {
+          "term": "Convergence",
+          "def": "When the parameters stop changing meaningfully and the loss stops falling. The algorithm has settled at (or very near) a minimum."
+        },
+        {
+          "think": {
+            "q": "Why does the walker take smaller steps automatically near the bottom, even with a fixed learning rate?",
+            "a": "Because the step is learning rate × gradient, and the gradient shrinks as the ground flattens. Near the minimum the slope approaches zero, so the steps approach zero too. That is why gradient descent settles rather than circling forever (when the learning rate is sensible)."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How it works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Initialise** parameters (zeros or small random values)",
+              "**Predict** and compute the loss",
+              "**Gradient**: slope of the loss for every parameter",
+              "**Update**: θ ← θ − α · gradient",
+              "**Converged?** No → repeat. Yes → stop"
+            ],
+            "caption": "The gradient descent loop. Steps 2 to 4 repeat until the loss stops improving or a step limit is reached."
+          }
+        },
+        {
+          "steps": [
+            "**Initialise.** Pick starting values. For linear models zeros work; neural networks need small random values so that different neurons learn different things.",
+            "**Forward pass.** Use the current parameters to predict, and compute the loss on the data.",
+            "**Backward pass.** Compute the gradient of the loss with respect to each parameter (by formula or back-propagation).",
+            "**Update.** Move every parameter a little against its gradient entry.",
+            "**Monitor.** Record the loss. Plotting it against iteration, the loss curve, is the main health check.",
+            "**Stop** after a fixed number of steps, when improvement falls below a tolerance, or when a validation score stops improving (early stopping)."
+          ],
+          "title": "The algorithm"
+        },
+        {
+          "term": "Epoch",
+          "def": "One full pass through the entire training dataset. With mini-batches of 100 rows and 10,000 rows of data, one epoch is 100 iterations."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "tex": "\\theta_{\\text{new}} = \\theta_{\\text{old}} - \\alpha \\, \\nabla L(\\theta_{\\text{old}})",
+          "plain": "New parameters = old parameters minus learning rate times the gradient of the loss at the old parameters. The minus sign is what makes it descent.",
+          "symbols": [
+            [
+              "\\theta",
+              "the vector of all parameters (theta)"
+            ],
+            [
+              "\\alpha",
+              "learning rate (step size)"
+            ],
+            [
+              "\\nabla L",
+              "gradient of the loss"
+            ]
+          ]
+        },
+        {
+          "p": "Each piece has a job. The **gradient** supplies the direction and the relative sizes: parameters that matter more right now move more. The **learning rate** turns that into an actual distance. The **minus sign** flips uphill into downhill."
+        },
+        {
+          "p": "Why is the step guaranteed to help when it is small enough? Close to the current point the loss surface is nearly a flat tilted plane, and on that plane moving against the gradient is the fastest way down. A large step leaves the region where the plane is a good approximation, which is exactly when overshooting starts."
+        },
+        {
+          "p": "For the simple bowl L(w) = (w − 3)², the gradient is 2(w − 3), and the update can be rewritten to show the distance to the minimum after each step:"
+        },
+        {
+          "tex": "w_{\\text{new}} - 3 = (1 - 2\\alpha)\\,(w_{\\text{old}} - 3)",
+          "plain": "Each step multiplies the remaining gap by (1 − 2α). With α = 0.25 the gap halves every step. With α = 1 it flips sign but keeps its size, so the walker bounces for ever. With α above 1 the gap grows: divergence.",
+          "symbols": [
+            [
+              "1 - 2\\alpha",
+              "the factor the gap is multiplied by each step"
+            ]
+          ]
+        },
+        {
+          "callout": "Read that formula as a rule of thumb for any problem: there is a band of learning rates that converge, a slower band below it, and a cliff above it where training blows up. Real loss surfaces are not perfect bowls, so you find the band by experiment.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Three good steps on a bowl",
+            "setup": "L(w) = (w − 3)², gradient 2(w − 3), start w = 0, learning rate α = 0.25.",
+            "steps": [
+              "Step 1: gradient = 2 × (0 − 3) = −6. w = 0 − 0.25 × (−6) = 1.5. Loss falls from 9 to 2.25.",
+              "Step 2: gradient = 2 × (1.5 − 3) = −3. w = 1.5 + 0.75 = 2.25. Loss 0.5625.",
+              "Step 3: gradient = −1.5. w = 2.25 + 0.375 = 2.625. Loss ≈ 0.1406.",
+              "Each step halves the gap to 3 (3 → 1.5 → 0.75 → 0.375), exactly as (1 − 2α) = 0.5 predicts."
+            ],
+            "result": "w heads smoothly to 3 and the loss falls by a factor of 4 each step. After 10 steps the gap is under 0.003."
+          }
+        },
+        {
+          "example": {
+            "title": "Too small, too big, just right",
+            "setup": "Same bowl, same start w = 0. Compare four steps with α = 0.01, α = 1.0 and α = 1.1.",
+            "steps": [
+              "α = 0.01: w = 0 → 0.06 → 0.1188 → 0.1764 → 0.2329. Safe but painfully slow: after four steps it has covered under 8% of the distance.",
+              "α = 1.0: w = 0 → 6 → 0 → 6 → 0. The walker leaps across the valley and back for ever, never improving.",
+              "α = 1.1: w = 0 → 6.6 → −1.32 → 8.184 → −3.2208. Each jump overshoots further; the gap grows by 1.2 times per step. Divergence."
+            ],
+            "result": "On this bowl, any α between 0 and 1 converges and α = 0.5 lands on the minimum in one step. On real problems you test a few values (such as 0.001, 0.01, 0.1) and watch the loss curve."
+          }
+        },
+        {
+          "example": {
+            "title": "Fitting a sales line (business)",
+            "setup": "Advertising x (₹ lakh) = [1, 2, 3], sales y (₹ lakh) = [3, 5, 7]. Model ŷ = m·x + b, start m = b = 0, learning rate 0.05. The previous chapter found the starting gradient (−22.67, −10) and loss 27.67.",
+            "steps": [
+              "Step 1: m = 0 − 0.05 × (−22.67) ≈ 1.133; b = 0 − 0.05 × (−10) = 0.5. Loss ≈ 5.49.",
+              "Step 2: m ≈ 1.638, b ≈ 0.723. Loss ≈ 1.09.",
+              "Step 3: m ≈ 1.862, b ≈ 0.823. Loss ≈ 0.217.",
+              "Step 4: m ≈ 1.962, b ≈ 0.869. Loss ≈ 0.044.",
+              "After about 500 steps: m ≈ 2.000, b ≈ 1.000, loss essentially 0."
+            ],
+            "result": "Gradient descent discovers sales ≈ 2 × advertising + 1: each extra ₹1 lakh of advertising goes with about ₹2 lakh of sales in this toy data. The loss fell 99.8% in the first four steps; the remaining steps polish the intercept."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "start",
+              "step 1",
+              "step 2",
+              "step 3",
+              "step 4"
+            ],
+            "values": [
+              27.67,
+              5.49,
+              1.09,
+              0.22,
+              0.04
+            ],
+            "highlight": 1,
+            "yLabel": "mean squared error",
+            "caption": "The loss curve for the sales example. A healthy curve falls fast at first and then flattens. A curve that rises or zig-zags upwards means the learning rate is too high."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Variants: batch, stochastic, mini-batch and Adam",
+      "blocks": [
+        {
+          "p": "Computing the exact gradient needs every row of data. With millions of rows, that is expensive for a single step. The variants differ in how much data they use per step."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Variant",
+              "Rows per step",
+              "Strength",
+              "Weakness"
+            ],
+            "rows": [
+              [
+                "Batch GD",
+                "all",
+                "smooth, exact gradient",
+                "slow per step on big data"
+              ],
+              [
+                "Stochastic (SGD)",
+                "1",
+                "very cheap steps, can escape shallow traps",
+                "noisy, jittery path"
+              ],
+              [
+                "Mini-batch",
+                "e.g. 32–512",
+                "fast on GPUs, moderately smooth",
+                "one more setting (batch size)"
+              ],
+              [
+                "Momentum",
+                "any",
+                "builds speed in consistent directions",
+                "can overshoot"
+              ],
+              [
+                "Adam",
+                "any",
+                "adapts step size per parameter",
+                "may generalise slightly worse in some tasks"
+              ]
+            ],
+            "caption": "Mini-batch with Adam is the default in deep learning. scikit-learn's SGDClassifier and SGDRegressor use stochastic updates."
+          }
+        },
+        {
+          "bullets": [
+            "**Momentum** keeps a running average of past gradients, like a ball rolling downhill that keeps its speed through small bumps.",
+            "**Adam** combines momentum with a per-parameter step size, so rarely-updated parameters still move. Its default learning rate of 0.001 works surprisingly often.",
+            "**Learning-rate schedules** start larger and shrink over time: fast early progress, careful final approach."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "In the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Demand forecasting with millions of rows (illustrative)",
+            "story": "A retailer predicts daily demand for 20,000 products across 800 stores. Fitting a regression with the closed-form formula would need the whole multi-gigabyte dataset in memory at once. Instead the team trains with mini-batch stochastic gradient descent: it streams batches of 1,024 rows, updates the weights after each batch, and passes over the data a few times. They standardise every feature first, because before scaling the loss curve zig-zagged for hours: promotional spend in lakhs and a 0/1 holiday flag made the loss landscape a long, narrow valley."
+          }
+        },
+        {
+          "bullets": [
+            "**Logistic regression** in scikit-learn is fitted with gradient-based solvers such as `lbfgs`, a smarter relative of gradient descent.",
+            "**Gradient boosting** (XGBoost, LightGBM) applies the gradient idea in \"function space\": each new tree is fitted to the negative gradient of the loss.",
+            "**Neural networks and LLMs** are trained with mini-batch gradient descent, usually Adam or a variant.",
+            "**Recommender systems** learn user and product vectors by SGD on millions of ratings."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Learning rate too high:** the loss rises or explodes (shows as `nan`). Divide the learning rate by 10.",
+            "**Learning rate too low:** the loss falls in a straight, slow line. Try 3–10 times larger.",
+            "**Unscaled features:** long narrow valleys cause zig-zagging. Standardise features first.",
+            "**Local minima and saddle points:** on non-convex surfaces you can get stuck. Random restarts, momentum and the noise in SGD help.",
+            "**Stopping too early on a plateau,** or too late and overfitting: use a validation set and early stopping."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Gradient descent",
+              "items": [
+                "Works for any differentiable loss",
+                "Scales to billions of parameters",
+                "Streams data in batches",
+                "Needs a learning rate and monitoring"
+              ]
+            },
+            "right": {
+              "title": "Closed-form / other solvers",
+              "items": [
+                "Exact answer for linear regression",
+                "No learning rate to tune",
+                "Needs all data in memory",
+                "Impractical for neural networks"
+              ]
+            },
+            "caption": "For small linear problems a direct solver is simpler. For large or non-linear models, gradient descent is the only practical option."
+          }
+        },
+        {
+          "term": "Convex function",
+          "def": "A bowl-shaped function with a single valley and no other dips. Gradient descent with a sensible learning rate is guaranteed to reach its minimum. Linear and logistic regression losses are convex; neural-network losses are not."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I choose the learning rate?",
+      "a": "Try a few values spaced by factors of 10 (0.1, 0.01, 0.001) and plot the loss curves. Pick the largest that decreases smoothly. With Adam, start at 0.001."
+    },
+    {
+      "q": "Does gradient descent always find the best answer?",
+      "a": "For convex losses (linear and logistic regression) it reaches the global minimum with a suitable learning rate. For neural networks it finds a good low point, not necessarily the lowest, which in practice is usually good enough."
+    },
+    {
+      "q": "What is the difference between an epoch and an iteration?",
+      "a": "An iteration is one parameter update. An epoch is one full pass over the training data, which may contain many iterations when you use mini-batches."
+    },
+    {
+      "q": "Why scale features before gradient descent?",
+      "a": "With very different scales, the loss surface becomes a stretched valley: steep in one direction, flat in another. One learning rate cannot suit both, so steps zig-zag. Standardised features make the valley rounder and convergence much faster."
+    },
+    {
+      "q": "Is SGD worse than batch gradient descent because it is noisy?",
+      "a": "Not necessarily. Its steps are far cheaper, so it makes more progress per second on big data, and the noise can help it escape shallow local minima. Mini-batches are a compromise between the two."
+    },
+    {
+      "q": "My loss became nan. What happened?",
+      "a": "Almost always the updates blew up: the learning rate is too high, inputs are unscaled, or a log of zero appeared in the loss. Lower the learning rate, scale inputs, and check the data for extreme values."
+    }
+  ]
+}

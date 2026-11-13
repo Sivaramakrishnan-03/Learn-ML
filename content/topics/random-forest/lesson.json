@@ -1,0 +1,76 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Explain how random forests decorrelate trees",
+    "Tune the key hyperparameters",
+    "Interpret feature importance safely"
+  ],
+  "why": "Random forest is the most reliable \"first serious model\" for tabular data: strong accuracy with little tuning, no scaling, robust to outliers.",
+  "explain": [
+    "A random forest is **bagging with decision trees + one extra twist**: at every split, each tree may only consider a **random subset of features**.",
+    "Why? If one feature is very strong, every bagged tree splits on it first and the trees look alike. Averaging similar trees helps little. Random feature subsets make the trees **diverse**, and diverse errors cancel better.",
+    "A committee of varied experts beats a committee of clones. That is the whole idea.",
+    "Key hyperparameters: **n_estimators** (more is better, up to cost), **max_features** (√p for classification is the classic default), and **min_samples_leaf** / **max_depth** for smoothing. Use **permutation importance** or SHAP rather than default impurity importance."
+  ],
+  "example": {
+    "title": "Churn model comparison (CV AUC)",
+    "steps": [
+      "Logistic regression: 0.78",
+      "Single decision tree (depth 6): 0.76",
+      "Random forest, 500 trees, default settings: 0.86",
+      "Tuned min_samples_leaf = 5: 0.87"
+    ],
+    "result": "Big jump with almost no effort. That is why random forest is the default benchmark."
+  },
+  "mistakes": [
+    "Relying on impurity-based importances.",
+    "Expecting it to extrapolate beyond the training range (trees predict flat beyond the data).",
+    "Huge forests on huge data without considering memory."
+  ],
+  "takeaways": [
+    "Bagged trees + random feature subsets",
+    "Diversity makes averaging work",
+    "Strong default, little tuning needed"
+  ],
+  "use": [
+    "Tabular data baseline",
+    "Mixed feature types, outliers, non-linearity"
+  ],
+  "avoid": [
+    "Extrapolation tasks (trends beyond the data)",
+    "When the smallest, fastest or most interpretable model is required"
+  ],
+  "interview": [
+    "How does a random forest differ from bagging?",
+    "Why does it rarely overfit as trees are added?"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.inspection import permutation_importance\nfrom sklearn.model_selection import train_test_split\nX, y = load_breast_cancer(return_X_y=True, as_frame=True)\nX_tr, X_te, y_tr, y_te = train_test_split(X, y, random_state=0)\nrf = RandomForestClassifier(500, random_state=0).fit(X_tr, y_tr)\nprint(round(rf.score(X_te, y_te), 3))\nimp = permutation_importance(rf, X_te, y_te, n_repeats=5, random_state=0)\nprint(sorted(zip(imp.importances_mean.round(3), X.columns), reverse=True)[:5])"
+  },
+  "check": [
+    {
+      "q": "What does a random forest add on top of bagging?",
+      "options": [
+        "Boosting weights",
+        "A random feature subset at each split",
+        "Linear leaves",
+        "Pruning"
+      ],
+      "answer": 1,
+      "why": "This decorrelates the trees."
+    },
+    {
+      "q": "Does a random forest need feature scaling?",
+      "options": [
+        "Yes",
+        "No",
+        "Only for regression",
+        "Only with many trees"
+      ],
+      "answer": 1,
+      "why": "Tree splits are unaffected by scale."
+    }
+  ],
+  "chapterMinutes": 15
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain agglomerative clustering and dendrograms",
+    "Choose a linkage method",
+    "Cut a dendrogram to get clusters"
+  ],
+  "why": "When you do not know the number of groups and want to see the structure at every level (product taxonomies, gene families, store hierarchies), a dendrogram tells the story.",
+  "explain": [
+    "**Agglomerative** clustering starts with every point as its own cluster and repeatedly **merges the two closest clusters** until one remains.",
+    "The merge history is drawn as a **dendrogram**, a family tree in which the height of each join shows how far apart the merged clusters were.",
+    "**Linkage** defines the distance between clusters: **Ward** (minimises within-cluster variance, the usual default), **complete** (farthest points), **average**, **single** (nearest points, which can produce long chains).",
+    "**Cut** the tree at a chosen height to get clusters. Large vertical gaps in the dendrogram suggest a natural number of groups."
+  ],
+  "example": {
+    "title": "Grouping 6 stores by sales profile",
+    "steps": [
+      "Merge the two most similar stores first (S1 + S4 at height 0.8)",
+      "Then S2 + S5 (1.1), then S3 + S6 (1.3)",
+      "Then {S1, S4} + {S2, S5} at 3.0",
+      "The final merge at 7.5 is a big jump → cut below it → 2 clusters"
+    ],
+    "result": "The dendrogram shows both the 2-group and the 3-group view, and lets the business choose the level it can act on."
+  },
+  "mistakes": [
+    "Running it on very large data: it needs pairwise distances (memory ~ n²).",
+    "Using single linkage on noisy data (chaining)."
+  ],
+  "takeaways": [
+    "Merge the closest clusters repeatedly",
+    "Dendrogram shows structure at every level",
+    "Ward linkage is the usual default"
+  ],
+  "use": [
+    "Small to medium data (up to ~10k rows)",
+    "When a hierarchy or taxonomy is the goal"
+  ],
+  "avoid": [
+    "Very large datasets"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom scipy.cluster.hierarchy import linkage, fcluster\nX = np.random.default_rng(0).normal(size=(30, 2)); X[:15] += 4\nZ = linkage(X, method=\"ward\")\nprint(fcluster(Z, t=2, criterion=\"maxclust\"))\n# scipy.cluster.hierarchy.dendrogram(Z) draws the tree (needs matplotlib)"
+  },
+  "check": [
+    {
+      "q": "Agglomerative clustering starts with…",
+      "options": [
+        "One cluster of all points",
+        "Each point as its own cluster",
+        "k random centres",
+        "A density threshold"
+      ],
+      "answer": 1,
+      "why": "Bottom-up merging."
+    },
+    {
+      "q": "The height of a merge in a dendrogram shows…",
+      "options": [
+        "Cluster size",
+        "The distance between the merged clusters",
+        "The number of features",
+        "Time"
+      ],
+      "answer": 1,
+      "why": "Higher joins = less similar groups."
+    }
+  ],
+  "chapterMinutes": 19
+}

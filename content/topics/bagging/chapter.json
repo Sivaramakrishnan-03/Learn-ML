@@ -1,0 +1,463 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "In 1906 the scientist Francis Galton visited a country fair where about 800 people paid to guess the weight of an ox. Individual guesses were all over the place, but the middle of the crowd's guesses landed remarkably close to the true weight. No single villager was an expert; the crowd was. **Bagging** applies the same trick to machine learning: train many slightly different models and let them vote.",
+  "sections": [
+    {
+      "heading": "The problem: models that change their mind too easily",
+      "blocks": [
+        {
+          "p": "Imagine a retail analytics team building a **decision tree** to predict next week's demand at each store. They train it on last year's data and it looks brilliant. Then a colleague retrains it after removing just 20 rows out of 10,000, and the tree looks completely different: a different first question, different branches, different forecasts. Which tree should the business trust?"
+        },
+        {
+          "term": "Decision tree",
+          "def": "A model that makes a prediction by asking a sequence of yes/no questions about the input (\"Is the store in a metro city? Is it a festival week?\") and reading off the answer at the end of the path."
+        },
+        {
+          "p": "This jumpiness has a name: **high variance**. A high-variance model is very sensitive to the exact training rows it happened to see. Deep decision trees are the classic example. They can memorise small quirks of the data, so small changes in the data produce big changes in the model."
+        },
+        {
+          "term": "Variance (of a model)",
+          "def": "How much a model's predictions would change if you trained it on a different sample of data from the same source. High variance means the model is unstable and tends to overfit."
+        },
+        {
+          "term": "Overfitting",
+          "def": "When a model learns the noise and accidents of its training data rather than the real pattern, so it looks excellent on old data and disappoints on new data."
+        },
+        {
+          "p": "In 1996 the statistician Leo Breiman proposed a simple fix. If one tree is unstable, build **many** trees, each on a slightly different version of the data, and **average** them. The individual wobbles point in different directions and largely cancel out. He called the method **bagging**, short for **b**ootstrap **agg**regat**ing**."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "week number",
+            "yLabel": "forecast (units)",
+            "caption": "Forecasts for the same store from three trees trained on slightly different samples (colours 0, 1, 2) jump around a lot. Their average (orange) is much smoother. That smoothing is the whole point of bagging.",
+            "points": [
+              [
+                1,
+                108,
+                0
+              ],
+              [
+                2,
+                125,
+                0
+              ],
+              [
+                3,
+                98,
+                0
+              ],
+              [
+                4,
+                131,
+                0
+              ],
+              [
+                1,
+                92,
+                1
+              ],
+              [
+                2,
+                110,
+                1
+              ],
+              [
+                3,
+                121,
+                1
+              ],
+              [
+                4,
+                104,
+                1
+              ],
+              [
+                1,
+                115,
+                2
+              ],
+              [
+                2,
+                101,
+                2
+              ],
+              [
+                3,
+                112,
+                2
+              ],
+              [
+                4,
+                122,
+                2
+              ],
+              [
+                1,
+                105,
+                3
+              ],
+              [
+                2,
+                112,
+                3
+              ],
+              [
+                3,
+                110,
+                3
+              ],
+              [
+                4,
+                119,
+                3
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: many reporters, one story",
+      "blocks": [
+        {
+          "p": "Picture a newspaper editor who wants an accurate account of a busy street festival. She could send one reporter, but that reporter only sees the corner where they happen to stand. Instead she sends twenty reporters, each to a slightly different set of spots, some overlapping. Each report is incomplete and a little biased by where that reporter stood."
+        },
+        {
+          "steps": [
+            "**Each reporter sees a random slice of the festival.** Some spots are visited by several reporters, some by none.",
+            "**Each writes an honest but partial story.** Every story has its own mistakes.",
+            "**The editor combines them.** Where most reporters agree, she is confident. Where one reporter says something odd that nobody else saw, it gets outvoted.",
+            "**The final story is more reliable than any single report,** even though no new reporter was smarter than the others."
+          ],
+          "title": "How the editor gets a reliable story"
+        },
+        {
+          "p": "In bagging, each reporter is a model, each \"slice of the festival\" is a random resample of the training data, and the editor is a simple average (for numbers) or a majority vote (for categories)."
+        },
+        {
+          "think": {
+            "q": "If all twenty reporters stood at exactly the same corner, would combining their stories help?",
+            "a": "Hardly at all. They would all make the same mistakes, so averaging would not cancel anything. Combining only helps when the individual errors are different. Bagging creates that difference by giving each model a different random sample."
+          }
+        },
+        {
+          "callout": "Averaging only cancels errors that point in different directions. Bagging's job is to make the models different enough that their errors disagree.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How bagging works, step by step",
+      "blocks": [
+        {
+          "p": "The key ingredient is the **bootstrap sample**, a way to manufacture many \"new\" datasets from the one you have."
+        },
+        {
+          "term": "Bootstrap sample",
+          "def": "A new dataset of the same size as the original, made by picking rows at random **with replacement**. Some rows get picked twice or more, and some are not picked at all."
+        },
+        {
+          "term": "With replacement",
+          "def": "After picking a row, you put it back before picking again, so the same row can be picked several times. Like drawing a raffle ticket, noting the number, and dropping it back in the bowl."
+        },
+        {
+          "steps": [
+            "**Choose B**, the number of models (for example 100).",
+            "**Draw a bootstrap sample** of n rows from your n training rows.",
+            "**Train one model** (usually a deep, unpruned decision tree) on that sample.",
+            "**Repeat steps 2 and 3** until you have B models.",
+            "**Predict** for a new case by asking all B models and combining: average for regression, majority vote (or average probability) for classification."
+          ],
+          "title": "The bagging procedure"
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Original data** (n rows)",
+              "**B bootstrap samples**, each n rows drawn with replacement",
+              "**Train B models** independently (can run in parallel)",
+              "**Each model predicts** the new case",
+              "**Average or vote** → final prediction"
+            ],
+            "caption": "Bagging in one picture. Because each model is trained independently, the B models can be built at the same time on different processor cores."
+          }
+        },
+        {
+          "p": "Notice that the models never talk to each other. That makes bagging **embarrassingly parallel**: with 8 processor cores you can train 8 trees at once. In scikit-learn, `n_jobs=-1` uses every core."
+        },
+        {
+          "p": "A pleasant side effect: every bootstrap sample leaves out roughly a third of the rows. Those left-out rows are called **out-of-bag** rows, and they give you a free test set for each model."
+        },
+        {
+          "term": "Out-of-bag (OOB) rows",
+          "def": "The training rows that a particular bootstrap sample did not include. The model trained on that sample has never seen them, so they can be used to test it fairly."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Two questions deserve a formula. How many rows does a bootstrap sample leave out? And exactly how much does averaging reduce variance?"
+        },
+        {
+          "p": "**Left-out rows.** On a single draw, the chance a particular row is not picked is (1 − 1/n). We draw n times independently, so the chance it is never picked is that number multiplied by itself n times."
+        },
+        {
+          "tex": "P(\\text{row never picked}) = \\left(1 - \\frac{1}{n}\\right)^{n} \\approx e^{-1} \\approx 0.368",
+          "plain": "For a reasonably large dataset, about 36.8% of rows are left out of each bootstrap sample, and about 63.2% appear at least once.",
+          "symbols": [
+            [
+              "n",
+              "number of rows in the training data"
+            ],
+            [
+              "e",
+              "the constant 2.718…, which appears naturally in repeated-chance problems"
+            ]
+          ]
+        },
+        {
+          "p": "**Variance reduction.** Suppose each model's prediction has variance σ², and any two models' errors have correlation ρ (rho), a number between 0 (completely unrelated errors) and 1 (identical errors). Averaging B such models gives this variance:"
+        },
+        {
+          "term": "Correlation (between models)",
+          "def": "A number from −1 to 1 measuring how much two models tend to make the same mistakes. Near 1: when one is too high, so is the other. Near 0: their mistakes are unrelated."
+        },
+        {
+          "tex": "\\operatorname{Var}(\\bar{f}) = \\rho\\,\\sigma^2 + \\frac{1 - \\rho}{B}\\,\\sigma^2",
+          "plain": "The variance of the average has two parts. The first part, ρσ², is shared error that no amount of averaging can remove. The second part shrinks as you add more models B.",
+          "symbols": [
+            [
+              "\\bar{f}",
+              "the averaged (bagged) prediction"
+            ],
+            [
+              "\\sigma^2",
+              "variance of one model"
+            ],
+            [
+              "\\rho",
+              "correlation between two models' errors"
+            ],
+            [
+              "B",
+              "number of models averaged"
+            ]
+          ]
+        },
+        {
+          "p": "Read this formula slowly, because it explains the whole family of methods in this chapter group. Adding models (bigger B) kills the second term, but the first term stays. **To go further you must lower ρ, the correlation between models.** Random forests, which you will meet next, exist precisely to push ρ down."
+        },
+        {
+          "callout": "Bagging reduces **variance**, not **bias**. If every tree is systematically wrong in the same way (say, too simple to capture the pattern), averaging 1,000 of them is still wrong in that way.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "A bootstrap sample by hand",
+            "setup": "Five weekly sales figures (units): A = 10, B = 12, C = 14, D = 30, E = 16. Draw one bootstrap sample of size 5.",
+            "steps": [
+              "Roll a five-sided die five times. Suppose the rolls pick rows B, D, D, A, E.",
+              "The bootstrap sample is {12, 30, 30, 10, 16}. Row D appears twice; row C is missing.",
+              "Row C is out-of-bag for this sample. The model trained on it can be tested on C.",
+              "Chance that a given row is left out with n = 5: (4/5)⁵ = 0.32768, about 33%. For n = 1,000 it is (0.999)¹⁰⁰⁰ ≈ 0.368."
+            ],
+            "result": "Each bootstrap sample is a slightly distorted copy of the data: some rows count double, some vanish. That distortion is what makes each model different."
+          }
+        },
+        {
+          "example": {
+            "title": "How much does averaging help?",
+            "setup": "Each deep tree has prediction variance σ² = 100 (units²). Two trees' errors have correlation ρ = 0.3. Compare 1, 10, 50 and 100 trees.",
+            "steps": [
+              "B = 1: 0.3 × 100 + 0.7 × 100 / 1 = 30 + 70 = 100.",
+              "B = 10: 30 + 70 / 10 = 30 + 7 = 37.",
+              "B = 50: 30 + 70 / 50 = 30 + 1.4 = 31.4.",
+              "B = 100: 30 + 70 / 100 = 30.7.",
+              "If the trees were completely uncorrelated (ρ = 0), 50 trees would give 0 + 100 / 50 = 2."
+            ],
+            "result": "Going from 1 to 50 trees cuts variance from 100 to 31.4, a 69% drop, but it can never fall below 30 while ρ = 0.3. Lower correlation is the next lever."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "1 tree",
+              "10 trees",
+              "50 trees",
+              "100 trees",
+              "ρ = 0, 50 trees"
+            ],
+            "values": [
+              100,
+              37,
+              31.4,
+              30.7,
+              2
+            ],
+            "highlight": 2,
+            "yLabel": "variance of prediction",
+            "caption": "Most of the benefit arrives with the first few dozen models. After that the floor ρσ² = 30 dominates. Only decorrelating the models (last bar) breaks through it."
+          }
+        },
+        {
+          "example": {
+            "title": "Business case: festival demand at a sweet shop chain (illustrative)",
+            "setup": "A chain of sweet shops forecasts Diwali-week demand for kaju katli at one outlet. Three bagged trees predict 120 kg, 95 kg and 110 kg. A second question asks whether the outlet will run out of stock: five classification trees vote Yes, No, Yes, Yes, No.",
+            "steps": [
+              "Regression: average = (120 + 95 + 110) / 3 = 325 / 3 ≈ 108.3 kg.",
+              "Classification: 3 votes Yes, 2 votes No → majority says Yes, stock-out likely.",
+              "Probability-style answer: 3 / 5 = 0.6, a 60% estimated chance of stock-out.",
+              "Decision: the planner orders about 110 kg plus a safety buffer, because a stock-out during Diwali costs more than leftover sweets."
+            ],
+            "result": "The bagged forecast of about 108 kg is less exposed to any single tree's quirk than a lone tree that might have said 95 or 120."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Out-of-bag error: a free validation set",
+      "blocks": [
+        {
+          "p": "Normally you must hold back part of the data to test a model. Bagging gives you a cleverer option. For each training row, about a third of the trees never saw it. Ask only those trees to predict that row, and compare with the truth. Do this for every row and you get the **OOB error**, an honest estimate of performance on new data without sacrificing any rows."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Row",
+              "Trees that saw it",
+              "Trees that did not (OOB)",
+              "OOB prediction",
+              "Actual"
+            ],
+            "rows": [
+              [
+                "Store 1",
+                "63",
+                "37",
+                "avg of 37 trees = 104",
+                "100"
+              ],
+              [
+                "Store 2",
+                "61",
+                "39",
+                "avg of 39 trees = 87",
+                "92"
+              ],
+              [
+                "Store 3",
+                "66",
+                "34",
+                "avg of 34 trees = 140",
+                "151"
+              ]
+            ],
+            "caption": "With 100 trees, each row is out-of-bag for roughly 37 of them. Their combined prediction is a fair test because those trees never trained on that row. Numbers are illustrative."
+          }
+        },
+        {
+          "p": "In scikit-learn you switch this on with `oob_score=True` in `BaggingRegressor`, `BaggingClassifier` or the random forest classes, then read `model.oob_score_` after fitting."
+        },
+        {
+          "callout": "OOB error is usually close to a cross-validation estimate and costs almost nothing extra. Use it for quick tuning, but still keep a final untouched test set, especially when rows are ordered in time.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Bagging in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Credit risk scoring at a lender (illustrative, based on common practice)",
+            "story": "A non-banking finance company predicts which two-wheeler loan applicants will miss three EMIs in a row. A single decision tree kept changing its top rules every month as new applications arrived, which made the credit policy team nervous. Switching to a bagged ensemble of 200 trees made the scores stable from month to month: the same applicant received nearly the same score even when the training data was refreshed. Accuracy improved modestly, but the bigger win was trust. Risk officers could explain that the score was the average opinion of 200 models, and the OOB error gave them a performance number without setting aside scarce default cases."
+          }
+        },
+        {
+          "bullets": [
+            "**Random forests**, the most popular bagging method, are used everywhere from churn prediction to sensor-based fault detection.",
+            "**Bagging other models:** you can bag k-nearest neighbours or neural networks too, though trees benefit most because they are so unstable.",
+            "**Uncertainty estimates:** the spread of the B individual predictions gives a rough sense of how confident the ensemble is for a particular case."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**It does not fix bias.** Bagging shallow, too-simple models gives a stable but still poor model. Bag deep, flexible trees instead.",
+            "**It helps stable models very little.** Linear regression barely changes between bootstrap samples, so bagging it adds computation without much gain.",
+            "**It loses easy interpretability.** One tree can be drawn on a slide; 200 trees cannot. Use feature importance or SHAP values to explain the ensemble.",
+            "**Correlated trees limit the gain.** If one feature is very strong, every tree splits on it first and the trees look alike. Random forests address this.",
+            "**Memory and speed.** Storing and querying hundreds of deep trees takes more memory and prediction time than one tree."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Bagging is a good choice when…",
+              "items": [
+                "Your base model is unstable (deep trees)",
+                "You want a quick variance fix with almost no tuning",
+                "You have many cores and want parallel training",
+                "You want a free OOB performance estimate"
+              ]
+            },
+            "right": {
+              "title": "Look elsewhere when…",
+              "items": [
+                "Trees are too correlated → **Random forest**",
+                "The model is too simple (high bias) → **Boosting**",
+                "You need one readable rule set → a single pruned tree",
+                "The base model is already stable → skip bagging"
+              ]
+            },
+            "caption": "Bagging is the foundation; random forests and boosting each fix one of its limits."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does bagging make a model more accurate or just more stable?",
+      "a": "Both, through the same route. Lower variance means fewer wild predictions on new data, which usually shows up as better test accuracy. It does not make the model smarter about patterns it was too simple to learn."
+    },
+    {
+      "q": "How many models should I bag?",
+      "a": "Start with 100 to 500. Accuracy improves quickly at first and then levels off. Adding more models never causes overfitting in bagging; it only costs time and memory."
+    },
+    {
+      "q": "Why sample with replacement instead of just splitting the data into chunks?",
+      "a": "Sampling with replacement keeps every model's training set as large as the original, so each model is as strong as possible, while still making the samples different. Splitting into chunks would give each model far less data."
+    },
+    {
+      "q": "Is bagging the same as a random forest?",
+      "a": "A random forest is bagging of decision trees plus one extra trick: each split may only consider a random subset of features. That makes the trees less alike and the average better."
+    },
+    {
+      "q": "Can I use bagging for classification?",
+      "a": "Yes. Each model votes for a class, and the majority wins. scikit-learn actually averages the predicted probabilities (soft voting) when the base model provides them, which tends to work slightly better."
+    },
+    {
+      "q": "Should I prune the trees inside a bagging ensemble?",
+      "a": "Usually not. Deep, unpruned trees have low bias and high variance, and bagging is excellent at removing variance. Pruning would add bias that bagging cannot remove."
+    }
+  ]
+}

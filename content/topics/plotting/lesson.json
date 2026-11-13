@@ -1,0 +1,64 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Choose the right chart for a question",
+    "Use histograms, box plots and scatter plots for EDA",
+    "Spot outliers, skew and relationships visually"
+  ],
+  "why": "Exploratory data analysis (EDA) catches data errors, outliers and leakage before they ruin a model. Anscombe's quartet shows four datasets with identical statistics but completely different pictures.",
+  "explain": [
+    "**Histogram**: the shape of one numeric variable. Is it symmetric, skewed, or does it have two peaks?",
+    "**Box plot**: median, quartiles and outliers. Great for comparing a number across groups (salary by department).",
+    "**Scatter plot**: the relationship between two numbers. Look for trends, curves, clusters and outliers.",
+    "**Bar chart** for counts per category; **line chart** for values over time. Always label axes with units."
+  ],
+  "example": {
+    "title": "A suspicious flat price",
+    "steps": [
+      "Histogram of prices: most between ₹20–90L",
+      "One bar at ₹960L",
+      "Scatter of price vs area: that point has only 400 sq ft",
+      "Investigate: an extra zero was typed (₹96L)"
+    ],
+    "result": "One plot saved the regression model from being dragged by a typo."
+  },
+  "mistakes": [
+    "Computing statistics without ever looking at the data.",
+    "Pie charts with many slices; truncated y-axes on bar charts."
+  ],
+  "takeaways": [
+    "Plot before you model",
+    "Histogram = distribution, box = groups and outliers, scatter = relationships",
+    "Label axes and units"
+  ],
+  "practice": {
+    "code": "import pandas as pd, matplotlib.pyplot as plt\ndf = pd.DataFrame({\"area\": [900, 1200, 400, 1000], \"price\": [60, 80, 960, 70]})\ndf.plot.scatter(x=\"area\", y=\"price\"); plt.show()\ndf[\"price\"].plot.hist(bins=20); plt.show()\ndf.boxplot(column=\"price\"); plt.show()",
+    "note": "Charts need a plotting backend, so run this in Jupyter or VS Code rather than in the in-browser runner."
+  },
+  "check": [
+    {
+      "q": "Best chart to compare salary distributions across five departments?",
+      "options": [
+        "Pie chart",
+        "Box plot",
+        "Line chart",
+        "Single histogram"
+      ],
+      "answer": 1,
+      "why": "Box plots compare medians, spread and outliers side by side."
+    },
+    {
+      "q": "Best chart to see if price rises with area?",
+      "options": [
+        "Scatter plot",
+        "Pie chart",
+        "Bar chart of counts",
+        "Histogram of area"
+      ],
+      "answer": 0,
+      "why": "Scatter plots show the relationship between two numeric variables."
+    }
+  ],
+  "chapterMinutes": 17
+}

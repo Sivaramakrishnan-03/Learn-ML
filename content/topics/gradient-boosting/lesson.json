@@ -1,0 +1,77 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Explain boosting as fitting residuals",
+    "Tune learning rate, number of trees and depth",
+    "Use early stopping"
+  ],
+  "why": "Gradient boosting is the most accurate general-purpose method for tabular data. It drives credit risk, ranking, pricing and most tabular competition wins.",
+  "explain": [
+    "Start with a simple prediction (the average). Compute the **residuals**: what is still wrong. Fit a small tree to predict those residuals, add a **fraction** of it to the model, and repeat.",
+    "Like a golfer: the first shot gets near the hole; every next shot corrects what is left.",
+    "It is called \"gradient\" because the residuals are the negative gradient of the loss. Swap the loss and the same method does regression, classification (log-loss) or ranking.",
+    "Key knobs: **learning_rate** (shrinkage, e.g. 0.05), **n_estimators**, **max_depth** (3–8) and subsampling. A small learning rate with many trees plus **early stopping** on a validation set is the standard recipe."
+  ],
+  "example": {
+    "title": "Predict a house price of ₹60L",
+    "steps": [
+      "Start: predict the average, ₹45L → residual +15",
+      "Tree 1 predicts +12; learning rate 0.5 → add 6 → ₹51L, residual +9",
+      "Tree 2 predicts +8 → add 4 → ₹55L, residual +5",
+      "Tree 3 predicts +5 → add 2.5 → ₹57.5L …"
+    ],
+    "result": "Each small tree chips away at the remaining error. The learning rate prevents any single tree from over-correcting."
+  },
+  "mistakes": [
+    "A large learning rate with many trees (overfitting).",
+    "No early stopping.",
+    "Leaking the target through features. Boosting will find any leak."
+  ],
+  "takeaways": [
+    "Each tree fits the remaining error",
+    "Small learning rate + many trees + early stopping",
+    "State of the art for tabular data"
+  ],
+  "use": [
+    "Maximum accuracy on tabular data",
+    "Custom losses (ranking, quantiles)"
+  ],
+  "avoid": [
+    "Tiny datasets (overfits)",
+    "When a simple explainable model is required"
+  ],
+  "interview": [
+    "Bagging vs boosting?",
+    "What does the learning rate do in boosting?",
+    "Why can boosting overfit while random forests rarely do?"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.ensemble import HistGradientBoostingClassifier\nfrom sklearn.model_selection import cross_val_score\nX, y = load_breast_cancer(return_X_y=True)\ngb = HistGradientBoostingClassifier(learning_rate=0.05, max_iter=500, early_stopping=True, random_state=0)\nprint(cross_val_score(gb, X, y, cv=5, scoring=\"roc_auc\").mean().round(4))"
+  },
+  "check": [
+    {
+      "q": "Each new tree in gradient boosting is trained to predict…",
+      "options": [
+        "The original target",
+        "The current residuals (negative gradient)",
+        "Random noise",
+        "A bootstrap sample"
+      ],
+      "answer": 1,
+      "why": "It corrects what the ensemble still gets wrong."
+    },
+    {
+      "q": "Lowering the learning rate usually requires…",
+      "options": [
+        "Fewer trees",
+        "More trees",
+        "Deeper trees only",
+        "No change"
+      ],
+      "answer": 1,
+      "why": "Smaller steps need more of them."
+    }
+  ],
+  "chapterMinutes": 16
+}

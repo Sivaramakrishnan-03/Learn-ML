@@ -1,0 +1,77 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 11,
+  "goals": [
+    "Describe layers, activations and forward passes",
+    "Explain back-propagation as the chain rule",
+    "Train an MLP sensibly (scaling, early stopping)"
+  ],
+  "why": "Multi-layer perceptrons are the foundation of deep learning. CNNs, RNNs and transformers are specialised versions of the same layers-plus-back-propagation idea.",
+  "explain": [
+    "Stack neurons in **layers**: input → hidden layer(s) → output. Each hidden neuron learns a feature; deeper layers combine features into more abstract ones.",
+    "Non-linear **activations** (ReLU = max(0, x)) are essential. Without them, any number of layers collapses into one linear model.",
+    "**Forward pass**: compute the prediction. **Loss**: measure the error. **Back-propagation**: use the chain rule to send the error backwards and compute each weight's gradient, like a relay team passing feedback backwards so every runner improves. Then a gradient-descent optimiser (Adam) updates the weights.",
+    "Practical tips: **scale inputs**, start small (one or two hidden layers), use **early stopping** and regularisation (weight decay, dropout). For tabular data, boosting usually wins; MLPs shine on images, text and audio."
+  ],
+  "example": {
+    "title": "Solving XOR with one hidden layer",
+    "steps": [
+      "Hidden neuron h₁ ≈ OR(x₁, x₂); hidden neuron h₂ ≈ AND(x₁, x₂)",
+      "Output = h₁ AND NOT h₂",
+      "(0, 0) → 0; (1, 0) → 1; (0, 1) → 1; (1, 1) → 0",
+      "Back-propagation discovers such hidden features automatically"
+    ],
+    "result": "One hidden layer creates the non-linear boundary a single perceptron could not."
+  },
+  "mistakes": [
+    "No input scaling (training stalls).",
+    "A huge network on small tabular data (overfits; boosting is better).",
+    "Ignoring the validation loss curve."
+  ],
+  "takeaways": [
+    "Layers + non-linear activations = flexible functions",
+    "Back-propagation = the chain rule, applied backwards",
+    "Scale inputs; use early stopping"
+  ],
+  "use": [
+    "Images, text, audio, large datasets",
+    "Complex non-linear patterns"
+  ],
+  "avoid": [
+    "Small tabular data (use gradient boosting)",
+    "When interpretability is essential"
+  ],
+  "interview": [
+    "Why do we need non-linear activations?",
+    "Explain back-propagation in one minute.",
+    "What are vanishing gradients?"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import make_moons\nfrom sklearn.neural_network import MLPClassifier\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import cross_val_score\nX, y = make_moons(800, noise=0.25, random_state=0)\nmlp = make_pipeline(StandardScaler(), MLPClassifier((16, 16), early_stopping=True, max_iter=2000, random_state=0))\nprint(cross_val_score(mlp, X, y, cv=5).mean().round(3))"
+  },
+  "check": [
+    {
+      "q": "Without non-linear activations, a 10-layer network is equivalent to…",
+      "options": [
+        "A decision tree",
+        "A single linear model",
+        "k-means",
+        "An SVM with an RBF kernel"
+      ],
+      "answer": 1,
+      "why": "A composition of linear maps is linear."
+    },
+    {
+      "q": "Back-propagation computes gradients using…",
+      "options": [
+        "Bayes' theorem",
+        "The chain rule",
+        "Bootstrapping",
+        "Eigenvectors"
+      ],
+      "answer": 1,
+      "why": "The error is propagated layer by layer with the chain rule."
+    }
+  ],
+  "chapterMinutes": 16
+}

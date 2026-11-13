@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 9,
+  "goals": [
+    "Test independence between two categorical variables",
+    "Run a goodness-of-fit test",
+    "Compute the chi-square statistic from observed and expected counts"
+  ],
+  "why": "Is churn related to plan type? Are defects related to shift? Are survey answers evenly spread? Categorical questions like these are everywhere in business data.",
+  "explain": [
+    "The chi-square test compares **observed counts** with the counts you would **expect** if there were no relationship.",
+    "**Goodness of fit**: does one categorical variable match an expected distribution (is the die fair)?",
+    "**Test of independence**: are two categorical variables related (plan type vs churned yes/no)? Expected count for a cell = row total × column total ÷ grand total.",
+    "Big gaps between observed and expected give a large χ² and a small p-value. Rule of thumb: expected counts should be at least 5 in each cell."
+  ],
+  "formula": {
+    "tex": "\\chi^2 = \\sum \\frac{(O - E)^2}{E}",
+    "plain": "For each cell: (observed − expected)² ÷ expected. Then add them all up."
+  },
+  "example": {
+    "title": "Is the die loaded?",
+    "steps": [
+      "60 rolls; expected 10 per face",
+      "Observed: 5, 8, 9, 8, 10, 20",
+      "χ² = (25 + 4 + 1 + 4 + 0 + 100) / 10 = 13.4",
+      "df = 6 − 1 = 5; the 5% critical value is 11.07 → p ≈ 0.02"
+    ],
+    "result": "Reject \"fair die\". The face with 20 sixes drives almost all of the statistic."
+  },
+  "mistakes": [
+    "Using percentages instead of counts.",
+    "Applying it with tiny expected counts (use Fisher's exact test instead).",
+    "Reading \"significant\" as \"strong\": with huge samples, tiny relationships become significant. Report Cramér's V."
+  ],
+  "takeaways": [
+    "Compares observed vs expected counts",
+    "Independence test for two categorical variables",
+    "Needs expected counts ≥ 5"
+  ],
+  "practice": {
+    "code": "from scipy.stats import chisquare, chi2_contingency\nprint(chisquare([5, 8, 9, 8, 10, 20]))                       # goodness of fit\ntable = [[120, 30], [80, 70]]                                # plan A/B × stayed/churned\nchi2, p, dof, expected = chi2_contingency(table); print(round(chi2, 2), round(p, 5))"
+  },
+  "check": [
+    {
+      "q": "O = 15, E = 10 for one cell. Its contribution to χ²?",
+      "options": [
+        "0.5",
+        "2.5",
+        "25",
+        "5"
+      ],
+      "answer": 1,
+      "why": "(15 − 10)² / 10 = 2.5."
+    },
+    {
+      "q": "Which question suits a chi-square independence test?",
+      "options": [
+        "Is average salary different by gender?",
+        "Is churn (yes/no) related to plan type?",
+        "Does price predict sales?",
+        "Is height normally distributed?"
+      ],
+      "answer": 1,
+      "why": "Two categorical variables."
+    }
+  ],
+  "chapterMinutes": 18
+}

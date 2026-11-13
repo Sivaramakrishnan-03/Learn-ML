@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Run rolling-origin backtests",
+    "Choose forecast error metrics",
+    "Avoid look-ahead leakage"
+  ],
+  "why": "A forecast that looks great on shuffled data can fail badly in production. Backtesting is how you prove a forecast works before it drives inventory or staffing.",
+  "explain": [
+    "**Never shuffle time.** You cannot use tomorrow's newspaper to predict today. Train on the past, test on the future.",
+    "**Rolling-origin backtest**: train up to month 24, forecast months 25–27; then train up to 27, forecast 28–30; and so on. Average the errors across windows.",
+    "Watch out for **look-ahead leakage** in features: rolling means must only use past values, and external data must be \"as known at the time\".",
+    "Metrics: MAE and RMSE in units; **MAPE** or **WAPE** for percentages; **MASE** compares against a naive forecast. **Always compare against a naive baseline** (last value, or same period last year)."
+  ],
+  "example": {
+    "title": "Backtesting a demand model (3-month horizon)",
+    "steps": [
+      "Window 1: train Jan 2022–Dec 2023 → forecast Jan–Mar 2024: WAPE 12%",
+      "Window 2: train to Mar 2024 → Apr–Jun: WAPE 9%",
+      "Window 3: train to Jun 2024 → Jul–Sep: WAPE 15% (festival shift)",
+      "Average WAPE 12% vs seasonal-naive baseline 18%"
+    ],
+    "result": "The model beats the baseline by 6 points, and window 3 flags festival dates as a feature to add."
+  },
+  "mistakes": [
+    "Random k-fold on time series.",
+    "Features computed with future data (centred rolling windows).",
+    "Reporting a single lucky test window."
+  ],
+  "takeaways": [
+    "Train on the past, test on the future, roll forward",
+    "Beat a naive baseline",
+    "Check every feature for look-ahead"
+  ],
+  "use": [
+    "Every forecasting model before deployment"
+  ],
+  "practice": {
+    "code": "import numpy as np\nfrom sklearn.model_selection import TimeSeriesSplit\ny = np.arange(36)\nfor tr, te in TimeSeriesSplit(n_splits=4, test_size=3).split(y):\n    print(\"train up to\", tr[-1], \"→ test\", te)"
+  },
+  "check": [
+    {
+      "q": "Valid validation for a monthly forecast?",
+      "options": [
+        "Random 80/20",
+        "Rolling-origin backtest",
+        "Stratified k-fold",
+        "Leave-one-out with shuffling"
+      ],
+      "answer": 1,
+      "why": "It respects time order."
+    },
+    {
+      "q": "A naive forecast is used to…",
+      "options": [
+        "Replace the model",
+        "Provide a baseline the model must beat",
+        "Compute features",
+        "Remove seasonality"
+      ],
+      "answer": 1,
+      "why": "Without a baseline a \"12% error\" means little."
+    }
+  ],
+  "chapterMinutes": 16
+}

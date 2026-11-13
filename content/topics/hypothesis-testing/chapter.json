@@ -1,0 +1,407 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "An e-commerce team launches a new checkout button. Next week, conversion is 5.0% instead of the usual 4.0%. The product manager wants to celebrate. The data scientist asks a less exciting question: “If the button did nothing at all, how often would we see a jump this big just by chance?” That question, made precise, is a **hypothesis test**, and its answer is the famous and much-misunderstood **p-value**.",
+  "sections": [
+    {
+      "heading": "The problem: was it real, or was it luck?",
+      "blocks": [
+        {
+          "p": "Business data is noisy. Sales go up and down every week, conversion rates wobble, and two production lines never give exactly the same defect rate. So whenever we see a difference, we face the same question: is this a real effect we can act on, or just random variation that will vanish next week?"
+        },
+        {
+          "p": "Acting on noise is expensive. You roll out a “winning” website design that was never better, retrain staff on a process that did not help, or scrap a supplier who just had an unlucky month. Hypothesis testing is a disciplined way to separate signal from noise before spending money."
+        },
+        {
+          "term": "Hypothesis test",
+          "def": "A procedure for deciding whether data provide enough evidence against a default assumption of “no effect”. It measures how surprising the observed data would be if that default were true."
+        },
+        {
+          "term": "Null and alternative hypotheses",
+          "def": "The **null hypothesis** (H₀) is the boring default: no effect, no difference (the new button converts at the same rate as the old). The **alternative hypothesis** (H₁) is what you suspect: there is a difference. We test H₀, not H₁."
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the courtroom",
+      "blocks": [
+        {
+          "p": "A criminal trial is a hypothesis test in disguise. The defendant is presumed innocent. The prosecution presents evidence. The jury asks: “If this person were innocent, how likely is it that all this evidence would turn up?” Only if the evidence would be very unlikely under innocence does the jury convict."
+        },
+        {
+          "steps": [
+            "**Presumption of innocence = the null hypothesis.** We assume “no effect” until the data convince us otherwise.",
+            "**Evidence = the data.** The conversion jump, the difference in defect rates.",
+            "**Beyond reasonable doubt = the significance level.** We decide in advance how surprising evidence must be before we reject “no effect”, commonly a 5% threshold.",
+            "**Guilty verdict = reject H₀.** The data would be too surprising if there were no effect.",
+            "**Not guilty is not innocent.** A jury that acquits is saying “not proven”, not “definitely innocent”. Likewise, failing to reject H₀ does not prove there is no effect; the evidence may simply be too thin."
+          ],
+          "title": "The trial, step by step"
+        },
+        {
+          "p": "The courtroom also shows that there are **two ways to be wrong**: convicting an innocent person, or letting a guilty one go free. Making one error rarer usually makes the other more common. Statistics gives both errors names and lets you control them."
+        },
+        {
+          "think": {
+            "q": "A test of a new marketing campaign gives “not significant”. The CMO concludes the campaign has no effect and cancels it. What is the flaw?",
+            "a": "Absence of evidence is not evidence of absence. With a small test or a noisy metric, a real effect can easily fail to reach significance. Before concluding “no effect”, check the confidence interval: if it runs from, say, −1% to +6%, the test simply could not tell, and a large benefit is still plausible."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How a hypothesis test works, step by step",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**State H₀ and H₁** and choose α (e.g. 0.05)",
+              "**Collect data** and compute a test statistic",
+              "**Find the p-value**: how surprising is this under H₀?",
+              "**Decide**: p ≤ α → reject H₀; p > α → do not reject",
+              "**Report** the effect size and its confidence interval"
+            ],
+            "caption": "The five steps of every classical hypothesis test. Choosing α before looking at the data is what keeps the procedure honest."
+          }
+        },
+        {
+          "term": "Test statistic",
+          "def": "A single number summarising how far the data are from what H₀ predicts, measured in standard errors. A z-statistic of 2.4 means the observed result is 2.4 standard errors away from the “no effect” value."
+        },
+        {
+          "term": "Significance level (α)",
+          "def": "The threshold for “surprising enough”, chosen before seeing the data. α = 0.05 means you accept a 5% chance of rejecting H₀ when it is actually true. It is a policy choice, not a law of nature."
+        },
+        {
+          "term": "p-value",
+          "def": "The probability, assuming H₀ is true, of getting a result at least as extreme as the one observed. Small p-values mean the data would be surprising if there were no effect."
+        },
+        {
+          "p": "Read that last definition twice. The p-value is calculated **in a world where H₀ is true**. It answers: “If nothing were going on, how often would I see something this extreme?” It does **not** answer: “What is the chance nothing is going on?”"
+        },
+        {
+          "callout": "A p-value is **not** the probability that H₀ is true, **not** the probability that the result is due to chance, and **not** a measure of how big or important the effect is. p = 0.03 means: if there were no effect, data this extreme would turn up about 3% of the time.",
+          "tone": "warn"
+        },
+        {
+          "term": "One-sided vs two-sided",
+          "def": "A **two-sided** test counts surprises in both directions (the new button could be better or worse). A **one-sided** test counts only one direction. Two-sided is the safe default; choose one-sided only if the other direction truly does not matter, and decide before seeing data."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "Most tests share one skeleton: compare what you observed with what H₀ predicts, and scale the gap by the standard error, the typical size of random variation."
+        },
+        {
+          "tex": "z = \\frac{\\text{observed} - \\text{expected under } H_0}{\\text{standard error}}",
+          "plain": "How many standard errors the result is from the “no effect” value. By the Central Limit Theorem this is approximately standard normal when H₀ is true.",
+          "symbols": [
+            [
+              "z",
+              "test statistic"
+            ],
+            [
+              "H_0",
+              "null hypothesis"
+            ]
+          ]
+        },
+        {
+          "tex": "p = P\\big(|Z| \\ge |z_{\\text{obs}}| ;\\big|; H_0\\big) = 2\\,\\big(1 - \\Phi(|z_{\\text{obs}}|)\\big)",
+          "plain": "The two-sided p-value is the area in both tails of the standard normal beyond the observed statistic.",
+          "symbols": [
+            [
+              "z_{\\text{obs}}",
+              "the test statistic you calculated"
+            ],
+            [
+              "\\Phi",
+              "the standard normal CDF (`norm.cdf`)"
+            ],
+            [
+              "\\mid H_0",
+              "“assuming H₀ is true”"
+            ]
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)",
+            "xMin": -4,
+            "xMax": 4,
+            "shade": [
+              2.4,
+              4
+            ],
+            "marks": [
+              {
+                "x": -2.4,
+                "label": "−2.4"
+              },
+              {
+                "x": 0,
+                "label": "H₀: no effect"
+              },
+              {
+                "x": 2.4,
+                "label": "observed z = 2.4"
+              }
+            ],
+            "xLabel": "test statistic under H₀",
+            "yLabel": "density",
+            "caption": "If H₀ is true, z follows this standard normal curve. The shaded right tail beyond 2.4 holds 0.82% of the area; the matching left tail beyond −2.4 holds another 0.82%. Together they give the two-sided p-value of 0.016."
+          }
+        },
+        {
+          "p": "For comparing two proportions, such as conversion rates in an A/B test, the standard error under H₀ uses the pooled rate p̄ (both groups combined), because H₀ says the two groups share one true rate:"
+        },
+        {
+          "tex": "z = \\frac{\\hat p_B - \\hat p_A}{\\sqrt{\\bar p (1-\\bar p)\\left(\\frac{1}{n_A} + \\frac{1}{n_B}\\right)}}",
+          "plain": "Difference in observed conversion rates divided by its standard error under “no difference”.",
+          "symbols": [
+            [
+              "\\hat p_A, \\hat p_B",
+              "observed rates in groups A and B"
+            ],
+            [
+              "\\bar p",
+              "pooled rate: total conversions ÷ total visitors"
+            ],
+            [
+              "n_A, n_B",
+              "group sizes"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Is the coin fair?",
+            "setup": "A coin is tossed 100 times and lands heads 62 times. Test H₀: the coin is fair (p = 0.5), two-sided, at α = 0.05.",
+            "steps": [
+              "Under H₀ the expected number of heads is 100 × 0.5 = 50, with SD √(100 × 0.5 × 0.5) = 5.",
+              "z = (62 − 50) / 5 = 2.4.",
+              "Two-sided p-value (normal approximation) = 2 × (1 − 0.9918) = 0.016.",
+              "The exact binomial test (`scipy.stats.binomtest(62, 100)`) gives p = 0.021. Both are below 0.05.",
+              "Decision: reject H₀."
+            ],
+            "result": "If the coin were fair, 62 or more heads (or 38 or fewer) would happen only about 2% of the time. That is strong evidence of bias. It is not a 98% probability that the coin is biased."
+          }
+        },
+        {
+          "example": {
+            "title": "A/B test on a checkout button",
+            "setup": "Old button: 200 purchases from 5,000 visitors (4.0%). New button: 250 from 5,000 (5.0%). Is the difference significant at α = 0.05?",
+            "steps": [
+              "H₀: both buttons have the same true conversion rate. H₁: the rates differ.",
+              "Pooled rate p̄ = (200 + 250) / 10,000 = 0.045.",
+              "SE = √(0.045 × 0.955 × (1/5,000 + 1/5,000)) = 0.00415.",
+              "z = (0.050 − 0.040) / 0.00415 = 2.41. Two-sided p = 0.016.",
+              "95% CI for the lift: 0.19 to 1.81 percentage points."
+            ],
+            "result": "Reject H₀: a gap this large would occur only about 1.6% of the time if the buttons were equivalent. The interval shows the true lift could be as small as 0.2 points or as large as 1.8 points, which is what finance needs to value the change."
+          }
+        },
+        {
+          "example": {
+            "title": "Why “significant” results are often false (base rates)",
+            "setup": "A company tests 1,000 product ideas. Suppose only 100 truly work. Each test uses α = 0.05 and has 80% power to detect a real effect. Of the ideas declared significant, how many are real?",
+            "steps": [
+              "Real ideas detected: 80% of 100 = 80 true positives.",
+              "Useless ideas wrongly declared significant: 5% of 900 = 45 false positives.",
+              "Total significant results: 80 + 45 = 125.",
+              "Share of significant results that are false: 45 / 125 = 36%."
+            ],
+            "result": "Every individual test used α = 5%, yet over a third of the “winners” are duds. This is why p < 0.05 is not “95% sure the effect is real”: that probability depends on how many tested ideas were good in the first place."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "True positives",
+              "False positives",
+              "Missed real ideas",
+              "Correct nulls"
+            ],
+            "values": [
+              80,
+              45,
+              20,
+              855
+            ],
+            "highlight": 1,
+            "yLabel": "ideas (out of 1,000)",
+            "caption": "Outcomes of 1,000 tests when 10% of ideas are real. The 45 false positives are 36% of all 125 significant results, even with a 5% significance level."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Two kinds of error, and statistical power",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "",
+              "H₀ actually true (no effect)",
+              "H₀ actually false (real effect)"
+            ],
+            "rows": [
+              [
+                "Reject H₀",
+                "**Type I error** (false positive), probability α",
+                "Correct: real effect detected, probability = power"
+              ],
+              [
+                "Do not reject H₀",
+                "Correct: no false alarm",
+                "**Type II error** (false negative), probability β"
+              ]
+            ],
+            "caption": "The four possible outcomes of a test. You control α directly. You control β, and therefore power, mainly through sample size."
+          }
+        },
+        {
+          "term": "Type I and Type II errors",
+          "def": "A **Type I error** is a false positive: declaring an effect that is not there (convicting the innocent). A **Type II error** is a false negative: missing an effect that is there (acquitting the guilty)."
+        },
+        {
+          "term": "Power",
+          "def": "The probability that a test detects a real effect of a given size, equal to 1 − β. Conventional targets are 80% or 90%. Power rises with larger samples, larger true effects, less noisy data and a less strict α."
+        },
+        {
+          "diagram": {
+            "kind": "curve",
+            "fn": "Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)",
+            "fn2": "Math.exp(-Math.pow(x-2.8,2)/2)/Math.sqrt(2*Math.PI)",
+            "xMin": -4,
+            "xMax": 7,
+            "shade": [
+              1.96,
+              7
+            ],
+            "marks": [
+              {
+                "x": 1.96,
+                "label": "reject if z > 1.96"
+              }
+            ],
+            "xLabel": "test statistic",
+            "yLabel": "density",
+            "legend": [
+              "if H₀ is true (no effect)",
+              "if the real effect is 2.8 SE"
+            ],
+            "caption": "The left curve is the world with no effect; the right curve is a world with a real effect. Everything beyond 1.96 is rejected. Under the right curve, about 80% of the area lies beyond 1.96: that is the power. The part of the right curve below 1.96 (20%) is the Type II error."
+          }
+        },
+        {
+          "p": "**Plan power before you test.** To detect a lift from 4.0% to 4.5% conversion with 80% power at α = 0.05 (two-sided), you need about 25,550 visitors per group. With 2,000 per group the test is very likely to miss a real half-point lift and report “not significant”."
+        },
+        {
+          "callout": "An underpowered test wastes everyone’s time: it is likely to miss real effects, and the “significant” results it does produce tend to exaggerate the true effect size. Compute the sample size first (statsmodels `NormalIndPower` or `TTestIndPower`).",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "Hypothesis testing in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "The p-value debate in science",
+            "story": "In 2016 the American Statistical Association took the unusual step of publishing a formal statement on p-values. Among its principles: a p-value does not measure the probability that the studied hypothesis is true; scientific and business decisions should not be based only on whether a p-value passes a threshold; and a p-value does not measure the size or importance of an effect. The statement responded to widespread misuse across fields, including a “replication crisis” in which many published significant findings failed to hold up when repeated. The lesson for analysts is the same as for scientists: report effect sizes and confidence intervals, plan sample sizes, and be wary of a single p < 0.05."
+          }
+        },
+        {
+          "bullets": [
+            "**Product and marketing:** A/B tests on prices, page designs, email subject lines.",
+            "**Manufacturing:** does a new supplier’s material change the defect rate? Has the line drifted from its target?",
+            "**Finance:** is a trading strategy’s return different from zero, or is it data-mined luck?",
+            "**Pharma and healthcare:** clinical trials, where the significance level and sample size are fixed in advance by protocol."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Multiple testing.** Run 20 independent tests on pure noise at α = 0.05 and the chance of at least one false positive is 1 − 0.95²⁰ = 64%. Correct with Bonferroni (divide α by the number of tests) or control the false discovery rate (Benjamini–Hochberg).",
+            "**p-hacking.** Trying many metrics, segments or stopping points until something is significant. Pre-register the metric and sample size.",
+            "**Peeking.** Checking an A/B test daily and stopping the moment p < 0.05 inflates false positives far above 5%. Fix the sample size or use sequential methods built for peeking.",
+            "**Significant but trivial.** With millions of users, a 0.01% lift can be highly significant and worth nothing. Always look at the effect size.",
+            "**Not significant is not “no effect”.** Look at the confidence interval and the power.",
+            "**Treating 0.049 and 0.051 as opposites.** The evidence is almost identical; the threshold is a convention."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "What a p-value tells you",
+              "items": [
+                "How surprising the data are if H₀ were true",
+                "Small p = data hard to explain by chance alone",
+                "Depends on effect size AND sample size",
+                "One input to a decision"
+              ]
+            },
+            "right": {
+              "title": "What it does NOT tell you",
+              "items": [
+                "The probability H₀ is true",
+                "The probability the result is a fluke",
+                "How large or valuable the effect is",
+                "Whether the study design was sound"
+              ]
+            },
+            "caption": "Keep this table nearby when reading any report that says “statistically significant”."
+          }
+        },
+        {
+          "callout": "Better practice: report the estimated effect, its 95% confidence interval, and the p-value, and judge the business value of both ends of the interval. Bayesian A/B testing, which gives direct probabilities like “P(new button is better) = 0.97”, is a popular alternative when its assumptions are stated clearly.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why 0.05?",
+      "a": "Convention, popularised by the statistician Ronald Fisher in the 1920s as a convenient rule of thumb. Nothing magical happens at 0.05. High-stakes fields use stricter thresholds; particle physics famously requires about 5 standard deviations (p ≈ 3 in 10 million, one-sided) to claim a discovery."
+    },
+    {
+      "q": "If p = 0.03, is there a 97% chance my effect is real?",
+      "a": "No. The p-value assumes H₀ is true and asks how surprising the data are. The probability that the effect is real depends also on how plausible it was beforehand and on the test’s power, as the 1,000-ideas example showed."
+    },
+    {
+      "q": "What does “fail to reject H₀” mean?",
+      "a": "The data were not surprising enough to rule out “no effect”. It does not mean H₀ is true. The effect may be zero, or the test may have been too small to detect it."
+    },
+    {
+      "q": "Can I switch to a one-sided test to get a smaller p-value?",
+      "a": "Only if you decided before seeing the data that one direction is irrelevant. Switching after seeing the result halves the p-value dishonestly and doubles your false-positive rate in that direction."
+    },
+    {
+      "q": "How do hypothesis tests relate to confidence intervals?",
+      "a": "A two-sided test at level α rejects H₀ exactly when the H₀ value lies outside the matching (1 − α) confidence interval. The interval is usually more informative because it shows the size of the effect."
+    },
+    {
+      "q": "Which test should I use?",
+      "a": "It depends on the data: t-tests for comparing means, z or chi-square tests for proportions and counts, ANOVA for three or more group means, and non-parametric tests (Mann–Whitney, Wilcoxon) when assumptions fail. The next chapter covers t-tests in detail."
+    }
+  ]
+}

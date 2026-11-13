@@ -1,0 +1,426 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 16,
+  "hook": "An electric-vehicle test team logs dozens of readings on every drive: motor temperature, battery temperature, current draw, speed, vibration, outside temperature and more. Many of them move together: when the car works hard, motor heat, battery heat and current all rise at once. Forty columns may really be describing three or four underlying stories. **Principal Component Analysis (PCA)** finds those few stories and lets you work with them instead of the forty raw columns.",
+  "sections": [
+    {
+      "heading": "The problem: too many columns that say the same thing",
+      "blocks": [
+        {
+          "p": "Modern datasets are wide. A customer table can have 200 behavioural features, a factory sensor feed 500 signals, a survey 30 questions. Wide data is hard to plot, slow to model, and full of **redundancy**: columns that largely repeat each other."
+        },
+        {
+          "term": "Dimension",
+          "def": "In data science, simply a feature or column. A dataset with 40 features is called 40-dimensional, because each row is a point in a 40-axis space."
+        },
+        {
+          "term": "Dimensionality reduction",
+          "def": "Replacing many features with a smaller number of new features while keeping as much of the useful information as possible."
+        },
+        {
+          "p": "PCA is the oldest and most widely used dimensionality-reduction method. It creates new features, called **principal components**, that are combinations of the old ones. The first component captures as much of the variation in the data as any single direction can. The second captures as much of what remains as possible, and so on. Often a handful of components capture most of the information."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "feature 1",
+            "yLabel": "feature 2",
+            "line": {
+              "m": 1.04,
+              "b": 0.68
+            },
+            "caption": "Five points that rise together. The line is the first principal component: the direction along which the points are most spread out. Describing each point by its position along this line alone keeps about 98% of the variation (worked example 2).",
+            "points": [
+              [
+                1,
+                2,
+                0
+              ],
+              [
+                2,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                5,
+                0
+              ],
+              [
+                5,
+                6,
+                0
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: photographing a teapot",
+      "blocks": [
+        {
+          "p": "You must sell a teapot online with a single photograph. Shoot it from directly above and you see a circle: it could be a plate. Shoot it from the side and you see the spout, the handle and the lid: almost everything that makes it a teapot. A good angle keeps the most information in a flat picture."
+        },
+        {
+          "steps": [
+            "**Walk around the object** and look at it from every possible angle.",
+            "**Pick the angle that shows the most variety** (spout to handle is the widest view). That is your first photograph.",
+            "**For the second photo, turn exactly 90 degrees** so it shows only new information, nothing repeated from the first.",
+            "**Stop when extra photos add little.** Two or three good angles describe the teapot almost completely."
+          ],
+          "title": "Choosing the best views"
+        },
+        {
+          "p": "PCA does the same with data. Each row is a point in many dimensions. PCA looks at the cloud of points from every direction, picks the direction where the points are most spread out, then the next best direction at right angles to the first, and so on."
+        },
+        {
+          "term": "Variance",
+          "def": "How spread out values are around their average: the average squared distance from the mean. In PCA, more variance along a direction means more information about how the points differ from each other."
+        },
+        {
+          "think": {
+            "q": "Why would PCA insist that the second direction is at right angles to the first?",
+            "a": "So that it carries no repeated information. Directions at right angles give uncorrelated components: knowing a point's score on component 1 tells you nothing about its score on component 2. Each new component adds something new."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How PCA works, step by step",
+      "blocks": [
+        {
+          "term": "Principal component",
+          "def": "A new axis that is a weighted combination of the original features, chosen to capture as much variance as possible while being at right angles to the earlier components."
+        },
+        {
+          "term": "Loadings",
+          "def": "The weights that say how much each original feature contributes to a component. Large positive or negative loadings tell you what a component \"means\"."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**Standardise** every feature (mean 0, SD 1)",
+              "Compute the **covariance** (here correlation) matrix",
+              "Find its **eigenvectors** and **eigenvalues**",
+              "Sort by eigenvalue; keep the top k",
+              "**Project** each row onto the k components"
+            ],
+            "caption": "The PCA recipe. Directions come from the eigenvectors; the amount of variance each direction carries comes from the eigenvalues."
+          }
+        },
+        {
+          "steps": [
+            "**Standardise.** Subtract each feature's mean and divide by its standard deviation, so a feature measured in rupees does not dominate one measured in percentages.",
+            "**Measure how features move together** with the covariance matrix: a table showing, for every pair of features, whether they rise and fall together.",
+            "**Find the special directions** of that matrix (eigenvectors) and how much variance lies along each (eigenvalues).",
+            "**Rank the directions** from most to least variance and decide how many to keep.",
+            "**Convert each row** into its scores on the kept components. These scores are your new, shorter set of features."
+          ]
+        },
+        {
+          "callout": "In scikit-learn this is three lines: `StandardScaler`, then `PCA(n_components=0.95)` (keep enough components for 95% of the variance), then `fit_transform`. The attribute `explained_variance_ratio_` tells you how much each component holds.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "term": "Covariance",
+          "def": "A number measuring whether two features move together: positive if they tend to be above average at the same time, negative if one is high when the other is low, near zero if unrelated. For standardised features it equals the correlation."
+        },
+        {
+          "tex": "\\Sigma = \\frac{1}{n-1} X_c^{\\top} X_c",
+          "plain": "The covariance matrix. Centre the data (subtract each column's mean), multiply the centred table by itself in a particular way, and divide by n − 1. The result has the variance of each feature on its diagonal and the covariance of each pair off the diagonal.",
+          "symbols": [
+            [
+              "\\Sigma",
+              "covariance matrix (features × features)"
+            ],
+            [
+              "X_c",
+              "the centred data table (rows × features)"
+            ],
+            [
+              "n",
+              "number of rows"
+            ]
+          ]
+        },
+        {
+          "tex": "\\Sigma \\, v = \\lambda \\, v",
+          "plain": "The eigenvector equation. An eigenvector v is a direction that the covariance matrix only stretches, never turns. The stretch factor λ (the eigenvalue) equals the variance of the data along that direction.",
+          "symbols": [
+            [
+              "v",
+              "eigenvector: a direction, the loadings of one component"
+            ],
+            [
+              "\\lambda",
+              "eigenvalue: variance along that direction"
+            ]
+          ]
+        },
+        {
+          "term": "Eigenvector and eigenvalue",
+          "def": "For a covariance matrix, the eigenvectors are the principal directions of the data cloud and each eigenvalue is how much variance lies along its eigenvector. There are as many as there are features."
+        },
+        {
+          "tex": "\\text{explained variance ratio}_k = \\frac{\\lambda_k}{\\lambda_1 + \\lambda_2 + \\dots + \\lambda_p}",
+          "plain": "The share of all the variation that component k captures: its eigenvalue divided by the sum of all eigenvalues. For standardised data the sum equals the number of features.",
+          "symbols": [
+            [
+              "p",
+              "number of original features"
+            ]
+          ]
+        },
+        {
+          "tex": "z_{ik} = (x_i - \\mu) \\cdot v_k",
+          "plain": "The score of row i on component k: centre the row, then take the weighted sum of its features using the loadings of component k as weights.",
+          "symbols": [
+            [
+              "z_{ik}",
+              "score of row i on component k"
+            ],
+            [
+              "\\mu",
+              "the vector of feature means"
+            ]
+          ]
+        },
+        {
+          "p": "Why eigenvectors? We want the direction v that maximises the variance of the projected scores. That variance works out to vᵀΣv. Maximising it over directions of length one leads, by a standard calculus argument, exactly to the eigenvector equation, and the maximum variance achieved is the largest eigenvalue. Each later component solves the same problem while staying at right angles to the earlier ones."
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Two standardised features with correlation 0.8",
+            "setup": "Two survey scores, already standardised: \"satisfaction with product\" and \"likelihood to recommend\". Their correlation is 0.8, so the covariance matrix is [[1, 0.8], [0.8, 1]].",
+            "steps": [
+              "For a 2 × 2 matrix of this form, the eigenvalues are 1 + 0.8 = 1.8 and 1 − 0.8 = 0.2.",
+              "Eigenvectors: (0.707, 0.707) for 1.8, i.e. \"both scores together\"; and (0.707, −0.707) for 0.2, i.e. \"the difference between them\".",
+              "Explained variance: 1.8 / 2 = 90% for PC1 and 0.2 / 2 = 10% for PC2.",
+              "A respondent with scores (1.2, 0.8): PC1 score = 0.707 × 1.2 + 0.707 × 0.8 ≈ 1.41; PC2 score = 0.707 × 1.2 − 0.707 × 0.8 ≈ 0.28.",
+              "Keeping only PC1 and mapping back: 1.41 × (0.707, 0.707) ≈ (1.0, 1.0), close to the original (1.2, 0.8)."
+            ],
+            "result": "One number, an \"overall advocacy\" score, keeps 90% of the information in two questions. The small PC2 captures the rare cases where people like the product but would not recommend it."
+          }
+        },
+        {
+          "example": {
+            "title": "PCA by hand on five raw points",
+            "setup": "Five points (x, y): (1, 2), (2, 3), (3, 3), (4, 5), (5, 6). We keep the original units this time to see each calculation.",
+            "steps": [
+              "Means: x̄ = 3, ȳ = 3.8. Centred x: −2, −1, 0, 1, 2. Centred y: −1.8, −0.8, −0.8, 1.2, 2.2.",
+              "Variance of x = (4 + 1 + 0 + 1 + 4) / 4 = 2.5. Variance of y = (3.24 + 0.64 + 0.64 + 1.44 + 4.84) / 4 = 2.7. Covariance = (3.6 + 0.8 + 0 + 1.2 + 4.4) / 4 = 2.5.",
+              "Eigenvalues of [[2.5, 2.5], [2.5, 2.7]]: 2.6 ± √(0.1² + 2.5²) = 2.6 ± 2.502, giving 5.102 and 0.098.",
+              "Explained variance: 5.102 / 5.2 ≈ 98.1% for PC1, 1.9% for PC2. The PC1 direction is about (0.693, 0.721).",
+              "Score of the first point on PC1: (−2) × 0.693 + (−1.8) × 0.721 ≈ −2.68."
+            ],
+            "result": "Two columns compress into one with almost no loss. The scatter plot in the first section shows this PC1 line running through the cloud."
+          }
+        },
+        {
+          "example": {
+            "title": "How many components for an EV sensor dataset?",
+            "setup": "Six standardised sensor readings from EV test drives. The eigenvalues of their correlation matrix are 3.1, 1.5, 0.7, 0.4, 0.2 and 0.1 (illustrative). They add to 6, the number of features.",
+            "steps": [
+              "Explained variance: 3.1/6 ≈ 51.7%, 1.5/6 = 25.0%, 0.7/6 ≈ 11.7%, 0.4/6 ≈ 6.7%, 0.2/6 ≈ 3.3%, 0.1/6 ≈ 1.7%.",
+              "Cumulative: 51.7%, 76.7%, 88.3%, 95.0%, 98.3%, 100%.",
+              "Rule \"keep 95%\": four components. Rule \"keep eigenvalues above 1\" (the Kaiser rule): two components."
+            ],
+            "result": "The team keeps four components for an anomaly model, where small details matter, and two for dashboards, where a simple 2-D map is enough."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reading the output: explained variance and loadings",
+      "blocks": [
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "PC1",
+              "PC2",
+              "PC3",
+              "PC4",
+              "PC5",
+              "PC6"
+            ],
+            "values": [
+              51.7,
+              25,
+              11.7,
+              6.7,
+              3.3,
+              1.7
+            ],
+            "highlight": 0,
+            "yLabel": "% of variance explained",
+            "caption": "A scree plot for the EV example. The bars fall quickly and flatten after PC3 or PC4. As with the k-means elbow, the bend suggests how many components are worth keeping."
+          }
+        },
+        {
+          "p": "Once you know how many components to keep, you want to know what they mean. The loadings tell you. Look for the features with the largest weights (positive or negative) on each component and ask what they have in common."
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Sensor",
+              "PC1 loading",
+              "PC2 loading"
+            ],
+            "rows": [
+              [
+                "Motor temperature",
+                "0.48",
+                "−0.29"
+              ],
+              [
+                "Battery temperature",
+                "0.47",
+                "−0.23"
+              ],
+              [
+                "Current draw",
+                "0.45",
+                "0.04"
+              ],
+              [
+                "Speed",
+                "0.42",
+                "0.22"
+              ],
+              [
+                "Vibration",
+                "0.38",
+                "−0.04"
+              ],
+              [
+                "Outside temperature",
+                "0.17",
+                "0.90"
+              ]
+            ],
+            "caption": "Illustrative loadings. PC1 weights the work-related sensors almost equally, so it reads as \"how hard the car is working\". PC2 is dominated by outside temperature, so it reads as \"weather conditions\"."
+          }
+        },
+        {
+          "bullets": [
+            "**Signs are arbitrary.** A component and its mirror image (all loadings multiplied by −1) are equally valid; different software may flip them.",
+            "**Scores are new features.** Use them in regression, clustering or charts like any other column.",
+            "**Choosing k:** a cumulative target (90–95%) for modelling; 2 or 3 for visualisation; or the scree-plot bend."
+          ]
+        },
+        {
+          "callout": "High variance is not the same as importance for your prediction. A low-variance component can carry the signal that predicts failures. If you use PCA before a supervised model, choose k by validation performance, not only by explained variance.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "PCA in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Level, slope and curvature of the yield curve",
+            "story": "Interest rates for many maturities (3 months, 1 year, 5 years, 10 years, 30 years) move largely together. A classic and widely replicated finding in finance is that PCA on daily changes in these rates gives three components that explain most of the movement: a **level** component (all rates up or down together), a **slope** component (short rates moving against long rates) and a **curvature** component (the middle moving against the ends). Risk teams therefore describe a bond portfolio's exposure with three numbers instead of dozens, and stress-test it by shocking those three factors."
+          }
+        },
+        {
+          "bullets": [
+            "**Surveys:** compress 20 correlated satisfaction questions into a few indices such as \"overall satisfaction\" and \"value versus service\".",
+            "**Images:** the classic \"eigenfaces\" method represents face images by a few dozen components instead of thousands of pixels.",
+            "**Genomics:** PCA of genetic data famously separates populations by geography on a 2-D plot.",
+            "**Pre-processing:** speed up models and reduce noise before clustering or regression; also remove multicollinearity, since components are uncorrelated."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Forgetting to scale.** Without standardising, a feature with large units (salary in rupees) takes over PC1 simply because its numbers are big.",
+            "**Leakage.** Fit the scaler and PCA on training data only, then apply them to test data, ideally inside a scikit-learn `Pipeline`.",
+            "**Only straight-line structure.** PCA finds flat directions. Data lying on a curved surface (a spiral, a ring) needs non-linear methods such as t-SNE or UMAP (next chapter) or kernel PCA.",
+            "**Outliers.** A few extreme points can tilt the components, because variance squares distances.",
+            "**Harder to explain.** \"PC3 increased\" means little to a plant manager until you translate it through the loadings."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "PCA",
+              "items": [
+                "Linear: rotates and drops axes",
+                "Fast and deterministic",
+                "Preserves global structure and large distances",
+                "Can transform new data",
+                "Good for modelling and compression"
+              ]
+            },
+            "right": {
+              "title": "t-SNE / UMAP",
+              "items": [
+                "Non-linear: bends and stretches",
+                "Slower; results vary between runs",
+                "Preserves local neighbourhoods",
+                "t-SNE cannot transform new data; UMAP can",
+                "Good for 2-D visual exploration"
+              ]
+            },
+            "caption": "Use PCA for features you feed into models; use t-SNE or UMAP for pictures you look at. A common pipeline runs PCA to about 50 dimensions first, then t-SNE or UMAP to 2."
+          }
+        },
+        {
+          "callout": "If you have labels and want directions that separate classes rather than directions of maximum spread, look at Linear Discriminant Analysis (LDA), the supervised cousin of PCA.",
+          "tone": "key"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is PCA a feature-selection method?",
+      "a": "No. Feature selection keeps some original columns and drops others. PCA builds new columns that mix all the original ones."
+    },
+    {
+      "q": "Do I always need to standardise?",
+      "a": "Almost always, when features have different units. Only skip it if all features share the same units and you want larger-variance features to count more."
+    },
+    {
+      "q": "How many components should I keep?",
+      "a": "Common rules: enough for 90–95% cumulative explained variance, the bend in the scree plot, or simply 2–3 for plotting. For a predictive model, tune k by validation."
+    },
+    {
+      "q": "Can PCA handle categorical data?",
+      "a": "Not directly; it needs numbers. One-hot encoded data can be used with care, but methods such as multiple correspondence analysis are designed for categories."
+    },
+    {
+      "q": "Why do my component signs differ from a colleague's?",
+      "a": "Eigenvectors are only defined up to a sign flip. Both versions describe the same axis; interpret the pattern of loadings, not the sign."
+    },
+    {
+      "q": "Does PCA lose information?",
+      "a": "Yes, whatever lies in the dropped components. Keeping all components loses nothing but also reduces nothing. The explained-variance ratio tells you exactly how much you keep."
+    }
+  ]
+}

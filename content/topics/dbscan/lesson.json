@@ -1,0 +1,71 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Explain density-based clustering",
+    "Tune eps and min_samples",
+    "Use DBSCAN to label noise and outliers"
+  ],
+  "why": "DBSCAN finds clusters of any shape and marks outliers automatically: GPS hotspots, fraud rings, sensor anomalies. No need to choose k.",
+  "explain": [
+    "A point is a **core point** if at least **min_samples** points lie within radius **eps** of it. Core points that are close to each other join the same cluster, so clusters grow through dense regions.",
+    "Points near a cluster but not dense themselves are **border** points. Everything else is **noise** (label −1).",
+    "Like crowds at a festival: dense groups form clusters, scattered wanderers are noise.",
+    "Tuning: set min_samples ≈ 2 × the number of features; pick eps from the \"knee\" of a k-distance plot. It struggles when clusters have very different densities (try HDBSCAN)."
+  ],
+  "example": {
+    "title": "Delivery hotspots from GPS points",
+    "steps": [
+      "eps = 300 m, min_samples = 20",
+      "Dense areas such as markets and tech parks → clusters of any shape, even along roads",
+      "Isolated one-off deliveries → noise",
+      "Result: 7 hotspots, 4% of points labelled noise"
+    ],
+    "result": "K-means would have forced every point into a round cluster, including the outliers."
+  },
+  "mistakes": [
+    "Not scaling features.",
+    "A single eps for clusters of very different density.",
+    "Treating noise points as errors when they may be the interesting anomalies."
+  ],
+  "takeaways": [
+    "Clusters = dense connected regions",
+    "No k needed; finds any shape",
+    "Noise points are labelled −1"
+  ],
+  "use": [
+    "Arbitrary shapes, outlier detection, spatial data"
+  ],
+  "avoid": [
+    "Varying densities (HDBSCAN)",
+    "High-dimensional data"
+  ],
+  "practice": {
+    "code": "from sklearn.datasets import make_moons\nfrom sklearn.cluster import DBSCAN, KMeans\nX, _ = make_moons(400, noise=0.06, random_state=0)\nprint(\"DBSCAN labels:\", set(DBSCAN(eps=0.2, min_samples=8).fit(X).labels_))\nprint(\"k-means splits the moons badly:\", KMeans(2, n_init=10, random_state=0).fit(X).labels_[:10])"
+  },
+  "check": [
+    {
+      "q": "DBSCAN labels outliers as…",
+      "options": [
+        "0",
+        "−1",
+        "The nearest cluster",
+        "They are dropped"
+      ],
+      "answer": 1,
+      "why": "Noise points get the label −1."
+    },
+    {
+      "q": "Which shape suits DBSCAN better than k-means?",
+      "options": [
+        "Three round blobs",
+        "Two interleaved moons",
+        "Equal-size squares",
+        "One cluster"
+      ],
+      "answer": 1,
+      "why": "Density connectivity follows curved shapes."
+    }
+  ],
+  "chapterMinutes": 17
+}

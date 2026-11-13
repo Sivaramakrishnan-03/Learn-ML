@@ -1,17 +1,19 @@
 import { hasAnim, isAnimated, useTopicAnim } from '../anim/registry';
-import { minutesOf } from '../lessons/minutes';
 import { Suspense, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { TOPICS, TOPIC_BY_ID, TRACKS, linearOrder } from '../data/curriculum';
 import { GLOSSARY } from '../data/glossary';
-import { LESSONS } from '../lessons';
+import { LESSONS, minutesOf } from '../content';
 import { MODELS } from '../models/registry';
 import { MODEL_HOWTO } from '../models/howto';
 import { isUnlocked, progress, useProgress } from '../lib/progress';
 import { Pipeline } from '../components/Pipeline';
 import { MathSteps } from '../components/MathSteps';
 import { CodeLab } from '../components/CodeLab';
-import { Quiz } from '../components/Quiz';
+import { TopicQuiz } from '../components/TopicQuiz';
+import { TopicCheatSheet } from '../components/TopicCheatSheet';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ReportIssue } from '../components/ReportIssue';
 import { CheatSheet } from '../components/CheatSheet';
 import { LessonView } from '../components/LessonView';
 import { HowTo, GENERIC_HOWTO } from '../components/HowTo';
@@ -78,6 +80,7 @@ export default function TopicPage() {
         </div>
       </details>
 
+      <ErrorBoundary resetKey={id + tab}>
       {model ? <>
         <div className="journey">
           <span className="small muted">Suggested path:</span>
@@ -106,7 +109,7 @@ export default function TopicPage() {
         {tab === 'Pipeline' && <><HowTo spec={GENERIC_HOWTO.Pipeline} /><Pipeline stages={model.pipeline} /></>}
         {tab === 'Math' && <><HowTo spec={GENERIC_HOWTO.Math} /><MathSteps steps={model.math} /></>}
         {tab === 'Code' && <><HowTo spec={GENERIC_HOWTO.Code} /><CodeLab snippets={model.code} /></>}
-        {tab === 'Quiz' && <><HowTo spec={GENERIC_HOWTO.Quiz} /><Quiz items={model.quiz} onPass={complete} /></>}
+        {tab === 'Quiz' && <><HowTo spec={GENERIC_HOWTO.Quiz} /><TopicQuiz id={id} lesson={lesson} extra={model.quiz} onPass={complete} /></>}
         {tab === 'Cheat sheet' && <><HowTo spec={GENERIC_HOWTO['Cheat sheet']} /><CheatSheet>{model.cheatsheet}</CheatSheet></>}
         {tab === 'Deep dive' && model.Guide && <>
           <div className="caption" style={{ marginBottom: 12 }}>📘 This is the <b>practitioner-level</b> guide: assumptions, diagnostics, inference, model selection and more. New to the topic? Start with the <button className="link-btn" onClick={() => go('Lesson')}>📖 Lesson</button> first.</div>
@@ -115,14 +118,14 @@ export default function TopicPage() {
       </> : hasAnim(id) ? <>
         <div className="journey">
           <span className="small muted">Suggested path:</span>
-          {JOURNEY.filter((j) => j.tab !== 'Quiz').map((j, i) => (
+          {JOURNEY.map((j, i) => (
             <button key={j.tab} className={`journey-step ${tab === j.tab ? 'on' : ''}`} onClick={() => go(j.tab)}>
               <span className="journey-n">{i + 1}</span>{j.text}
             </button>
           ))}
         </div>
         <div className="tabs">
-          {(['Lesson', 'Animate', 'Playground'] as Tab[]).map((x) => (
+          {(['Lesson', 'Animate', 'Playground', 'Quiz', 'Cheat sheet'] as Tab[]).map((x) => (
             <button key={x} className={`tab ${tab === x ? 'active' : ''}`} onClick={() => setTab(x)}>{LABEL[x]}</button>
           ))}
         </div>
@@ -136,16 +139,20 @@ export default function TopicPage() {
               : tab === 'Animate' ? <><HowTo spec={ta.anim.howto.Animate} /><ta.anim.Animate /></>
                 : <><HowTo spec={ta.anim.howto.Playground} /><ta.anim.Playground /></>
         )}
+        {tab === 'Quiz' && lesson && <><HowTo spec={GENERIC_HOWTO.Quiz} /><TopicQuiz id={id} lesson={lesson} onPass={complete} /></>}
+        {tab === 'Cheat sheet' && lesson && <><HowTo spec={GENERIC_HOWTO['Cheat sheet']} /><TopicCheatSheet topic={t} lesson={lesson} /></>}
       </> : lesson ? <>
         <LessonView topic={t} lesson={lesson} onPass={complete} />
       </> : null}
+      </ErrorBoundary>
 
       {terms.length > 0 && <div style={{ marginTop: 22 }}>
         <h3>📖 Key terms</h3>
         <div className="grid g2">{terms.map((g) => <div key={g.term} className="small"><b>{g.term}</b>: {g.def}</div>)}</div>
       </div>}
 
-      <div className="row" style={{ marginTop: 28, borderTop: '1px solid #2a3342', paddingTop: 14 }}>
+      <div className="row" style={{ marginTop: 22 }}><ReportIssue topicId={id} tab={tab} /></div>
+      <div className="row" style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
         {prev && <Link className="btn" to={`/topic/${prev.id}`}>← Previous: {prev.title}</Link>}
         <span className="spacer" />
         {next && <Link className="btn primary" to={`/topic/${next.id}`}>Next: {next.title} →</Link>}

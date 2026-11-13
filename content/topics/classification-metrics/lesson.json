@@ -1,0 +1,69 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Read a confusion matrix",
+    "Compute precision, recall and F1",
+    "Choose metrics for imbalanced problems"
+  ],
+  "why": "In fraud, medical screening or churn, accuracy is misleading. A model that never flags fraud is 99% \"accurate\" and completely useless.",
+  "explain": [
+    "The **confusion matrix** counts four outcomes: true positives (caught fraud), false positives (false alarms), false negatives (missed fraud) and true negatives.",
+    "**Precision** = of everything flagged, how much was really positive? It matters when false alarms are costly (blocking a genuine customer's card).",
+    "**Recall** = of all real positives, how many did we catch? It matters when misses are costly (missing a cancer).",
+    "**F1** balances the two. **ROC-AUC** measures ranking quality across all thresholds; **PR-AUC** is more informative when positives are rare. Most classifiers output probabilities; the **threshold** (default 0.5) is a business decision."
+  ],
+  "formula": {
+    "tex": "\\text{Precision} = \\frac{TP}{TP+FP}, \\quad \\text{Recall} = \\frac{TP}{TP+FN}",
+    "plain": "Precision: share of alarms that were real. Recall: share of real cases that raised an alarm."
+  },
+  "example": {
+    "title": "Fraud model on 1,000 transactions (20 frauds)",
+    "steps": [
+      "Model flags 30: 15 real frauds (TP), 15 false alarms (FP)",
+      "Missed frauds FN = 20 − 15 = 5",
+      "Precision = 15 / 30 = 50%",
+      "Recall = 15 / 20 = 75%",
+      "Accuracy = (15 + 965) / 1000 = 98%, impressive-looking but uninformative"
+    ],
+    "result": "The useful story: \"we catch 75% of fraud, and half of our alerts are real\"."
+  },
+  "mistakes": [
+    "Using accuracy on imbalanced data.",
+    "Keeping the 0.5 threshold without checking business costs.",
+    "Reporting ROC-AUC alone for very rare events."
+  ],
+  "takeaways": [
+    "Confusion matrix first",
+    "Precision = trust in alarms; recall = coverage of real cases",
+    "Choose the threshold by the cost of errors"
+  ],
+  "practice": {
+    "code": "from sklearn.metrics import confusion_matrix, classification_report\ny_true = [1]*20 + [0]*980\ny_pred = [1]*15 + [0]*5 + [1]*15 + [0]*965\nprint(confusion_matrix(y_true, y_pred))\nprint(classification_report(y_true, y_pred, digits=3))"
+  },
+  "check": [
+    {
+      "q": "TP = 40, FP = 10, FN = 40. Precision?",
+      "options": [
+        "50%",
+        "80%",
+        "40%",
+        "20%"
+      ],
+      "answer": 1,
+      "why": "40 / (40 + 10) = 0.8."
+    },
+    {
+      "q": "Cancer screening: which metric matters most?",
+      "options": [
+        "Precision",
+        "Recall",
+        "Accuracy",
+        "R²"
+      ],
+      "answer": 1,
+      "why": "Missing a real case (false negative) is the costly error."
+    }
+  ],
+  "chapterMinutes": 17
+}

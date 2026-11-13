@@ -1,0 +1,376 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 15,
+  "hook": "An e-commerce team redesigns its checkout button. The week after launch, sales rise 8%, and the designer is a hero. But that week also had a festival sale, a competitor's outage and a payday. Did the button do anything? Nobody can say. Companies such as Amazon, Booking.com and Netflix are well known for settling questions like this differently: they show the old and new versions to randomly chosen customers **at the same time** and compare. That is an **A/B test**, and it is how product decisions move from opinion to evidence.",
+  "sections": [
+    {
+      "heading": "The problem: before-and-after comparisons lie",
+      "blocks": [
+        {
+          "p": "The most natural way to judge a change is to compare \"before\" with \"after\". It is also one of the least reliable. Sales move for dozens of reasons every week: seasons, holidays, prices, marketing, weather, competitors. A before-and-after comparison mixes the effect of your change with all of these."
+        },
+        {
+          "p": "What you really want is a parallel universe: the same customers, the same week, with and without your change. You cannot have that. But you can get very close by splitting customers **at random** into two groups and treating them differently at the same time."
+        },
+        {
+          "term": "A/B test (randomised controlled experiment)",
+          "def": "An experiment where users are randomly assigned to see version A (the current one, called the control) or version B (the change, called the variant), and an outcome is compared between the groups."
+        },
+        {
+          "term": "Randomisation",
+          "def": "Assigning each user to a group by chance, like a coin flip. Because chance decides, the groups end up similar in every respect (age, device, mood, payday) except the change you are testing."
+        },
+        {
+          "p": "Randomisation is the magic ingredient. Festival shoppers, bargain hunters and mobile users all land in both groups in roughly equal shares. So if group B buys more, the only systematic difference left to explain it is the change itself."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "**All visitors**",
+              "**Random split** 50 / 50",
+              "**A: old checkout** and **B: new checkout**, same days",
+              "**Measure** conversion in each group",
+              "**Compare** with a statistical test"
+            ],
+            "caption": "An A/B test. Because the split is random and simultaneous, outside events hit both groups equally and cancel out of the comparison."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: the twin restaurants",
+      "blocks": [
+        {
+          "p": "Imagine a restaurant owner who wants to know whether a new menu sells more desserts. She owns two identical branches on the same street."
+        },
+        {
+          "steps": [
+            "**Bad plan:** change the menu in both branches next month and compare with this month. If next month has a cricket final or a heatwave, the comparison is ruined.",
+            "**Better plan:** this month, branch 1 keeps the old menu and branch 2 gets the new one. But perhaps branch 2 has a better waiter.",
+            "**Best plan:** every arriving guest is handed a menu at random, old or new, by a coin flip. Same evenings, same waiters, same weather.",
+            "**After enough guests,** compare the dessert rate between old-menu and new-menu tables.",
+            "**Ask whether the gap is bigger than luck** would produce with that many guests."
+          ],
+          "title": "From a bad plan to a fair test"
+        },
+        {
+          "p": "The last step matters. Even with two identical menus, the dessert rates will never match exactly, just as two fair coins tossed 100 times rarely give exactly the same number of heads. The statistics tell you whether the gap is real or noise."
+        },
+        {
+          "think": {
+            "q": "Why not just let guests choose which menu they want?",
+            "a": "Because the guests who choose the new menu may be different people: more adventurous, or hungrier. Any difference in desserts could come from who chose, not from the menu. Only random assignment removes this self-selection."
+          }
+        },
+        {
+          "callout": "Randomisation turns \"these two things happened together\" (correlation) into \"this change caused that difference\" (causation). It is the one tool that reliably makes that leap.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "How to run an A/B test, step by step",
+      "blocks": [
+        {
+          "steps": [
+            "**Write down the hypothesis.** \"The new checkout button increases purchase conversion.\"",
+            "**Choose one primary metric** before you start, such as conversion rate (purchases ÷ visitors). Secondary metrics can be monitored but do not decide the test.",
+            "**Choose the minimum detectable effect (MDE):** the smallest lift worth acting on, for example from 4.0% to 4.8%.",
+            "**Calculate the sample size** for that MDE, with a 5% significance level and 80% power.",
+            "**Randomise** users (not page views) into A and B, and check the split came out as planned.",
+            "**Run until the planned sample size is reached,** covering full weeks to include weekday and weekend behaviour.",
+            "**Analyse once:** compute the difference, its confidence interval and the p-value. Then decide."
+          ],
+          "title": "The A/B testing playbook"
+        },
+        {
+          "term": "Minimum detectable effect (MDE)",
+          "def": "The smallest improvement you care about detecting. Smaller effects need much larger samples, so this is a business decision as much as a statistical one."
+        },
+        {
+          "term": "Statistical power",
+          "def": "The probability that the test detects a real effect of at least the MDE. 80% power means that if the true lift is as big as the MDE, the test will call it significant 8 times out of 10."
+        },
+        {
+          "term": "Significance level (α)",
+          "def": "The false-alarm rate you accept: the chance of declaring a winner when the change actually does nothing. Usually 5%."
+        },
+        {
+          "p": "Why decide all of this in advance? Because every decision made after seeing the data (which metric, when to stop, which segment) gives luck another chance to fool you."
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "For conversion rates, the standard analysis is the **two-proportion z-test**. It asks: how many standard errors apart are the two rates?"
+        },
+        {
+          "tex": "z = \\frac{\\hat{p}_B - \\hat{p}_A}{\\sqrt{\\hat{p}\\,(1-\\hat{p})\\left(\\frac{1}{n_A} + \\frac{1}{n_B}\\right)}}",
+          "plain": "The observed difference in conversion rates divided by how much difference you would expect from noise alone. Big |z| (above about 1.96) means p < 0.05.",
+          "symbols": [
+            [
+              "\\hat{p}_A, \\hat{p}_B",
+              "observed conversion rates in A and B"
+            ],
+            [
+              "\\hat{p}",
+              "pooled rate: all conversions ÷ all visitors"
+            ],
+            [
+              "n_A, n_B",
+              "visitors in each group"
+            ]
+          ]
+        },
+        {
+          "p": "The bottom of the fraction is the **standard error of the difference**. It shrinks as samples grow, which is why bigger tests can detect smaller effects. The pooled rate is used because, under the null hypothesis, both groups share one true rate."
+        },
+        {
+          "tex": "n \\approx \\frac{(z_{1-\\alpha/2} + z_{1-\\beta})^2 \\, \\left[p_A(1-p_A) + p_B(1-p_B)\\right]}{(p_B - p_A)^2}",
+          "plain": "Visitors needed per group. The top grows with how confident and powerful you want to be; the bottom is the squared effect size. Halving the MDE roughly quadruples the sample size.",
+          "symbols": [
+            [
+              "z_{1-\\alpha/2}",
+              "1.96 for a 5% two-sided test"
+            ],
+            [
+              "z_{1-\\beta}",
+              "0.84 for 80% power"
+            ],
+            [
+              "p_B - p_A",
+              "the minimum detectable effect"
+            ]
+          ]
+        },
+        {
+          "tex": "(\\hat{p}_B - \\hat{p}_A) \\pm 1.96 \\sqrt{\\frac{\\hat{p}_A(1-\\hat{p}_A)}{n_A} + \\frac{\\hat{p}_B(1-\\hat{p}_B)}{n_B}}",
+          "plain": "A 95% confidence interval for the lift. Report this, not just the p-value: it shows the range of plausible effects, which is what the business needs for a decision."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "4% → 6%",
+              "4% → 5%",
+              "4% → 4.8%",
+              "4% → 4.4%"
+            ],
+            "values": [
+              1860,
+              6742,
+              10313,
+              39472
+            ],
+            "highlight": 3,
+            "yLabel": "visitors needed per arm",
+            "caption": "Sample size per group at a 4% baseline, 5% significance and 80% power. Detecting a 0.4-point lift needs about 39,500 visitors per arm, almost four times the 10,300 needed for 0.8 points, and over twenty times the 1,900 needed for 2 points. Small effects are expensive to detect."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "An under-powered test",
+            "setup": "A: 1,000 visitors, 50 purchases (5.0%). B: 1,000 visitors, 65 purchases (6.5%). The team is excited about a 30% relative lift.",
+            "steps": [
+              "Pooled rate = 115 ÷ 2,000 = 5.75%.",
+              "Standard error = √(0.0575 × 0.9425 × (1/1,000 + 1/1,000)) = 0.0104, i.e. 1.04 points.",
+              "z = (0.065 − 0.050) ÷ 0.0104 = 1.44. Two-sided p = 0.15.",
+              "95% CI for the lift: −0.5 to +3.5 points. It includes zero.",
+              "Sample size needed to detect 5.0% → 6.5% with 80% power: about 3,800 per arm."
+            ],
+            "result": "Not significant. The test is not evidence that B fails; it is evidence that 1,000 visitors per arm was too few. The interval says the truth could be anything from slightly worse to much better."
+          }
+        },
+        {
+          "example": {
+            "title": "Planning the sample size (business case, illustrative)",
+            "setup": "An online electronics retailer converts 4.0% of checkout visitors. A lift to 4.8% (a 20% relative improvement) would justify the redesign. Use α = 5%, power = 80%.",
+            "steps": [
+              "(1.96 + 0.84)² = 7.85.",
+              "Variance part: 0.04 × 0.96 + 0.048 × 0.952 = 0.0384 + 0.0457 = 0.0841.",
+              "Effect squared: (0.008)² = 0.000064.",
+              "n = 7.85 × 0.0841 ÷ 0.000064 ≈ 10,300 visitors per arm.",
+              "With 1,500 checkout visitors a day split 50/50, 2 × 10,300 visitors takes about 14 days, conveniently two full weekly cycles."
+            ],
+            "result": "Plan for at least 10,300 visitors per arm, decided before launch, and do not stop early."
+          }
+        },
+        {
+          "example": {
+            "title": "Analysing the planned test",
+            "setup": "After two weeks: A has 10,500 visitors and 420 purchases (4.0%); B has 10,500 visitors and 504 purchases (4.8%).",
+            "steps": [
+              "Pooled rate = 924 ÷ 21,000 = 4.4%.",
+              "Standard error = √(0.044 × 0.956 × 2 ÷ 10,500) = 0.00283, i.e. 0.28 points.",
+              "z = 0.008 ÷ 0.00283 = 2.83. p = 0.0047.",
+              "95% CI for the lift: +0.25 to +1.35 points.",
+              "If the average order is ₹4,000 and 1,500 visitors a day reach checkout, an extra 0.8 points is about 12 more orders, roughly ₹48,000 of extra revenue per day; the cautious end of the interval (0.25 points) is still about ₹15,000 a day."
+            ],
+            "result": "Ship B. The decision rests on the whole interval being above zero and even its low end being worth the effort."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Test",
+              "Visitors per arm",
+              "A rate",
+              "B rate",
+              "z",
+              "p-value",
+              "95% CI for lift"
+            ],
+            "rows": [
+              [
+                "Under-powered",
+                "1,000",
+                "5.0%",
+                "6.5%",
+                "1.44",
+                "0.15",
+                "−0.5 to +3.5 pts"
+              ],
+              [
+                "Planned",
+                "10,500",
+                "4.0%",
+                "4.8%",
+                "2.83",
+                "0.005",
+                "+0.25 to +1.35 pts"
+              ]
+            ],
+            "caption": "Two tests side by side. A bigger raw lift with too few visitors proves nothing; a planned test with enough visitors gives a narrow interval clear of zero."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Guardrails: peeking, many metrics and broken splits",
+      "blocks": [
+        {
+          "p": "**Peeking.** It is tempting to check results every day and stop as soon as p dips below 0.05. But p-values wander up and down by chance during a test. Each look is another chance for a fluke."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "Look once at the end",
+              "Peek 10 times, stop at first p < 0.05"
+            ],
+            "values": [
+              5,
+              20
+            ],
+            "highlight": 1,
+            "yLabel": "false-positive rate (%)",
+            "caption": "Simulated A/A tests (two identical versions). Looking once keeps false winners at 5%. Peeking ten times and stopping at the first \"significant\" result declares a false winner about 20% of the time."
+          }
+        },
+        {
+          "bullets": [
+            "**Many metrics:** test 20 metrics and about one will be \"significant\" by luck. Fix one primary metric in advance, or correct for multiple comparisons.",
+            "**Sample ratio mismatch (SRM):** a planned 50/50 split that came out 10,300 vs 9,700 has a chi-square p of about 0.00002. Something is broken (a redirect bug, bots, a tracking failure). Fix it before trusting any result.",
+            "**Novelty effect:** users click a new design because it is new. Run long enough for that to fade.",
+            "**Wrong unit:** randomise users, not page views, or the same person sees both versions."
+          ]
+        },
+        {
+          "callout": "If you need to monitor continuously, use methods designed for it: **sequential testing** with adjusted thresholds, or a Bayesian analysis with a pre-agreed decision rule.",
+          "tone": "tip"
+        }
+      ]
+    },
+    {
+      "heading": "A/B testing in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Experimentation at scale",
+            "story": "Large online companies such as Microsoft (Bing), Booking.com, Amazon and Netflix have publicly described running thousands of controlled experiments a year. A widely shared lesson from their published experience is humbling: most ideas, even ones experts were confident about, produce no measurable improvement, and some make things worse. The value of the experimentation culture is not that each test wins; it is that losing ideas are caught cheaply before a full launch, and decisions stop depending on who argues most confidently in the meeting."
+          }
+        },
+        {
+          "bullets": [
+            "**Pricing and offers:** compare discount levels or free-delivery thresholds (with care for fairness and regulations).",
+            "**Email and push campaigns:** subject lines, send times, creative.",
+            "**Banking and insurance apps:** onboarding flows, form length, nudges to complete KYC.",
+            "**Offline:** store layouts or shelf placements, randomised across stores rather than users."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Statistically significant is not commercially significant.** A 0.05-point lift may be real and still not worth the engineering cost.",
+            "**Interference:** in marketplaces (riders and drivers, buyers and sellers), treating some users changes conditions for others. Use geographic or time-based splits.",
+            "**Long-term effects:** a pushy pop-up may lift this week's sign-ups and hurt next quarter's retention.",
+            "**Ethics:** tests that affect prices, credit or health need review and transparency."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "Classic A/B test",
+              "items": [
+                "One planned analysis at a fixed sample size",
+                "Clear false-positive control",
+                "Simple, auditable, widely trusted",
+                "Wastes traffic on a losing variant until the end"
+              ]
+            },
+            "right": {
+              "title": "Alternatives",
+              "items": [
+                "**Sequential tests**: safe early stopping",
+                "**Bayesian A/B**: \"probability B beats A\" statements",
+                "**Multi-armed bandits**: shift traffic to winners, good for short campaigns",
+                "**Geo-experiments / diff-in-diff**: when users cannot be split"
+              ]
+            },
+            "caption": "The classic test is the default. Choose an alternative when you need early stopping, adaptive traffic, or cannot randomise individuals."
+          }
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How long should an A/B test run?",
+      "a": "Until the pre-calculated sample size is reached, and at least one or two full weeks so weekday and weekend behaviour are both included."
+    },
+    {
+      "q": "What if the result is not significant?",
+      "a": "Report the confidence interval. If it is narrow around zero, the change probably does little. If it is wide, the test was too small to tell; do not claim \"B is no better\"."
+    },
+    {
+      "q": "Can I test more than two versions?",
+      "a": "Yes (A/B/C/n tests), but each comparison needs enough traffic and you should adjust for multiple comparisons, for example with a Bonferroni correction."
+    },
+    {
+      "q": "Should I use a one-sided test because I only care if B is better?",
+      "a": "Most teams use two-sided tests. A change can hurt as well as help, and you want to detect that too."
+    },
+    {
+      "q": "What tools do I need?",
+      "a": "For analysis, `statsmodels.stats.proportion.proportions_ztest` and `confint_proportions_2indep`; for planning, `NormalIndPower().solve_power`. Experimentation platforms handle assignment and logging."
+    },
+    {
+      "q": "What about metrics like revenue per user, which are very skewed?",
+      "a": "Use a t-test with large samples, or bootstrap the difference in means. Consider capping extreme values (winsorising) agreed in advance."
+    }
+  ]
+}

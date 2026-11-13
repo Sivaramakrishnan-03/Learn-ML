@@ -1,0 +1,565 @@
+{
+  "$schema": "../../schema/chapter.schema.json",
+  "minutes": 17,
+  "hook": "A food-delivery company plots a month of drop-off locations across Chennai. The dense patches follow roads, wrap around tech parks and stretch along the beach: none of them are neat round blobs. There are also a few hundred lonely drop-offs far from anything. K-means would force every point, lonely ones included, into one of k round groups. **DBSCAN** instead says: \"a cluster is wherever points are crowded together, whatever its shape, and points in empty space are just noise.\"",
+  "sections": [
+    {
+      "heading": "The problem: clusters with odd shapes, plus noise",
+      "blocks": [
+        {
+          "p": "K-means makes two quiet assumptions: clusters are roughly round, and every point belongs to some cluster. Real data often breaks both. Delivery hotspots follow streets. Fraud rings form tight knots inside a sea of normal customers. Sensor readings contain glitches that belong nowhere."
+        },
+        {
+          "term": "Density",
+          "def": "How crowded a region is: how many data points lie within a small distance of a given spot. A busy market has high density of shoppers; an empty field has low density."
+        },
+        {
+          "term": "Noise point (outlier)",
+          "def": "A point that does not belong to any cluster because it sits in a sparse region. DBSCAN gives these the label −1 instead of forcing them into a group."
+        },
+        {
+          "p": "**DBSCAN** stands for Density-Based Spatial Clustering of Applications with Noise. The idea fits in one sentence: **clusters are dense regions separated by sparse regions.** You never tell it how many clusters to find; the number falls out of the data."
+        },
+        {
+          "diagram": {
+            "kind": "scatter",
+            "xLabel": "feature 1",
+            "yLabel": "feature 2",
+            "caption": "Two interlocking crescents plus four stray points. DBSCAN finds the two crescents (blue and orange) and labels the strays as noise (green). K-means with k = 2 would slice straight across both crescents, because its boundaries are always straight lines.",
+            "points": [
+              [
+                3.3,
+                3.3,
+                1
+              ],
+              [
+                5.4,
+                1.6,
+                1
+              ],
+              [
+                1.2,
+                5.5,
+                0
+              ],
+              [
+                4.3,
+                2.2,
+                1
+              ],
+              [
+                0.1,
+                3.1,
+                0
+              ],
+              [
+                4.7,
+                1.8,
+                1
+              ],
+              [
+                8.5,
+                2.9,
+                1
+              ],
+              [
+                5.2,
+                5.1,
+                0
+              ],
+              [
+                7.2,
+                1.7,
+                1
+              ],
+              [
+                6.1,
+                1.4,
+                1
+              ],
+              [
+                6.6,
+                1.6,
+                1
+              ],
+              [
+                5.1,
+                5.5,
+                0
+              ],
+              [
+                5.6,
+                4,
+                0
+              ],
+              [
+                7.7,
+                2.1,
+                1
+              ],
+              [
+                3.5,
+                5.9,
+                0
+              ],
+              [
+                3.8,
+                2.4,
+                1
+              ],
+              [
+                0.4,
+                3.8,
+                0
+              ],
+              [
+                3,
+                5.8,
+                0
+              ],
+              [
+                8.7,
+                3.3,
+                1
+              ],
+              [
+                6.2,
+                3.7,
+                0
+              ],
+              [
+                3.1,
+                4,
+                1
+              ],
+              [
+                6.1,
+                3,
+                0
+              ],
+              [
+                3.1,
+                4.2,
+                1
+              ],
+              [
+                8.8,
+                4.7,
+                1
+              ],
+              [
+                9.2,
+                4,
+                1
+              ],
+              [
+                1.8,
+                5.6,
+                0
+              ],
+              [
+                2.1,
+                6.1,
+                0
+              ],
+              [
+                0.2,
+                4.5,
+                0
+              ],
+              [
+                0.7,
+                4.9,
+                0
+              ],
+              [
+                4.3,
+                5.7,
+                0
+              ],
+              [
+                0.5,
+                7.5,
+                2
+              ],
+              [
+                8.6,
+                7.2,
+                2
+              ],
+              [
+                9.2,
+                0.8,
+                2
+              ],
+              [
+                0.8,
+                1,
+                2
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Building the intuition: crowds at a festival",
+      "blocks": [
+        {
+          "p": "Picture a drone photo of a music festival. You want to mark \"crowds\" on the photo. A sensible rule: **a person is in the thick of a crowd if at least four other people stand within arm's reach.**"
+        },
+        {
+          "steps": [
+            "**Find the people in the thick of it.** Anyone with enough people within arm's reach is a crowd member at its heart.",
+            "**Let crowds spread.** If two heart-of-the-crowd people are within arm's reach of each other, they belong to the same crowd. Chains of such people link up, so a crowd can snake along a food-stall lane or curve around the stage.",
+            "**Add the people on the edge.** Someone who does not have four neighbours themselves, but stands within arm's reach of a heart-of-the-crowd person, is on the edge of that crowd.",
+            "**Everyone else is a wanderer.** People alone in open space belong to no crowd."
+          ],
+          "title": "The festival rule"
+        },
+        {
+          "p": "Notice what you never had to decide: how many crowds there are, or what shape they should be. Two settings did all the work: the size of \"arm's reach\" and the minimum number of neighbours."
+        },
+        {
+          "think": {
+            "q": "If you make \"arm's reach\" much larger, what happens to the crowds?",
+            "a": "More people count as being in the thick of it, crowds spread further and separate crowds start to merge, eventually into one giant crowd. Make arm's reach too small and almost everyone becomes a wanderer. Choosing this distance well is the main tuning job in DBSCAN."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How the algorithm works, step by step",
+      "blocks": [
+        {
+          "term": "eps (ε)",
+          "def": "The neighbourhood radius: how close two points must be to count as neighbours. It is \"arm's reach\" in the festival story. In scikit-learn the parameter is `eps`."
+        },
+        {
+          "term": "min_samples",
+          "def": "The minimum number of points (in scikit-learn, counting the point itself) that must lie within eps for a point to be in a dense region."
+        },
+        {
+          "term": "Core, border and noise points",
+          "def": "A core point has at least min_samples points within eps. A border point is not core itself but lies within eps of a core point. A noise point is neither."
+        },
+        {
+          "diagram": {
+            "kind": "flow",
+            "nodes": [
+              "Choose **eps** and **min_samples**; scale features",
+              "Count neighbours within eps for every point",
+              "Mark **core points** (count ≥ min_samples)",
+              "Link core points within eps into clusters; attach **border** points",
+              "Label the rest **noise (−1)**"
+            ],
+            "caption": "DBSCAN in five moves. There is no repeated loop as in k-means: one pass through the neighbourhoods is enough."
+          }
+        },
+        {
+          "steps": [
+            "Standardise the features so that \"within eps\" means the same thing in every direction.",
+            "For every point, find all points within distance eps (its neighbourhood).",
+            "Points whose neighbourhood has at least min_samples members become core points.",
+            "Start a cluster from any unvisited core point. Add every point in its neighbourhood. Whenever one of those added points is itself core, add its neighbourhood too. Keep expanding until nothing new is reachable. That is one cluster.",
+            "Repeat from the next unvisited core point to grow the next cluster.",
+            "Any point never reached from a core point is noise."
+          ]
+        },
+        {
+          "callout": "Clusters grow only **through** core points. A border point can be pulled into a cluster, but it cannot pass the cluster on to its own neighbours. This is what stops two crowds from merging through a single person standing between them.",
+          "tone": "key"
+        }
+      ]
+    },
+    {
+      "heading": "The math, explained slowly",
+      "blocks": [
+        {
+          "p": "DBSCAN has very little algebra. Its maths is a pair of precise definitions that turn the festival rule into something a computer can check."
+        },
+        {
+          "tex": "N_{\\varepsilon}(p) = \\{\\, q : d(p, q) \\le \\varepsilon \\,\\}",
+          "plain": "The eps-neighbourhood of a point p is the set of all points q whose distance from p is at most eps. It includes p itself, because the distance from p to p is zero.",
+          "symbols": [
+            [
+              "N_{\\varepsilon}(p)",
+              "neighbourhood of point p"
+            ],
+            [
+              "d(p,q)",
+              "distance between p and q (usually Euclidean)"
+            ],
+            [
+              "\\varepsilon",
+              "the radius eps"
+            ]
+          ]
+        },
+        {
+          "tex": "|N_{\\varepsilon}(p)| \\ge \\text{minPts} \\;\\Rightarrow\\; p \\text{ is a core point}",
+          "plain": "If the neighbourhood of p contains at least minPts points (min_samples in scikit-learn), p is a core point. The vertical bars mean \"count the members\".",
+          "symbols": [
+            [
+              "|N_{\\varepsilon}(p)|",
+              "number of points in the neighbourhood"
+            ],
+            [
+              "\\text{minPts}",
+              "the min_samples setting"
+            ]
+          ]
+        },
+        {
+          "term": "Density-reachable",
+          "def": "Point q is density-reachable from core point p if you can walk from p to q in hops of at most eps, where every stepping stone except possibly the last is a core point. A cluster is everything density-reachable from its core points."
+        },
+        {
+          "p": "Why define it this way? The chain of core points lets a cluster bend and stretch to any shape, because each hop only needs local crowding. The rule that only core points can extend the chain stops thin bridges of sparse points from gluing separate clusters together."
+        },
+        {
+          "p": "How much work is it? The expensive part is finding neighbours. Done naively, every point is compared with every other point, so the effort grows with the square of the number of points. With spatial index structures (scikit-learn uses KD-trees or ball trees where it can) it is much faster in low dimensions."
+        },
+        {
+          "callout": "In scikit-learn, `min_samples` counts the point itself. Some textbooks and other libraries count only the other points, so the same number can mean slightly different things. Check the documentation of the tool you use.",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "heading": "Worked examples",
+      "blocks": [
+        {
+          "example": {
+            "title": "Delivery drop-offs on a city grid",
+            "setup": "Nine drop-off points on a map, in km: A (1, 1), B (2, 1), C (1, 2), D (2, 2), E (3.2, 2), F (6, 5), G (7, 5), H (6.5, 6), N (8, 1). Use eps = 1.5 km and min_samples = 3 (counting the point itself).",
+            "steps": [
+              "A: within 1.5 km are B (1.0), C (1.0) and D (√2 ≈ 1.41). Neighbourhood = A, B, C, D = 4 points ≥ 3 → **core**.",
+              "B, C: each also has three neighbours among A, B, C, D → **core**. D: has A, B, C and also E (1.2 km away) → **core**.",
+              "E: only D is within 1.5 km (B is √(1.2² + 1²) ≈ 1.56 km, just outside). Neighbourhood = E, D = 2 points < 3 → not core. But E is within eps of core point D → **border**.",
+              "F, G, H: F–G = 1.0, F–H = G–H ≈ 1.12. Each has 3 points in its neighbourhood → all **core**, forming a second cluster.",
+              "N: nothing within 1.5 km → **noise**."
+            ],
+            "result": "Two hotspots: cluster 1 = {A, B, C, D, E} with E on its edge, cluster 2 = {F, G, H}, and N is a one-off drop-off labelled −1. scikit-learn's DBSCAN returns exactly these labels."
+          }
+        },
+        {
+          "diagram": {
+            "kind": "table",
+            "head": [
+              "Point",
+              "Neighbours within 1.5 km",
+              "Count (incl. itself)",
+              "Type",
+              "Label"
+            ],
+            "rows": [
+              [
+                "A, B, C",
+                "each other + D",
+                "4",
+                "core",
+                "0"
+              ],
+              [
+                "D",
+                "A, B, C, E",
+                "5",
+                "core",
+                "0"
+              ],
+              [
+                "E",
+                "D",
+                "2",
+                "border",
+                "0"
+              ],
+              [
+                "F, G, H",
+                "each other",
+                "3",
+                "core",
+                "1"
+              ],
+              [
+                "N",
+                "none",
+                "1",
+                "noise",
+                "−1"
+              ]
+            ],
+            "caption": "The neighbour counts decide everything. E has too few neighbours to be core, but it touches core point D, so it joins cluster 0 as a border point."
+          }
+        },
+        {
+          "example": {
+            "title": "The same map with a different eps",
+            "setup": "Keep min_samples = 3 and try eps = 1.0 km, then eps = 4.5 km.",
+            "steps": [
+              "eps = 1.0: A still has B and C at exactly 1.0 km, so A, B, C and D remain core and form a cluster. E (1.2 km from D) is now outside every neighbourhood → noise.",
+              "eps = 1.0: F has only G within 1.0 km (H is 1.12 away). Count = 2 → not core. G likewise; H has nobody. No core points there, so F, G and H all become noise.",
+              "eps = 4.5: N is now about 4.47 km from G, every point has plenty of neighbours, and everything links up into one single cluster."
+            ],
+            "result": "eps = 1.0 gives 1 cluster and 5 noise points; eps = 1.5 gives 2 clusters and 1 noise point; eps = 4.5 gives 1 giant cluster. The answer depends heavily on eps, which is why choosing it carefully matters."
+          }
+        },
+        {
+          "example": {
+            "title": "Choosing eps with a k-distance list",
+            "setup": "For each of the nine points, find the distance to its 2nd-nearest other point (min_samples − 1 = 2). Sort these distances.",
+            "steps": [
+              "A, B, C, D: their 2nd-nearest neighbour is 1.0 km away.",
+              "F, G, H: 1.12 km. E: 1.56 km. N: 4.47 km.",
+              "Sorted: 1.0, 1.0, 1.0, 1.0, 1.12, 1.12, 1.12, 1.56, 4.47.",
+              "The values creep up slowly and then jump from 1.56 to 4.47. That jump is the \"knee\"."
+            ],
+            "result": "A good eps sits just around the knee, roughly 1.5 to 2 km here: large enough to keep most points in clusters, small enough to leave N as noise."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Choosing eps and min_samples in practice",
+      "blocks": [
+        {
+          "p": "The k-distance idea from the last example is the standard recipe. Compute each point's distance to its k-th nearest neighbour (k = min_samples − 1 in scikit-learn's counting), sort, plot, and pick eps where the curve bends sharply upwards."
+        },
+        {
+          "diagram": {
+            "kind": "bars",
+            "labels": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "F",
+              "G",
+              "H",
+              "E",
+              "N"
+            ],
+            "values": [
+              1,
+              1,
+              1,
+              1,
+              1.12,
+              1.12,
+              1.12,
+              1.56,
+              4.47
+            ],
+            "highlight": 8,
+            "yLabel": "distance to 2nd neighbour (km)",
+            "caption": "The sorted k-distance plot for the delivery example. Points inside clusters have small values; the noise point N stands out at 4.47. Put eps just before the sharp rise."
+          }
+        },
+        {
+          "bullets": [
+            "**min_samples:** a common rule of thumb is at least the number of features plus one, and about twice the number of features for noisy data. Larger values make the algorithm stricter about what counts as dense.",
+            "**eps:** read it off the k-distance knee, then sanity-check by looking at the share of points labelled noise. If 40% of your customers are \"noise\", eps is probably too small.",
+            "**Scale first.** eps is a single distance applied in every direction, so features must be on comparable scales. For latitude and longitude, use the haversine distance (`metric=\"haversine\"`, with coordinates in radians) so eps is a real distance on the Earth.",
+            "**When densities vary,** one eps cannot fit all clusters. **HDBSCAN** (in scikit-learn since version 1.3) effectively tries many eps values and keeps the most stable clusters."
+          ]
+        },
+        {
+          "think": {
+            "q": "A city centre has very dense drop-offs and the suburbs have sparse ones. Why might a single eps fail?",
+            "a": "An eps small enough to separate neighbouring city-centre hotspots will treat most suburban drop-offs as noise. An eps large enough to capture suburban hotspots will merge the city-centre ones into one blob. This is the main weakness of DBSCAN and the reason HDBSCAN exists."
+          }
+        }
+      ]
+    },
+    {
+      "heading": "DBSCAN in the real world",
+      "blocks": [
+        {
+          "case": {
+            "title": "Finding dark-store locations from order data (illustrative)",
+            "story": "A quick-commerce company wants to place small warehouses so most orders can be delivered within 15 minutes. Analysts take three months of order coordinates, run DBSCAN with the haversine distance, eps of about 400 m and a min_samples chosen so that a cluster represents meaningful daily demand. The result is a set of irregular hotspots that follow residential streets and office parks, plus about 6% of orders labelled noise. The hotspots guide where to rent space; the noise orders are served from the nearest hotspot at a longer promised delivery time rather than distorting the warehouse plan. K-means had earlier placed one centroid in the middle of a lake between two neighbourhoods, which is the classic failure DBSCAN avoids."
+          }
+        },
+        {
+          "bullets": [
+            "**Fraud and security:** a tight knot of accounts sharing devices and addresses forms a dense cluster in an otherwise sparse space.",
+            "**Manufacturing:** clusters of defect locations on a wafer or a car body panel reveal a faulty tool; scattered single defects are noise.",
+            "**Geospatial analysis:** accident hotspots, popular pickup points for ride-hailing, crowded areas from mobile data.",
+            "**Data cleaning:** points labelled noise are candidates for manual review before training other models."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pitfalls, limits and alternatives",
+      "blocks": [
+        {
+          "bullets": [
+            "**Varying densities:** one eps cannot serve both dense and sparse clusters. Use HDBSCAN or OPTICS.",
+            "**High dimensions:** in many dimensions all points look roughly equally far apart, so \"within eps\" loses meaning. Reduce dimensions first (PCA) or use a more suitable distance.",
+            "**Sensitive to eps:** small changes can merge or split clusters, as the worked example showed.",
+            "**Border points can be ambiguous:** a border point within eps of core points from two clusters is given to whichever cluster reaches it first, so it can change with data order.",
+            "**No centroids:** clusters have no centre to describe them, and there is no `predict` for new points. Assign new points by checking whether they fall within eps of an existing core point."
+          ]
+        },
+        {
+          "diagram": {
+            "kind": "compare",
+            "left": {
+              "title": "DBSCAN",
+              "items": [
+                "Finds the number of clusters itself",
+                "Any shape: crescents, rings, streets",
+                "Labels noise as −1",
+                "Struggles when densities differ",
+                "Two settings: eps and min_samples"
+              ]
+            },
+            "right": {
+              "title": "K-means",
+              "items": [
+                "You must choose k",
+                "Round clusters with straight boundaries",
+                "Forces every point into a cluster",
+                "Handles different densities, but assumes similar sizes",
+                "One main setting: k"
+              ]
+            },
+            "caption": "Choose DBSCAN for spatial data, odd shapes and outlier-heavy data; choose k-means for compact segments on large datasets."
+          }
+        },
+        {
+          "callout": "Noise points are not rubbish. In fraud or quality work the points DBSCAN rejects are often the most interesting ones; the anomaly-detection chapter builds on exactly this idea.",
+          "tone": "tip"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I have to tell DBSCAN how many clusters I want?",
+      "a": "No. The number of clusters comes out of eps and min_samples. That is a key difference from k-means."
+    },
+    {
+      "q": "What does the label −1 mean?",
+      "a": "Noise: the point is not within eps of any core point, so it belongs to no cluster."
+    },
+    {
+      "q": "Why do I get one giant cluster?",
+      "a": "eps is too large (or features are unscaled so one feature dominates). Use the k-distance plot to pick eps and standardise your features."
+    },
+    {
+      "q": "Why is almost everything noise?",
+      "a": "eps is too small or min_samples too large for your data's density. Increase eps a little at a time and watch the noise share."
+    },
+    {
+      "q": "Can DBSCAN handle millions of points?",
+      "a": "Often yes in low dimensions thanks to spatial indexes, but memory can grow quickly if eps is large and neighbourhoods are huge. HDBSCAN and sampling help for very large data."
+    },
+    {
+      "q": "What is the difference between DBSCAN and HDBSCAN?",
+      "a": "HDBSCAN removes the need for a single eps by examining clusters across many density levels and keeping the stable ones. It handles clusters of different densities much better and is usually the stronger default today."
+    }
+  ]
+}

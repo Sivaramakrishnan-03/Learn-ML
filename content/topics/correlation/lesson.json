@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 8,
+  "goals": [
+    "Interpret Pearson's r from −1 to +1",
+    "Know when to use Spearman instead",
+    "Explain why correlation is not causation"
+  ],
+  "why": "Correlation is the first look at which drivers move together, and the most misused statistic in business decks.",
+  "explain": [
+    "**Pearson's r** measures the strength and direction of a **linear** relationship: +1 is a perfect upward line, −1 a perfect downward line, 0 no linear relationship.",
+    "**Spearman's ρ** correlates the ranks instead of the values. Use it for monotonic but curved relationships, or when there are outliers.",
+    "r = 0 does **not** mean \"no relationship\": a perfect U-shape has r ≈ 0. Always plot the data.",
+    "**Correlation is not causation.** Ice-cream sales and drownings are correlated because both rise in summer (a confounder). To claim causation you need an experiment or careful causal methods."
+  ],
+  "formula": {
+    "tex": "r = \\frac{\\operatorname{Cov}(x,y)}{\\sigma_x \\sigma_y}",
+    "plain": "How much x and y move together, scaled to lie between −1 and +1."
+  },
+  "example": {
+    "title": "Marketing spend vs sales",
+    "steps": [
+      "12 months of data: r = 0.85 between ad spend and sales",
+      "Tempting conclusion: \"ads cause sales\"",
+      "But the budget is raised every festival season, when sales rise anyway",
+      "Season is a confounder → run a geo-experiment to measure the real effect"
+    ],
+    "result": "Strong correlation is a lead to investigate, not proof of impact."
+  },
+  "mistakes": [
+    "Inferring causation from correlation.",
+    "Using Pearson on curved relationships or with outliers.",
+    "Ignoring the scatter plot."
+  ],
+  "takeaways": [
+    "r measures linear association, from −1 to +1",
+    "Spearman for ranks, curves and outliers",
+    "Confounders create misleading correlations"
+  ],
+  "practice": {
+    "code": "import pandas as pd, numpy as np\nrng = np.random.default_rng(0)\ndf = pd.DataFrame({\"spend\": rng.uniform(1, 10, 50)})\ndf[\"sales\"] = 3 * df.spend + rng.normal(0, 3, 50)\nprint(df.corr(method=\"pearson\").round(2)); print(df.corr(method=\"spearman\").round(2))"
+  },
+  "check": [
+    {
+      "q": "r = −0.9 means…",
+      "options": [
+        "No relationship",
+        "A strong negative linear relationship",
+        "A weak positive one",
+        "x causes y to fall"
+      ],
+      "answer": 1,
+      "why": "Close to −1 is strongly negative; it says nothing about causation."
+    },
+    {
+      "q": "y = x² for x from −5 to 5. Pearson r is about…",
+      "options": [
+        "1",
+        "0",
+        "−1",
+        "0.5"
+      ],
+      "answer": 1,
+      "why": "A symmetric U-shape has no linear trend."
+    }
+  ],
+  "chapterMinutes": 15
+}

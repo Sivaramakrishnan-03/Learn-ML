@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "Describe the gradient descent update rule in words",
+    "Explain how the learning rate affects training",
+    "Recognise divergence and slow convergence from a loss curve"
+  ],
+  "why": "Gradient descent trains linear regression at scale, logistic regression, gradient boosting and every neural network, including large language models. It is the most important algorithm in ML.",
+  "explain": [
+    "Start with any guess for the parameters. Measure the **loss** (how wrong the model is). Compute the **gradient** (which way is uphill). Take a small step **downhill**. Repeat until the loss stops falling.",
+    "The **learning rate** (α) is the step size. Too small and training crawls: thousands of tiny steps. Too large and you overshoot the valley, bounce to the other side, and the loss can explode.",
+    "Variants: **batch** gradient descent uses all the data per step; **stochastic** (SGD) uses one row; **mini-batch** uses, say, 64 rows. That is noisier but much faster, and is what deep learning uses. **Adam** adapts the step size per parameter.",
+    "Scaling your features matters: if one feature is in thousands and another in single digits, the loss surface becomes a long narrow valley and gradient descent zig-zags slowly."
+  ],
+  "formula": {
+    "tex": "\\theta \\leftarrow \\theta - \\alpha \\, \\nabla L(\\theta)",
+    "plain": "New parameters = old parameters minus learning rate times the gradient of the loss."
+  },
+  "example": {
+    "title": "Three steps on L(w) = (w − 3)²",
+    "steps": [
+      "Start w = 0, learning rate α = 0.25, gradient = 2(w − 3)",
+      "Step 1: gradient = −6 → w = 0 − 0.25×(−6) = 1.5",
+      "Step 2: gradient = −3 → w = 1.5 + 0.75 = 2.25",
+      "Step 3: gradient = −1.5 → w = 2.25 + 0.375 = 2.625"
+    ],
+    "result": "w moves 0 → 1.5 → 2.25 → 2.625 → … towards 3, and each step is smaller because the slope flattens. With α = 1.1 the steps would overshoot and grow: divergence."
+  },
+  "mistakes": [
+    "Not scaling features, which causes very slow zig-zagging convergence.",
+    "Picking a learning rate once and never checking the loss curve.",
+    "Stopping too early because the loss is falling slowly on a plateau."
+  ],
+  "takeaways": [
+    "Repeat: compute gradient → step against it",
+    "Learning rate too small = slow; too large = diverges",
+    "Mini-batch SGD and Adam are the practical defaults"
+  ],
+  "check": [
+    {
+      "q": "Your loss goes 10 → 25 → 80 → 400. Most likely cause?",
+      "options": [
+        "Learning rate too small",
+        "Learning rate too large",
+        "Too few features",
+        "Perfect training"
+      ],
+      "answer": 1,
+      "why": "Growing loss means each step overshoots further: reduce the learning rate."
+    },
+    {
+      "q": "w = 4, gradient = 2, α = 0.1. The new w is…",
+      "options": [
+        "4.2",
+        "3.8",
+        "3.6",
+        "2"
+      ],
+      "answer": 1,
+      "why": "4 − 0.1 × 2 = 3.8."
+    }
+  ],
+  "practice": {
+    "code": "w, lr = 0.0, 0.25\nfor step in range(10):\n    grad = 2 * (w - 3)\n    w -= lr * grad\n    print(step, round(w, 4))\n# In practice: sklearn.linear_model.SGDRegressor / torch.optim.Adam"
+  },
+  "chapterMinutes": 15
+}

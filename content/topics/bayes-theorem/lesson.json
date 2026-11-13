@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/lesson.schema.json",
+  "minutes": 10,
+  "goals": [
+    "State Bayes' theorem in words",
+    "Compute a posterior probability from base rate and test accuracy",
+    "Explain the base-rate fallacy"
+  ],
+  "why": "Spam filters, medical diagnosis, fraud alerts and Bayesian A/B testing all update beliefs with evidence. Ignoring base rates leads to badly wrong decisions.",
+  "explain": [
+    "Bayes' theorem tells you how to **update a belief** when new evidence arrives: **posterior ∝ likelihood × prior**.",
+    "The **prior** is what you believed before (1% of transactions are fraud). The **likelihood** is how probable the evidence is under each hypothesis (an alert fires for 99% of frauds but also for 5% of normal transactions).",
+    "The **posterior** is the updated belief: given that the alert fired, how likely is fraud?",
+    "The famous surprise: when the base rate is low, even an accurate test produces mostly false alarms. That is the **base-rate fallacy**."
+  ],
+  "formula": {
+    "tex": "P(H\\mid E) = \\frac{P(E\\mid H)\\,P(H)}{P(E)}",
+    "plain": "Belief in H after seeing evidence E = how well H explains E × prior belief in H, normalised."
+  },
+  "example": {
+    "title": "A positive medical test",
+    "steps": [
+      "Prevalence (prior) 1%; sensitivity 99%; false-positive rate 5%",
+      "Out of 10,000 people: 100 sick → 99 test positive",
+      "9,900 healthy → 5% = 495 false positives",
+      "P(sick | positive) = 99 / (99 + 495) ≈ 16.7%"
+    ],
+    "result": "A \"99% accurate\" test gives only a 17% chance of disease after one positive result. Confirmatory tests exist for exactly this reason."
+  },
+  "mistakes": [
+    "Ignoring the base rate (prior).",
+    "Confusing P(positive | sick) with P(sick | positive)."
+  ],
+  "takeaways": [
+    "Posterior ∝ likelihood × prior",
+    "Low base rates → many false positives",
+    "Think in natural frequencies (out of 10,000 people)"
+  ],
+  "practice": {
+    "code": "prior, sens, fpr = 0.01, 0.99, 0.05\np_pos = sens * prior + fpr * (1 - prior)\nprint(round(sens * prior / p_pos, 3))      # 0.167"
+  },
+  "check": [
+    {
+      "q": "Base rate 0.1%, test sensitivity 100%, false-positive rate 1%. After a positive test, P(condition) is roughly…",
+      "options": [
+        "99%",
+        "50%",
+        "9%",
+        "1%"
+      ],
+      "answer": 2,
+      "why": "Out of 100,000: 100 true positives vs ~1,000 false positives → about 9%."
+    },
+    {
+      "q": "In Bayes' theorem the \"prior\" is…",
+      "options": [
+        "The evidence",
+        "The belief before seeing the evidence",
+        "The test accuracy",
+        "The final answer"
+      ],
+      "answer": 1,
+      "why": "The prior is updated into the posterior."
+    }
+  ],
+  "chapterMinutes": 14
+}
