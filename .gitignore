@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-single/
+*.tsbuildinfo
+scripts/.*.cjs
+LearnPath-ML.html
+test-results/
+playwright-report/
+.DS_Store
