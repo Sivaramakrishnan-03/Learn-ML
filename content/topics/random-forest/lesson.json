@@ -14,14 +14,14 @@
     "Key hyperparameters: **n_estimators** (more is better, up to cost), **max_features** (√p for classification is the classic default), and **min_samples_leaf** / **max_depth** for smoothing. Use **permutation importance** or SHAP rather than default impurity importance."
   ],
   "example": {
-    "title": "Churn model comparison (CV AUC)",
+    "title": "How often is the star feature off the menu?",
     "steps": [
-      "Logistic regression: 0.78",
-      "Single decision tree (depth 6): 0.76",
-      "Random forest, 500 trees, default settings: 0.86",
-      "Tuned min_samples_leaf = 5: 0.87"
+      "A churn dataset has p = 16 features; the classification default offers m = √16 = 4 at each split",
+      "Features not offered at a split: 16 − 4 = 12",
+      "Chance \"days since last login\" is excluded: 12 / 16 = 0.75, so about 75% of splits (including most trees' first split) must use another feature",
+      "With p = 100 and m = 10 the exclusion chance is 90 / 100 = 0.90"
     ],
-    "result": "Big jump with almost no effort. That is why random forest is the default benchmark."
+    "result": "Even a dominant feature is unavailable most of the time, which forces trees to find other patterns and makes them less alike. Diverse trees average out better."
   },
   "mistakes": [
     "Relying on impurity-based importances.",
@@ -72,5 +72,9 @@
       "why": "Tree splits are unaffected by scale."
     }
   ],
-  "chapterMinutes": 15
+  "chapterMinutes": 15,
+  "formula": {
+    "tex": "P(\\text{feature excluded}) = \\frac{p - m}{p}",
+    "plain": "Out of p features, m are offered at each split; any given feature is left off the menu in (p − m) / p of the splits."
+  }
 }

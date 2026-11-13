@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In XGBoost, what do the regularisation settings **λ** and **γ** do?",
+      "options": [
+        "λ shrinks leaf values towards zero; γ is a fee each new leaf must beat, so a split needs gain above γ",
+        "λ is the learning rate and γ is the maximum tree depth",
+        "λ sets the share of rows sampled per tree; γ sets the share of columns",
+        "Both control how missing values are imputed"
+      ],
+      "answer": 0,
+      "why": "λ is added to the curvature in the leaf-value formula, pulling leaves (especially small ones) towards zero; γ is subtracted from each split's gain. The learning rate is η (`eta`), and row and column sampling are `subsample` and `colsample_bytree`.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "How does XGBoost deal with missing values in a feature?",
+      "options": [
+        "It drops every row that has a missing value",
+        "It fills gaps with the column mean before training",
+        "At each split it learns which side rows with a missing value should go",
+        "It refuses to train until you impute them"
+      ],
+      "answer": 2,
+      "why": "XGBoost's sparsity-aware splitting tries sending missing rows left and right and keeps the better default direction. You usually do not need to impute, though it is still worth asking why data is missing, since missingness can carry meaning.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Using squared error, a leaf holds three rows with residuals +6, +3 and +3, so g = −6, −3, −3 and h = 1 each. With λ = 1, what is the leaf value w = −G / (H + λ)?",
+      "options": [
+        "2.4",
+        "3.0",
+        "4.0",
+        "12.0"
+      ],
+      "answer": 1,
+      "why": "G = −12 and H = 3, so w = 12 / (3 + 1) = 3.0. The tempting 4.0 is the plain average residual you would get with λ = 0; λ shrinks it towards zero.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A node's rows have g = −6, −3 (left child) and +3, +6 (right child), with h = 1 each. With λ = 1 and γ = 30, what does XGBoost decide? (Gain = ½ [G_L²/(H_L + λ) + G_R²/(H_R + λ) − G²/(H + λ)] − γ.)",
+      "options": [
+        "Gain = 54 − 30 = 24, so it splits",
+        "Gain = 27, so it splits",
+        "Gain = 40.5 − 30 = 10.5, so it splits",
+        "Gain = 27 − 30 = −3, so it does not split"
+      ],
+      "answer": 3,
+      "why": "G_L = −9, G_R = +9, H_L = H_R = 2, parent G = 0: ½ × (81/3 + 81/3 − 0) = 27, then 27 − 30 = −3, which is negative, so no split. 40.5 comes from ignoring λ, 54 from forgetting the ½, and plain 27 forgets the γ fee.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "LightGBM on a 5,000-row dataset scores AUC 0.99 on training data and 0.78 on validation. What is the most sensible first response?",
+      "options": [
+        "Leaf-wise trees are memorising a small dataset: lower `num_leaves`, raise the minimum leaf size and use early stopping",
+        "Raise the learning rate so it converges faster",
+        "Raise `num_leaves` so the trees can capture more patterns",
+        "Switch off early stopping so more trees are added"
+      ],
+      "answer": 0,
+      "why": "Leaf-wise growth always splits the best leaf wherever it is, producing deep, lopsided trees that fit small data too closely. Restricting leaves and leaf sizes and stopping early fight that. More leaves or a higher learning rate would widen the gap.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "With λ = 1 a split of a two-row leaf is refused, but with λ = 0 the same split has positive gain and is accepted. How should you read this?",
+      "options": [
+        "λ = 0 is better because it finds more patterns",
+        "λ makes the model ignore the feature entirely",
+        "The split separates only a couple of rows by a little; λ guards against splitting hairs on thin evidence",
+        "The split must be leaking the target"
+      ],
+      "answer": 2,
+      "why": "λ shrinks the score of small leaves most, so splits that rest on one or two rows need to show a clear improvement. A split that only passes when the penalty is removed is likely fitting noise. Accepting more splits is not the same as finding more real patterns.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"XGBoost uses a hessian as well as a gradient. What is it, and why does it help?\"",
+      "options": [
+        "It is the learning rate after decay",
+        "It is a random sample of features used at each split",
+        "It is the number of trees grown so far",
+        "It is the second derivative of the loss (its curvature), which lets each leaf's step be sized better; for squared error it is 1 for every row"
+      ],
+      "answer": 3,
+      "why": "The gradient says which way is downhill; the hessian says how sharply the slope changes, so the leaf value −G / (H + λ) is a better-sized step. For squared error h = 1, so H is just the row count, which makes the formulas easy to check by hand.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"Why is naive target encoding of a high-cardinality column like `city` risky, and how does CatBoost avoid the problem?\"",
+      "options": [
+        "It is too slow; CatBoost uses GPUs to speed it up",
+        "Each row's own target leaks into its encoding; CatBoost computes the statistic only from rows that come before it in a random order",
+        "It creates too many columns; CatBoost one-hot encodes instead",
+        "It ignores rare categories; CatBoost drops them"
+      ],
+      "answer": 1,
+      "why": "If a row's city is replaced by the average target of all rows in that city, including itself, the model sees part of the answer and overfits. CatBoost's **ordered target statistics** use only earlier rows. One-hot encoding thousands of categories is the very problem target encoding tries to avoid.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

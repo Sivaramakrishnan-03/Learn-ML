@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why not just fit ordinary linear regression to a 0/1 \"defaulted\" target?",
+      "options": [
+        "Because linear regression cannot use debt-to-income as a feature",
+        "Because linear regression is too slow on binary data",
+        "Because linear regression always predicts exactly 0 or 1",
+        "Because a straight line can output values below 0 and above 1 (−0.16 and 1.28 on the twelve applicants), which cannot be probabilities"
+      ],
+      "answer": 3,
+      "why": "The straight line has the wrong shape for probabilities: it runs off below 0 and above 1. Logistic regression keeps the weighted sum but bends it through the sigmoid, which always lies between 0 and 1. Speed is not the issue, and a line does not output only 0s and 1s, which is precisely the problem.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A customer has a predicted churn probability of **0.9**. What are the **odds** of churn?",
+      "options": [
+        "0.9",
+        "0.11",
+        "9",
+        "1.8"
+      ],
+      "answer": 2,
+      "why": "Odds = p / (1 − p) = 0.9 / 0.1 = 9, \"nine to one on\". 0.9 confuses odds with probability, and 0.11 is the odds of **not** churning (0.1 / 0.9). Odds and probability are close only when p is small.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Using the twelve-applicant model **z = −5.54 + 1.16 × DTI** (DTI in tenths), what is the predicted probability of default for an applicant with DTI **0.4**?",
+      "options": [
+        "About 0.71",
+        "About 0.29",
+        "About 0.40",
+        "−0.90"
+      ],
+      "answer": 1,
+      "why": "z = −5.54 + 1.16 × 4 = −0.90, and p = 1 / (1 + e^0.90) ≈ 0.29. −0.90 is the score (log-odds), not a probability. 0.71 is σ(+0.90), from dropping the minus sign. 0.40 just repeats the DTI value.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A customer **repaid** (y = 0), but the model gave them a **0.8** probability of default. What is the log-loss for this case?",
+      "options": [
+        "About 1.61",
+        "About 0.22",
+        "0.8",
+        "About 0.80"
+      ],
+      "answer": 0,
+      "why": "For y = 0 the cost is −ln(1 − p) = −ln 0.2 ≈ 1.61. 0.22 is −ln 0.8, the cost you would pay if the customer had defaulted. Log-loss is not the raw probability error; the logarithm is what makes confident mistakes expensive.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "At a 0.5 threshold, out of 1,000 applicants (100 defaulters), the model catches 55 defaulters, misses 45 and wrongly declines 30 good customers. Which reading is correct?",
+      "options": [
+        "Recall is 55% and precision is about 65%",
+        "Recall is about 65% and precision is 55%",
+        "Recall is 55% and precision is 30%",
+        "Accuracy is 55%"
+      ],
+      "answer": 0,
+      "why": "Recall = caught / all defaulters = 55 / 100 = 55%. Precision = caught / all declined = 55 / (55 + 30) ≈ 65%. Swapping the two is the most common slip. Accuracy is (55 + 870) / 1,000 = 92.5%, not 55%.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Approving a defaulter costs **₹1,50,000**; declining a good customer loses **₹30,000** of profit. If the probabilities are well calibrated, above what predicted default probability should the bank decline?",
+      "options": [
+        "0.5",
+        "About 0.17",
+        "0.20",
+        "About 0.83"
+      ],
+      "answer": 1,
+      "why": "Break-even threshold = cost of a false decline / (cost of a false decline + cost of a missed defaulter) = 30,000 / (30,000 + 1,50,000) ≈ 0.17. 0.20 is 30,000 / 1,50,000, which forgets to add the two costs. 0.83 puts the wrong cost on top. 0.5 only makes sense when both mistakes cost the same.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "One feature splits your training data perfectly: every applicant with DTI above 0.6 defaulted and every one below repaid. What happens to an unpenalised logistic regression?",
+      "options": [
+        "It fits a sensible, finite coefficient with probability 0.5 at DTI 0.6",
+        "It switches automatically to a decision tree",
+        "The coefficient becomes zero because there is no error left to reduce",
+        "The coefficient grows without limit as the optimiser keeps sharpening the S-curve; a penalty (on by default in scikit-learn) keeps it finite"
+      ],
+      "answer": 3,
+      "why": "With perfect separation, a steeper sigmoid always lowers log-loss a little more, so the best coefficient is infinite. scikit-learn's default L2 penalty (`C=1.0`) prevents this. The intuition that \"no error means nothing to fit\" is backwards: log-loss can always be pushed closer to zero by more confident predictions.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"At the 0.2 threshold your model is 83% accurate, but approving everyone would be 90% accurate. Is your model worse?\"",
+      "options": [
+        "Yes: higher accuracy always means a better model",
+        "Yes, so the threshold should be raised back to 0.5",
+        "No: with 10% defaulters, approving everyone catches none of them; the 0.2 model costs ₹70 lakh against ₹2 crore for approve-all, so judge by business cost, recall, precision and AUC, not accuracy",
+        "No, because accuracy cannot be computed for logistic regression"
+      ],
+      "answer": 2,
+      "why": "On imbalanced data, accuracy rewards ignoring the rare class. Approving all 1,000 misses 100 defaulters at ₹2 lakh each (₹2 crore), whereas the 0.2 threshold costs 20 × ₹2L + 150 × ₹0.2L = ₹70 lakh. Precision, recall, ROC-AUC and expected cost measure what the bank actually cares about.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

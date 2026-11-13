@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Bars, Label, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, MatrixView, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
-import { stores, growTree, predict, RP, mean } from './_ensembles-helpers';
+import { mean } from '../viz/math';
+import { stores, growTree, predict, RP } from './_ensembles-helpers';
 
 /* ---------- pure helpers ---------- */
 type Model = (train: RP[]) => (x: number) => number;

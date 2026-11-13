@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Arrow, Label, Region, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, Scales, C } from '../viz/kit';
-import { lstsq, solve, mean, poissonDraw, poissonPmf, logFact } from './_regression-helpers';
+import { lstsq, solve, mean, poissonDraw, poissonPmf, logFact } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 // Toll plaza: cars arriving in one minute, observed at random minutes between 10:00 and 20:00.
@@ -61,7 +61,7 @@ function Animate() {
   const ladder = [14, 15, 16, 17].slice(0, (f.step ?? 0) + 1);
   const caption = (() => {
     switch (f.kind) {
-      case 'data': return <>Each dot is <b>one minute</b> at a toll plaza: the number of cars that arrived. Counts are whole numbers, never negative, and they climb steeply towards the evening rush. A quiet 10 a.m. minute sees about 1 car; a 7 p.m. minute about 12.</>;
+      case 'data': return <>Each dot is <b>one minute</b> at a toll plaza: the number of cars that arrived. Counts are whole numbers, never negative, and they climb steeply towards the evening rush. A quiet 10 a.m. minute sees about 0.6 cars on average; a 7 p.m. minute about 12.</>;
       case 'ols': return <>Ordinary least squares draws a straight line (red dashed): <b>{ols[1].toFixed(2)} extra cars per hour</b>. It predicts <b>{olsAt(10).toFixed(1)} cars</b> at 10:00, a <b>negative count</b> (red zone), and it undershoots the steep evening rise.</>;
       case 'spread': return <>A second problem: the <b>spread grows with the level</b>. Around 11:00 counts vary by about ±{lo.sd.toFixed(1)}; around 18:00 by ±{hi.sd.toFixed(1)}. OLS assumes the same spread everywhere. For counts, variance ≈ mean: that is the <b>Poisson</b> pattern.</>;
       case 'log': return <>The fix: model the <b>logarithm</b> of the expected count as a straight line, log μ = b₀ + b₁·hour. The lower chart shows log of each hour's average count (blue): they do lie on a line. Then μ = e^(b₀ + b₁·hour) is always positive and curves upward.</>;

@@ -19,14 +19,14 @@
     "plain": "Total squared distance from each point to its cluster centre. K-means makes this as small as it can."
   },
   "example": {
-    "title": "One update step",
+    "title": "K-means by hand on six numbers",
     "steps": [
-      "Cluster A currently holds points (1, 2), (2, 1), (3, 3)",
-      "New centroid = mean = ((1 + 2 + 3)/3, (2 + 1 + 3)/3) = (2, 2)",
-      "A point at (2.6, 2.4) is now nearer to A's new centre than to B's, so it switches to A",
-      "Repeat until no point switches"
+      "Daily orders from six shops: 1, 2, 3, 10, 11, 12. k = 2, starting (badly) with centroids at 1 and 2",
+      "Assign: {1} and {2, 3, 10, 11, 12}. Update: A = 1, B = 38 / 5 = 7.6",
+      "Assign: 2 and 3 are now nearer A (1 and 2 away vs 5.6 and 4.6) → {1, 2, 3} and {10, 11, 12}. Update: A = 2, B = 11",
+      "Assign again: nothing changes → converged. Inertia = 1 + 0 + 1 + 1 + 0 + 1 = 4"
     ],
-    "result": "Two simple moves on repeat (assign, update) carve the data into compact groups."
+    "result": "Two moves on repeat (assign, update) found small shops {1, 2, 3} and big shops {10, 11, 12} in two rounds despite a poor start."
   },
   "mistakes": [
     "Forgetting to scale.",
@@ -53,7 +53,7 @@
     "k-means vs DBSCAN vs GMM?"
   ],
   "practice": {
-    "code": "from sklearn.datasets import make_blobs\nfrom sklearn.cluster import KMeans\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.metrics import silhouette_score\nX, _ = make_blobs(500, centers=4, random_state=0); Xs = StandardScaler().fit_transform(X)\nfor k in range(2, 7):\n    km = KMeans(k, n_init=10, random_state=0).fit(Xs)\n    print(k, round(km.inertia_, 1), round(silhouette_score(Xs, km.labels_), 3))"
+    "code": "import numpy as np\nfrom sklearn.datasets import make_blobs\nfrom sklearn.cluster import KMeans\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.metrics import silhouette_score\norders = np.array([[1], [2], [3], [10], [11], [12]])\nkm = KMeans(2, init=np.array([[1], [2]]), n_init=1).fit(orders)\nprint(km.cluster_centers_.ravel(), km.inertia_)          # [ 2. 11.] 4.0\nX, _ = make_blobs(500, centers=4, random_state=0); Xs = StandardScaler().fit_transform(X)\nfor k in range(2, 7):\n    km = KMeans(k, n_init=10, random_state=0).fit(Xs)\n    print(k, round(km.inertia_, 1), round(silhouette_score(Xs, km.labels_), 3))"
   },
   "check": [
     {

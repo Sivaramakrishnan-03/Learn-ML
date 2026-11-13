@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Arrow, Label, Region, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C, Scales } from '../viz/kit';
-import { acf, pathD, bandD, mean, sd, toPts, Pt } from './_ts-helpers';
+import { mean, sdS } from '../viz/math';
+import { acf, pathD, bandD, toPts, Pt } from './_ts-helpers';
 
 /* ---------- pure helpers ---------- */
 function Line({ s, pts, color, width = 2.5, dash, opacity = 1 }: { s: Scales; pts: Pt[]; color: string; width?: number; dash?: string; opacity?: number }) {
@@ -76,7 +77,7 @@ function Animate() {
   const acfDif = useMemo(() => acf(dSales, 20), [dSales]);
   const grid = useMemo(() => gridSeries(), []);
   const g = useMemo(() => ar1Fc(70, MU, PHI, SIG, HG), []);
-  const sigD = useMemo(() => sd(dSales.slice(0, -1)), [dSales]);
+  const sigD = useMemo(() => sdS(dSales.slice(0, -1)), [dSales]);
   const ar = useMemo(() => arima110Fc(200, 10, 0.5, sigD, 18), [sigD]);
   const arDrift = useMemo(() => arima110Fc(200, 10, 0.5, sigD, 18, mean(dSales)), [sigD, dSales]);
   const p = useStepPlayer(FRAMES.length, 2600);
@@ -106,7 +107,7 @@ function Animate() {
       bottom = <Plot x={[0, n + 1]} y={[-12, 16]} height={190} xLabel="month" yLabel="change">
         {(s) => <>
           <Seg s={s} x1={0} x2={n + 1} y1={0} y2={0} color={C.muted} width={1} />
-          {ph === 'stationary' && <Region s={s} x0={1} x1={n} y0={mean(dSales) - 2 * sd(dSales)} y1={mean(dSales) + 2 * sd(dSales)} color={C.green} opacity={0.08} />}
+          {ph === 'stationary' && <Region s={s} x0={1} x1={n} y0={mean(dSales) - 2 * sdS(dSales)} y1={mean(dSales) + 2 * sdS(dSales)} color={C.green} opacity={0.08} />}
           <Bars s={s} data={dSales.map((v, i) => ({ x: i + 2, y: v }))} width={0.6} color={C.gold} />
           {ph === 'stationary' && <><Seg s={s} x1={2} x2={half + 1} y1={dm1} y2={dm1} color={C.green} width={2.5} dash="6 4" /><Seg s={s} x1={half + 2} x2={n} y1={dm2} y2={dm2} color={C.green} width={2.5} dash="6 4" /></>}
         </>}

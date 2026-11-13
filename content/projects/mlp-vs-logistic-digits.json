@@ -1,0 +1,103 @@
+{
+  "id": "mlp-vs-logistic-digits",
+  "title": "Handwritten PIN-code digits: a small neural network vs logistic regression",
+  "track": "neural",
+  "level": 3,
+  "hours": 6,
+  "summary": "Build a one-hidden-layer network from scratch in NumPy, then compare scikit-learn's MLP with multinomial logistic regression on 8×8 digits using cross-validation, McNemar's test and a cost model with a 'send to human' reject option.",
+  "business": "A parcel-logistics company scans the handwritten 6-digit PIN code on about **2 lakh parcels a day**. A misread PIN sends the parcel to the wrong hub and costs about **₹45** in re-routing; sending an unclear digit to a human keyer costs **₹2**. The operations head asks: **is a neural network worth deploying over the current logistic-regression reader, and at what confidence should a digit be sent to a human so that the total daily cost is lowest?**",
+  "topics": [
+    "mlp",
+    "logistic-regression",
+    "gradient-descent",
+    "scaling",
+    "hyperparameter-tuning",
+    "classification-metrics",
+    "cross-validation",
+    "perceptron"
+  ],
+  "dataset": {
+    "name": "Optical digits (`sklearn.datasets.load_digits`)",
+    "how": "Ships with scikit-learn: 1,797 images of handwritten digits, 8×8 pixels with intensities 0–16 (64 features), labels 0–9. We treat each image as one PIN-code digit."
+  },
+  "steps": [
+    {
+      "title": "Load, look and split",
+      "detail": "Always look at the data: plot a grid of digits with their labels. Then hold out 25% as a test set, stratified by digit so each class keeps its share. Pixel values run from 0 to 16; dividing by 16 puts them in [0, 1], which matters a lot for gradient-based training.",
+      "code": "import numpy as np\nimport pandas as pd\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom sklearn.datasets import load_digits\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score, GridSearchCV\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.neural_network import MLPClassifier\nfrom sklearn.metrics import accuracy_score, confusion_matrix, classification_report\nfrom statsmodels.stats.contingency_tables import mcnemar\n\ndigits = load_digits()\nX, y = digits.data / 16.0, digits.target\nfig, axes = plt.subplots(3, 8, figsize=(8, 3.3))\nfor ax, img, lab in zip(axes.ravel(), digits.images, y):\n    ax.imshow(img, cmap=\"gray_r\"); ax.set_title(lab); ax.axis(\"off\")\nplt.tight_layout(); plt.savefig(\"digits_grid.png\", dpi=90); plt.close()\nXtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.25, stratify=y, random_state=0)\nprint(Xtr.shape, Xte.shape, np.bincount(ytr))"
+    },
+    {
+      "title": "Baseline: multinomial logistic regression",
+      "detail": "Logistic regression with 10 classes learns one linear score per digit and turns scores into probabilities with softmax. It is fast, well calibrated and hard to beat on small images. Measure it with 5-fold stratified CV on the training set so you know its accuracy *and* the fold-to-fold spread.",
+      "code": "cv = StratifiedKFold(5, shuffle=True, random_state=0)\nlogreg = Pipeline([(\"sc\", StandardScaler()), (\"lr\", LogisticRegression(C=0.5, max_iter=3000))])\ns_lr = cross_val_score(logreg, Xtr, ytr, cv=cv)\nprint(f\"Logistic CV accuracy {s_lr.mean():.4f} ± {s_lr.std():.4f}\")"
+    },
+    {
+      "title": "A neural network from scratch in NumPy",
+      "detail": "Implement the forward pass (64 inputs → 32 ReLU units → 10 softmax outputs), the cross-entropy loss, backpropagation (chain rule, layer by layer) and mini-batch gradient descent. Watch the loss fall each epoch. Writing it once by hand is the best way to understand what `MLPClassifier` does: the hidden layer learns its own features (stroke detectors) instead of using raw pixels linearly.",
+      "code": "rng = np.random.default_rng(0)\ndef one_hot(v, k=10): o = np.zeros((v.size, k)); o[np.arange(v.size), v] = 1; return o\nW1 = rng.normal(0, np.sqrt(2 / 64), (64, 32)); b1 = np.zeros(32)\nW2 = rng.normal(0, np.sqrt(2 / 32), (32, 10)); b2 = np.zeros(10)\nlr, lam, Y = 0.1, 1e-4, one_hot(ytr)\nfor epoch in range(60):\n    perm = rng.permutation(len(Xtr))\n    for i in range(0, len(Xtr), 32):\n        idx = perm[i:i + 32]; xb, yb = Xtr[idx], Y[idx]\n        h = np.maximum(0, xb @ W1 + b1)                       # hidden layer (ReLU)\n        z = h @ W2 + b2; z -= z.max(1, keepdims=True)\n        p = np.exp(z); p /= p.sum(1, keepdims=True)           # softmax\n        dz = (p - yb) / len(idx)                              # dLoss/dz for softmax + cross-entropy\n        dW2 = h.T @ dz + lam * W2; db2 = dz.sum(0)\n        dh = dz @ W2.T * (h > 0)                              # back through ReLU\n        dW1 = xb.T @ dh + lam * W1; db1 = dh.sum(0)\n        W1 -= lr * dW1; b1 -= lr * db1; W2 -= lr * dW2; b2 -= lr * db2\n    if epoch % 15 == 14:\n        hz = np.maximum(0, Xtr @ W1 + b1) @ W2 + b2\n        pz = np.exp(hz - hz.max(1, keepdims=True)); pz /= pz.sum(1, keepdims=True)\n        print(f\"epoch {epoch + 1}: train loss {-np.mean(np.log(pz[np.arange(len(ytr)), ytr])):.4f}\")\nscratch_pred = (np.maximum(0, Xte @ W1 + b1) @ W2 + b2).argmax(1)\nprint(\"From-scratch MLP test accuracy:\", round(accuracy_score(yte, scratch_pred), 4))"
+    },
+    {
+      "title": "scikit-learn MLP: early stopping and the scaling trap",
+      "detail": "`MLPClassifier` adds the engineering you skipped: the Adam optimiser, L2 penalty `alpha` and convergence checks. With `early_stopping=True` it holds out 10% of the training data and stops when validation accuracy stops improving: a simple guard against overfitting, but on 1,347 images that 10% is a real loss of training data. Plot the loss and validation curves. Then compare, with CV, the network on pixels in [0, 1] against the same network after `StandardScaler`: standardising blows up near-constant border pixels into noisy features, and here it does not help (it is slightly worse). Preprocessing that is right for one model can be wrong for another.",
+      "code": "es = MLPClassifier(hidden_layer_sizes=(64,), alpha=1e-2, early_stopping=True, max_iter=500, random_state=0).fit(Xtr, ytr)\nfig, ax = plt.subplots(1, 2, figsize=(10, 3.5))\nax[0].plot(es.loss_curve_); ax[0].set_title(\"Training loss\"); ax[0].set_xlabel(\"epoch\")\nax[1].plot(es.validation_scores_); ax[1].set_title(\"Validation accuracy (10% hold-out)\"); ax[1].set_xlabel(\"epoch\")\nplt.tight_layout(); plt.savefig(\"mlp_curves.png\", dpi=100); plt.close()\nprint(\"Early stopping after\", es.n_iter_, \"epochs; best validation accuracy\", round(es.best_validation_score_, 4))\nraw01 = cross_val_score(MLPClassifier((64,), alpha=1e-2, max_iter=400, random_state=0), Xtr, ytr, cv=cv, n_jobs=-1)\nscaled = cross_val_score(Pipeline([(\"sc\", StandardScaler()), (\"mlp\", MLPClassifier((64,), alpha=1e-2, max_iter=400, random_state=0))]), Xtr, ytr, cv=cv, n_jobs=-1)\nprint(f\"MLP CV accuracy | pixels in [0,1]: {raw01.mean():.4f} | standardised: {scaled.mean():.4f}\")"
+    },
+    {
+      "title": "Tune the network with a small grid search",
+      "detail": "Search hidden-layer size and L2 strength with 3-fold CV on the training set (9 combinations × 3 folds), on the [0, 1] pixels. Then compute the tuned network's 5-fold CV accuracy on the **same folds** as logistic regression, so the comparison is paired and fair. Ask whether the per-fold gain is consistent and bigger than the fold-to-fold spread.",
+      "code": "grid = GridSearchCV(MLPClassifier(max_iter=400, random_state=0),\n                    {\"hidden_layer_sizes\": [(64,), (128,), (64, 32)], \"alpha\": [1e-3, 1e-2, 1e-1]},\n                    cv=StratifiedKFold(3, shuffle=True, random_state=0), n_jobs=-1)\ngrid.fit(Xtr, ytr)\nprint(\"Best:\", grid.best_params_, \"CV\", round(grid.best_score_, 4))\ns_mlp = cross_val_score(grid.best_estimator_, Xtr, ytr, cv=cv, n_jobs=-1)\nprint(f\"MLP CV accuracy {s_mlp.mean():.4f} ± {s_mlp.std():.4f} | per-fold gain over logistic: {np.round(s_mlp - s_lr, 4)}\")"
+    },
+    {
+      "title": "Test set comparison and McNemar's test",
+      "detail": "Fit both models on the full training set and evaluate once on the test set. Accuracy alone hides *which* digits each model gets wrong, so print a confusion matrix. To test whether the two models really differ on the same test images, use **McNemar's test**: it looks only at images where exactly one model is right.",
+      "code": "lr_fit = logreg.fit(Xtr, ytr); mlp_fit = grid.best_estimator_\np_lr, p_mlp = lr_fit.predict(Xte), mlp_fit.predict(Xte)\nprint(f\"Test accuracy | logistic {accuracy_score(yte, p_lr):.4f} | MLP {accuracy_score(yte, p_mlp):.4f}\")\nprint(confusion_matrix(yte, p_mlp))\na, b = (p_lr == yte), (p_mlp == yte)\ntable = [[np.sum(a & b), np.sum(a & ~b)], [np.sum(~a & b), np.sum(~a & ~b)]]\nprint(\"Only logistic right:\", table[0][1], \"| only MLP right:\", table[1][0], \"| McNemar p =\", round(mcnemar(table, exact=True).pvalue, 4))"
+    },
+    {
+      "title": "From digit accuracy to PIN accuracy and ₹ per day",
+      "detail": "A PIN code is read correctly only if **all six digits** are right, so PIN accuracy ≈ digit accuracy⁶: 98% per digit is only 88.6% per PIN. Convert each model's test error into misrouted parcels and ₹ per day for 2 lakh parcels. Small digit-level gains become large money at this volume.",
+      "code": "parcels, misroute = 200_000, 45\nfor name, pred in [(\"logistic\", p_lr), (\"MLP\", p_mlp)]:\n    acc = accuracy_score(yte, pred); pin = acc ** 6\n    print(f\"{name}: digit {acc:.4f} -> PIN {pin:.4f}; misrouted/day {parcels * (1 - pin):,.0f}; cost ₹{parcels * (1 - pin) * misroute / 1e5:.2f} lakh/day\")"
+    },
+    {
+      "title": "Reject option: send low-confidence digits to a human",
+      "detail": "Use the model's top predicted probability as confidence. If it is below a threshold τ, the digit goes to a human keyer (₹2, assumed always correct). Sweep τ: a higher τ means fewer misreads but more manual keying. For each τ compute the per-PIN expected cost: ₹45 × P(any accepted digit wrong) + ₹2 × expected digits rejected, and pick the cheapest. Confidence is only useful if it is reasonably calibrated. Strictly, τ should be chosen on a validation split (or by CV) and only confirmed on the test set; we sweep on the test set for brevity, so say so in your report.",
+      "code": "def pin_cost(proba, ytrue, tau):\n    conf, pred = proba.max(1), proba.argmax(1)\n    accept = conf >= tau\n    err_acc = np.mean((pred != ytrue) & accept)              # per-digit chance of an accepted error\n    rej = 1 - accept.mean()\n    p_pin_wrong = 1 - (1 - err_acc) ** 6\n    return misroute * p_pin_wrong + 2 * 6 * rej, rej\nrows = []\nfor name, model in [(\"logistic\", lr_fit), (\"MLP\", mlp_fit)]:\n    proba = model.predict_proba(Xte)\n    for tau in [0.0, 0.5, 0.7, 0.8, 0.9, 0.95, 0.99]:\n        c, r = pin_cost(proba, yte, tau)\n        rows.append({\"model\": name, \"tau\": tau, \"reject_rate_%\": 100 * r, \"cost_per_pin_rs\": c, \"cost_lakh_per_day\": c * parcels / 1e5})\ncosts = pd.DataFrame(rows)\nprint(costs.round(3).to_string(index=False))\nprint(costs.loc[costs.groupby(\"model\")[\"cost_per_pin_rs\"].idxmin()].round(3).to_string(index=False))"
+    },
+    {
+      "title": "Look at the mistakes",
+      "detail": "Plot the test digits the MLP gets wrong, with true and predicted labels and confidence. Many will be ambiguous even for people (a 1 that looks like a 7, a 9 like a 4), which suggests better scanning or a second camera might help more than a bigger network. This is the step that turns a model comparison into a product decision.",
+      "code": "proba_mlp = mlp_fit.predict_proba(Xte)\nwrong = np.where(p_mlp != yte)[0][:12]\nfig, axes = plt.subplots(1, max(len(wrong), 1), figsize=(1.3 * max(len(wrong), 1), 1.8), squeeze=False)\nfor ax, i in zip(axes.ravel(), wrong):\n    ax.imshow(Xte[i].reshape(8, 8), cmap=\"gray_r\"); ax.axis(\"off\")\n    ax.set_title(f\"{yte[i]}→{p_mlp[i]}\\n{proba_mlp[i].max():.2f}\", fontsize=8)\nplt.tight_layout(); plt.savefig(\"mlp_mistakes.png\", dpi=100); plt.close()\nprint(\"MLP errors on test:\", int((p_mlp != yte).sum()), \"of\", len(yte))"
+    }
+  ],
+  "deliverables": [
+    "A from-scratch NumPy network with a short explanation of each backpropagation line.",
+    "A comparison table: CV accuracy ± SD and test accuracy for logistic regression, from-scratch MLP and tuned MLP, with the McNemar result.",
+    "A cost analysis: PIN accuracy, misrouted parcels and ₹ per day for each model, and the reject-threshold sweep with the recommended τ.",
+    "A gallery of misread digits and a one-paragraph recommendation to the operations head."
+  ],
+  "rubric": [
+    {
+      "criterion": "Neural-network mechanics",
+      "good": "Forward pass, softmax-cross-entropy gradient, ReLU backprop and mini-batch updates implemented and explained correctly."
+    },
+    {
+      "criterion": "Fair comparison",
+      "good": "Same CV folds for both models; tuning done on training data only; test set used once."
+    },
+    {
+      "criterion": "Statistical judgement",
+      "good": "Uses fold spread and McNemar's test before declaring a winner."
+    },
+    {
+      "criterion": "Business translation",
+      "good": "Digit accuracy correctly converted to PIN accuracy (power of 6) and ₹ per day."
+    },
+    {
+      "criterion": "Reject option",
+      "good": "Threshold chosen by minimising expected cost; discusses calibration and human-keying assumptions."
+    }
+  ],
+  "extensions": [
+    "Add data augmentation (shift each image by one pixel in four directions) and measure how much the MLP and logistic regression each gain.",
+    "Calibrate both models with `CalibratedClassifierCV` and redo the reject-option sweep: does the optimal τ move?",
+    "Replace the MLP with a tiny convolutional network in PyTorch (outside this app's runner) and compare accuracy per training minute."
+  ]
+}

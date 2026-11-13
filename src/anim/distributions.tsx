@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, FnLine, Seg, Label, Region, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { mean, sdS, hist, normPdf, tPdf, tCdf, binomPmf, poisPmf, lgamma, pct } from './_stats1-helpers';
+import { mean, sdS, histogram, normPdf, tPdf, tCdf, binomPmf, poissonPmf, chi2Pdf, chi2Sf } from '../viz/math';
+import { pct } from './_stats1-helpers';
 
 /* ---------- pure helpers: one simulated "trial" per distribution, with the detail needed to draw it ---------- */
 type Kind = 'binom' | 'pois' | 'expo' | 'unif' | 't' | 'chi2';
@@ -26,23 +27,15 @@ const simulate = (kind: Kind, a: number, b: number, k: number, base: number) => 
 function exact(kind: Kind, a: number, b: number) {
   switch (kind) {
     case 'binom': return { m: a * b, sd: Math.sqrt(a * b * (1 - b)), pmf: (k: number) => binomPmf(k, a, b) };
-    case 'pois': return { m: a, sd: Math.sqrt(a), pmf: (k: number) => poisPmf(k, a) };
+    case 'pois': return { m: a, sd: Math.sqrt(a), pmf: (k: number) => poissonPmf(k, a) };
     case 'expo': return { m: a, sd: a, pdf: (x: number) => (x >= 0 ? Math.exp(-x / a) / a : 0) };
     case 'unif': return { m: a / 2, sd: a / Math.sqrt(12), pdf: (x: number) => (x >= 0 && x <= a ? 1 / a : 0) };
     case 't': return { m: 0, sd: a > 2 ? Math.sqrt(a / (a - 2)) : NaN, pdf: (x: number) => tPdf(x, a) };
-    case 'chi2': return { m: a, sd: Math.sqrt(2 * a), pdf: (x: number) => (x > 0 ? Math.exp((a / 2 - 1) * Math.log(x) - x / 2 - (a / 2) * Math.LN2 - lgamma(a / 2)) : 0) };
+    case 'chi2': return { m: a, sd: Math.sqrt(2 * a), pdf: (x: number) => (x > 0 ? chi2Pdf(x, a) : 0) };
   }
 }
 const discrete = (kind: Kind) => kind === 'binom' || kind === 'pois';
 /** Chi-square upper tail by Simpson integration of the density (accurate to ~1e-5 for UI use). */
-function chi2Tail(c: number, k: number) {
-  if (c <= 0) return 1;
-  const pdf = exact('chi2', k, 0).pdf!, U = Math.sqrt(c), n = 2000, h = U / n;
-  const g = (u: number) => (u <= 0 ? (k === 1 ? 2 / Math.sqrt(2 * Math.PI) : 0) : pdf(u * u) * 2 * u); // substitute x = u² to tame the spike at 0
-  let sum = g(0) + g(U);
-  for (let i = 1; i < n; i++) sum += g(i * h) * (i % 2 ? 4 : 2);
-  return Math.max(0, 1 - (sum * h) / 3);
-}
 function counts(values: number[], max: number) {
   const c = Array(max + 1).fill(0); values.forEach((v) => { if (v <= max) c[v]++; });
   return c.map((k, x) => ({ x, y: k / Math.max(values.length, 1) }));
@@ -133,7 +126,7 @@ function domain(kind: Kind, a: number, b: number): { x: [number, number]; bins: 
 function Dist({ kind, a, b, values, hl, showExact, threshold, height = 260 }: { kind: Kind; a: number; b: number; values: number[]; hl?: number; showExact: boolean; threshold?: number; height?: number }) {
   const d = domain(kind, a, b), ex = exact(kind, a, b);
   const disc = discrete(kind);
-  const data = disc ? counts(values, Math.floor(d.x[1])) : hist(values, d.x[0], d.x[1], d.bins);
+  const data = disc ? counts(values, Math.floor(d.x[1])) : histogram(values, d.x[0], d.x[1], d.bins, { density: true, closed: false });
   const curveMax = disc ? Math.max(...data.map((_, k) => ex.pmf!(k))) : kind === 'unif' ? 1 / a : kind === 'expo' ? 1 / a : kind === 'chi2' ? Math.min(0.6, ex.pdf!(Math.max(a - 2, 0.15))) : tPdf(0, a);
   const yMax = Math.max(curveMax, ...data.map((p) => p.y)) * 1.18 || 1;
   const binW = disc ? 1 : (d.x[1] - d.x[0]) / d.bins;
@@ -242,7 +235,7 @@ function Playground() {
   const d = domain(kind, a, b);
   const thrMax = kind === 't' ? 5 : Math.floor(d.x[1]);
   const exTail = discrete(kind) ? 1 - Array.from({ length: Math.floor(thr) + 1 }, (_, i) => ex.pmf!(i)).reduce((s, v) => s + v, 0)
-    : kind === 'expo' ? Math.exp(-thr / a) : kind === 'unif' ? Math.max(0, Math.min(1, (a - thr) / a)) : kind === 'chi2' ? chi2Tail(thr, a) : 1 - tCdf(thr, a);
+    : kind === 'expo' ? Math.exp(-thr / a) : kind === 'unif' ? Math.max(0, Math.min(1, (a - thr) / a)) : kind === 'chi2' ? chi2Sf(thr, a) : 1 - tCdf(thr, a);
   const pick = (v: Kind) => { setKind(v); setA(P_SPEC[v].a[4]); if (P_SPEC[v].b) setB(P_SPEC[v].b![4]); setThr(P_SPEC[v].thr); };
   return (
     <Layout

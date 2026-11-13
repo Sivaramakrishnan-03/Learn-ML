@@ -3,13 +3,13 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Arrow, Dots, Seg, Label, FnLine, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C, Scales } from '../viz/kit';
-import { V2, contours, segPath, equalH, f2, norm } from './_math-helpers';
+import { V2, norm, sigmoid } from '../viz/math';
+import { contours, segPath, equalH, f2 } from './_math-helpers';
 
 /* ---------- pure helpers ---------- */
 type F2 = (m: number, b: number) => number;
 const bowl: F2 = (m, b) => m * m + 3 * b * b;
 const numGrad = (f: F2, m: number, b: number): V2 => { const e = 1e-4; return [(f(m + e, b) - f(m - e, b)) / (2 * e), (f(m, b + e) - f(m, b - e)) / (2 * e)]; };
-const sig = (z: number) => 1 / (1 + Math.exp(-z));
 
 function ContourMap({ s, segs, colors }: { s: Scales; segs: ReturnType<typeof contours>; colors?: (i: number) => string }) {
   return <>{segs.map((sg, i) => <path key={i} d={segPath(s, sg)} stroke={colors ? colors(i) : C.grey} strokeWidth={1.3} fill="none" />)}</>;
@@ -52,7 +52,7 @@ function buildFrames(segs: ReturnType<typeof contours>): Frame[] {
     return out;
   };
   const graph = (stage: number) => (s: Scales) => {
-    const z = 1, a = sig(1), L = (a - 1) ** 2, dLda = 2 * (a - 1), dadz = a * (1 - a);
+    const z = 1, a = sigmoid(1), L = (a - 1) ** 2, dLda = 2 * (a - 1), dadz = a * (1 - a);
     const back = (x1: number, x2: number, txt: string, show: boolean) => show && <>
       <Arrow s={s} x1={x2 - 0.8} y1={-0.95} x2={x1 + 0.8} y2={-0.95} color={C.red} width={2} />
       <Label s={s} x={(x1 + x2) / 2} y={-1.45} color={C.red} anchor="middle" size={13}>{txt}</Label>

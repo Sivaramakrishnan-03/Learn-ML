@@ -2,7 +2,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, FnLine, Dots, Caption, Readout, Slider, Toggle, Layout, Legend, Bars, useStepPlayer, PlayerControls, rng, gauss, C, Scales } from '../viz/kit';
-import { Pt, covOf, eig2, Cov } from './_unsup-helpers';
+import { cov2, eigSym2, Cov } from '../viz/math';
+import { Pt } from './_unsup-helpers';
 
 /* ---------- pure helpers ---------- */
 /** n points with a chosen correlation and SDs, centred on (mx, my). */
@@ -31,8 +32,8 @@ const ANGLES = [0, 20, 40, 60, 80, 100, 120, 140, 160];
 
 function Animate() {
   const raw = useMemo(() => correlated(40, 0.82, 1.5, 1.5, 6.2, 5.6, 4), []);
-  const { mu, cov } = useMemo(() => covOf(raw), [raw]);
-  const e = eig2(cov);
+  const { mu, cov } = useMemo(() => cov2(raw), [raw]);
+  const e = eigSym2(cov);
   const total = cov.a + cov.c;
   type F = { kind: 'raw' | 'centre' | 'rotate' | 'snap' | 'project' | 'pc2' | 'line'; th?: number };
   const frames: F[] = [{ kind: 'raw' }, { kind: 'centre' }, ...ANGLES.map((a) => ({ kind: 'rotate' as const, th: (a * Math.PI) / 180 })),
@@ -115,11 +116,11 @@ function Playground() {
   const pts = useMemo(() => {
     const raw = pts0.map((q) => ({ x: q.x * scale, y: q.y }));
     if (!std) return raw;
-    const { cov } = covOf(raw);
+    const { cov } = cov2(raw);
     return raw.map((q) => ({ x: q.x / Math.sqrt(cov.a), y: q.y / Math.sqrt(cov.c) }));
   }, [pts0, scale, std]);
-  const { mu, cov } = covOf(pts);
-  const e = eig2(cov), total = cov.a + cov.c;
+  const { mu, cov } = cov2(pts);
+  const e = eigSym2(cov), total = cov.a + cov.c;
   const th = (angle * Math.PI) / 180, v = varAlong(cov, th);
   const lim = Math.max(3.2, ...pts.map((q) => Math.max(Math.abs(q.x - mu.x) / ASP, Math.abs(q.y - mu.y)) * 1.05));
   return (

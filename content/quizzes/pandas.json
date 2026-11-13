@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What does `df[\"price\"]` return?",
+      "options": [
+        "A DataFrame with one row",
+        "The column's data type",
+        "A plain Python list of prices",
+        "A Series: one column of values with a label for each row"
+      ],
+      "answer": 3,
+      "why": "Selecting one column with single brackets gives a **Series**, which keeps the row index. Double brackets, `df[[\"price\"]]`, would return a one-column DataFrame, which is the usual source of confusion.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "In the six-order table (revenues 500, 480, 720, 600, 400, 250), the products are Tea, Coffee, Coffee, Tea, Tea, Tea. What does `df[df[\"product\"] == \"Tea\"][\"revenue\"].sum()` return?",
+      "options": [
+        "2,950",
+        "1,200",
+        "1,750",
+        "35"
+      ],
+      "answer": 2,
+      "why": "The filter keeps orders 1, 4, 5 and 6: 500 + 600 + 400 + 250 = **1,750**. 2,950 is the total for all orders (the filter was ignored), 1,200 is Coffee, and 35 adds the units instead of the revenue.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "With the same six orders, what does `df.groupby(\"product\")[\"revenue\"].mean()` return?",
+      "options": [
+        "Coffee 600.0, Tea 437.5",
+        "Coffee 1,200, Tea 1,750",
+        "Coffee 437.5, Tea 600.0",
+        "One number: 491.7"
+      ],
+      "answer": 0,
+      "why": "Split by product, then average within each group: Coffee (480 + 720) / 2 = 600; Tea 1,750 / 4 = 437.5. The sums (1,200 and 1,750) come from `.sum()`, and 491.7 is the overall mean, which ignores the grouping. Results are sorted alphabetically, so Coffee comes first.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "You left-join the six orders (total revenue ₹2,950) to a targets table on `city`. Afterwards there are 9 rows and total revenue is ₹4,420. What is the most likely cause?",
+      "options": [
+        "pandas added the targets to the revenue column",
+        "The targets table lists a city twice (here Chennai), so each of Chennai's 3 orders was duplicated",
+        "A left join always adds rows from the right table",
+        "Some revenue values were missing and filled with zeros"
+      ],
+      "answer": 1,
+      "why": "A duplicate key on the lookup side copies every matching left row: 3 extra Chennai rows, adding 500 + 720 + 250 = ₹1,470. A left join keeps the left rows and only grows when keys repeat, which is why you check uniqueness or pass `validate=\"many_to_one\"`.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You run `df.dropna()` on its own line, then `df.info()` still shows missing values. Why?",
+      "options": [
+        "`dropna` only works on numeric columns",
+        "`dropna` returns a new DataFrame; the original is unchanged unless you assign it back, e.g. `df = df.dropna()`",
+        "`info` counts the missing values from before the drop",
+        "pandas needs to be restarted"
+      ],
+      "answer": 1,
+      "why": "Most pandas operations return a new table rather than changing the original. Forgetting to assign the result is a very common silent bug. Like filtering to Chennai, the original keeps all its rows.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "`s1 = pd.Series([10, 20], index=[\"a\", \"b\"])` and `s2 = pd.Series([1, 2], index=[\"b\", \"c\"])`. What is `s1 + s2`?",
+      "options": [
+        "[11, 22]",
+        "a: 10, b: 21, c: 2",
+        "a: NaN, b: 21, c: NaN",
+        "An error, because the indexes differ"
+      ],
+      "answer": 2,
+      "why": "pandas aligns by index label, not position. Only `b` exists in both (20 + 1 = 21); labels found in just one Series give NaN. [11, 22] is what position-based adding (as in NumPy) would give, and treating missing labels as 0 needs `s1.add(s2, fill_value=0)`.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "City revenues are Chennai ₹1,470, Kochi ₹600 and Pune ₹880. New targets are Chennai ₹1,400, Kochi ₹500 and Pune ₹1,100. After merging and computing revenue / target × 100, which city has the highest achievement?",
+      "options": [
+        "Kochi, 120.0%",
+        "Chennai, 105.0%",
+        "Pune, 80.0%",
+        "Chennai, because it has the highest revenue"
+      ],
+      "answer": 0,
+      "why": "Chennai 1,470 / 1,400 = 105.0%; Kochi 600 / 500 = **120.0%**; Pune 880 / 1,100 = 80.0%. Ranking by raw revenue is the trap; joining context onto totals often reverses the story.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"How do you make sure a merge in pandas has not silently corrupted your data?\" Which answer is best?",
+      "options": [
+        "Use an inner join, because it never creates duplicates",
+        "Convert both tables to NumPy arrays first",
+        "Sort both tables before merging",
+        "Check the key is unique on the lookup side, compare row counts and totals before and after, and pass `validate=` (e.g. `\"many_to_one\"`) so pandas raises an error on unexpected duplicates"
+      ],
+      "answer": 3,
+      "why": "Most pandas bugs are silent: a duplicated key quietly inflates totals. Checking counts and using `validate` turns that into a loud failure. Inner joins duplicate rows just as readily when keys repeat, so switching join type does not solve it.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

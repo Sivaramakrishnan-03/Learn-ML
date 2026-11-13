@@ -14,14 +14,13 @@
     "**Reading rules:** cluster **sizes** and the **distances between clusters** are often meaningless; different runs can look different. Use the plots for exploration, not as proof."
   ],
   "example": {
-    "title": "Visualising 10,000 product embeddings",
+    "title": "Turning distances into neighbour scores",
     "steps": [
-      "Embeddings have 384 dimensions",
-      "PCA to 2-D: one overlapping blob",
-      "UMAP to 2-D: clear islands for electronics, apparel, grocery…",
-      "Colour by category to sanity-check, and inspect the points that sit in the \"wrong\" island"
+      "Point i has three other points at distances 1, 2 and 4; neighbourhood width σ = 1",
+      "Bell-curve scores e^(−distance² / 2): 0.607, 0.135, 0.0003 → total ≈ 0.743",
+      "Normalised: 0.607 / 0.743 ≈ 0.82; 0.135 / 0.743 ≈ 0.18; the far point ≈ 0"
     ],
-    "result": "UMAP reveals the structure; the follow-up investigation provides the insight."
+    "result": "The nearest point gets 82% of i's attention and the far point effectively nothing. Neighbourhoods, not global distances, are what t-SNE keeps, which is why gaps and sizes on the map can mislead."
   },
   "mistakes": [
     "Interpreting distances between clusters.",
@@ -67,5 +66,9 @@
       "why": "Speed and a reusable transform."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "p_{j|i} = \\frac{\\exp\\!\\left(-\\lVert x_i - x_j \\rVert^2 / 2\\sigma_i^2\\right)}{\\sum_{k \\ne i} \\exp\\!\\left(-\\lVert x_i - x_k \\rVert^2 / 2\\sigma_i^2\\right)}",
+    "plain": "How much point i picks point j as a neighbour: a bell curve around i scores close points high and far points near zero, normalised to add to 1. t-SNE tries to keep these neighbour scores on the 2-D map."
+  }
 }

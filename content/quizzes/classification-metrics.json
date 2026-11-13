@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In a fraud model, what is a false negative?",
+      "options": [
+        "A genuine transaction flagged as fraud",
+        "A fraudulent transaction the model did not flag",
+        "A genuine transaction correctly passed",
+        "A fraud correctly flagged"
+      ],
+      "answer": 1,
+      "why": "\"Negative\" is the prediction (not fraud) and \"false\" means it was wrong, so it is a missed fraud. A genuine transaction flagged as fraud is the other mistake, a false positive or false alarm.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "In a loan dataset, 3% of borrowers default. What accuracy does a \"model\" score if it predicts \"no default\" for everyone?",
+      "options": [
+        "3%",
+        "50%",
+        "97%",
+        "0%"
+      ],
+      "answer": 2,
+      "why": "It is right for every non-defaulter: **97%** accuracy, while catching no defaults at all (recall 0%). This is why accuracy misleads on imbalanced data; 3% is the default rate, not the accuracy.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "A churn model has TP = 30, FP = 20 and FN = 10. What is its F1 score?",
+      "options": [
+        "About 0.675",
+        "0.75",
+        "0.60",
+        "About 0.667"
+      ],
+      "answer": 3,
+      "why": "Precision = 30 / 50 = 0.60; recall = 30 / 40 = 0.75; F1 = 2 × 0.6 × 0.75 / (0.6 + 0.75) = 0.9 / 1.35 ≈ **0.667**. 0.675 is the ordinary average of precision and recall; F1 is the harmonic mean, which sits slightly closer to the lower value.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "After a change to the model's settings, precision falls from 70% to 55% and recall rises from 60% to 85%. What most likely changed?",
+      "options": [
+        "The decision threshold was raised",
+        "The decision threshold was lowered, so more cases are flagged: more real positives caught, but more false alarms",
+        "The model was retrained on more data",
+        "The test set became more balanced"
+      ],
+      "answer": 1,
+      "why": "Lowering the threshold makes the alarm more sensitive: recall goes up and precision usually goes down. Raising it does the opposite. The threshold is a business decision and moves you along this trade-off without changing the model itself.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A model has precision 1.0 and recall 0.02. What is its F1, and why?",
+      "options": [
+        "0.51, the average of the two",
+        "0.02, because F1 equals the lower value",
+        "1.0, because precision is perfect",
+        "About 0.039, because the harmonic mean stays low when either value is low"
+      ],
+      "answer": 3,
+      "why": "F1 = 2 × 1.0 × 0.02 / (1.0 + 0.02) ≈ **0.039**. The ordinary average, 0.51, sounds respectable for a model that catches only 2% of positives; the harmonic mean refuses to be rescued by one strong number. It is close to, but not exactly, the lower value.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A missed defect (FN) costs ₹10,000 and a false alarm (FP) costs ₹1,000. Model A has FN 20 and FP 100; Model B has FN 5 and FP 300. Which is cheaper?",
+      "options": [
+        "Model A, at ₹3,00,000 against ₹3,50,000",
+        "Model B, at ₹3,50,000 against ₹3,00,000",
+        "Model B, because it has fewer misses",
+        "They cost the same"
+      ],
+      "answer": 0,
+      "why": "A: 20 × ₹10,000 + 100 × ₹1,000 = ₹3,00,000. B: 5 × ₹10,000 + 300 × ₹1,000 = ₹3,50,000. Higher recall is not automatically better: here the extra 200 false alarms cost more than the 15 misses saved. When costs are known, let the rupees decide.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "scikit-learn's `confusion_matrix(y_true, y_pred)` returns [[900, 30], [20, 50]]. What is the precision for the positive class?",
+      "options": [
+        "50 / 70 ≈ 0.714",
+        "900 / 930 ≈ 0.968",
+        "50 / 80 = 0.625",
+        "950 / 1,000 = 0.95"
+      ],
+      "answer": 2,
+      "why": "Rows are actual and columns are predicted, ordered [0, 1], so `ravel()` gives TN 900, FP 30, FN 20, TP 50. Precision = TP / (TP + FP) = 50 / 80 = **0.625**. 0.714 is recall (50 / 70), which you get by reading the matrix the wrong way round; 0.95 is accuracy.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Your fraud model has ROC-AUC 0.97 but the operations team says most alerts are false. How can both be true?\" Which answer is best?",
+      "options": [
+        "With very rare positives, the huge number of true negatives keeps the false positive rate small, so ROC-AUC looks flattering; even a small FPR can mean far more false alarms than frauds. Look at the precision–recall curve (PR-AUC) and choose the threshold by cost",
+        "They cannot; a high AUC guarantees high precision",
+        "The team is using the wrong threshold of 0.5, which AUC does not allow",
+        "ROC-AUC measures accuracy, which is high on imbalanced data"
+      ],
+      "answer": 0,
+      "why": "ROC-AUC uses the false positive rate, FP / (FP + TN), which stays tiny when negatives vastly outnumber positives. Precision compares false alarms with true catches, which is what the team experiences. AUC ignores the threshold rather than forbidding one.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

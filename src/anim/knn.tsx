@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, Scales, C } from '../viz/kit';
-import { sigmoid } from './_regression-helpers';
+import { sigmoid } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 // Telecom customers: satisfaction score (0–10) and monthly bill (₹ hundred, 0–10). Label 1 = churned, 0 = stayed.

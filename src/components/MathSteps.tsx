@@ -12,7 +12,9 @@ export function MathSteps({ steps }: { steps: MathStep[] }) {
     <div className="grid g2">
       <div>
         {steps.slice(0, p.i + 1).map((s, i) => (
-          <div key={i} className={`math-step ${i === p.i ? 'current' : ''}`} onClick={() => p.setI(i)} style={{ cursor: 'pointer' }}>
+          <div key={i} className={`math-step ${i === p.i ? 'current' : ''}`} onClick={() => p.setI(i)} style={{ cursor: 'pointer' }}
+            role="button" tabIndex={0} aria-label={`Go to step ${i + 1}`} aria-current={i === p.i ? 'step' : undefined}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.setI(i); } }}>
             <Tex block>{s.tex}</Tex>
           </div>
         ))}

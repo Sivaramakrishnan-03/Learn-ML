@@ -10,22 +10,22 @@
   "explain": [
     "An artificial neuron computes a **weighted sum** of its inputs plus a bias, then applies an **activation**. In the original perceptron that is a step: output 1 if the sum > 0, else 0.",
     "Like a bouncer adding up reasons to let you in (dress code +2, on the list +5, rowdy −4): if the total passes a threshold, you are in.",
-    "**Learning rule**: when it makes a mistake, nudge the weights towards the correct answer (w ← w + learning_rate × error × input). It converges if the classes are linearly separable.",
+    "**Learning rule**: when it makes a mistake, nudge the weights towards the correct answer (w ← w + η × (target − output) × input, with learning rate η). It converges if the classes are linearly separable.",
     "A single neuron draws only a **straight line**, so it cannot solve XOR. This limitation stalled the field until multi-layer networks with back-propagation."
   ],
   "formula": {
-    "tex": "\\hat y = \\text{step}(w \\cdot x + b)",
-    "plain": "Output 1 if the weighted sum plus bias is positive, else 0."
+    "tex": "\\hat y = \\text{step}(w \\cdot x + b), \\qquad w_j \\leftarrow w_j + \\eta\\,(t - o)\\,x_j",
+    "plain": "Output 1 if the weighted sum plus bias is above zero, else 0. After a mistake, add η × (target − output) × input to each weight (and η × (target − output) to the bias)."
   },
   "example": {
-    "title": "Learning an AND gate",
+    "title": "Teaching a perceptron the AND rule",
     "steps": [
-      "Start w = [0, 0], b = 0, learning rate 1",
-      "Input (1, 1), target 1, output 0 → error +1 → w = [1, 1], b = 1",
-      "Input (0, 0), target 0, output 1 → error −1 → b = 0",
-      "After a few passes the weights settle so only (1, 1) gives a positive sum, e.g. w = [1, 1], b = −1.5"
+      "Start w = [0, 0], b = 0, η = 1; present (0,0), (0,1), (1,0), (1,1) each epoch",
+      "Epoch 1: only (1, 1) is wrong (z = 0 → output 0, target 1) → w = [1, 1], b = 1",
+      "Epoch 2: (0,0) wrong → b = 0; (0,1) wrong → w = [1, 0], b = −1; (1,1) wrong → w = [2, 1], b = 0",
+      "Epochs 3–5 make six more corrections; epoch 6 makes none, ending at w = [2, 1], b = −2. Scores: (0,0) −2, (0,1) −1, (1,0) 0, (1,1) +1"
     ],
-    "result": "AND is linearly separable, so the perceptron learns it. XOR is not, and it never converges."
+    "result": "After 10 updates, only (1, 1) scores above zero: AND is learned ((1, 0) sits exactly on the line and is classified 0). XOR is not linearly separable, so the perceptron never converges on it."
   },
   "mistakes": [
     "Thinking modern networks use step activations (they use smooth ones such as ReLU, so gradients exist)."

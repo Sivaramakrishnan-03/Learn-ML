@@ -14,14 +14,14 @@
     "**Cut** the tree at a chosen height to get clusters. Large vertical gaps in the dendrogram suggest a natural number of groups."
   ],
   "example": {
-    "title": "Grouping 6 stores by sales profile",
+    "title": "Single linkage on five numbers",
     "steps": [
-      "Merge the two most similar stores first (S1 + S4 at height 0.8)",
-      "Then S2 + S5 (1.1), then S3 + S6 (1.3)",
-      "Then {S1, S4} + {S2, S5} at 3.0",
-      "The final merge at 7.5 is a big jump → cut below it → 2 clusters"
+      "Average daily orders (hundreds) for five outlets: A = 1, B = 2, C = 4, D = 10, E = 11",
+      "Merge {A, B} at height 1, then {D, E} at height 1 (the two smallest distances)",
+      "C to {A, B} = closest pair = min(3, 2) = 2; C to {D, E} = min(6, 7) = 6 → C joins {A, B} at height 2",
+      "{A, B, C} to {D, E} = closest pair C–D = 6 → final join at height 6"
     ],
-    "result": "The dendrogram shows both the 2-group and the 3-group view, and lets the business choose the level it can act on."
+    "result": "Merge heights 1, 1, 2, 6. The big jump from 2 to 6 says cut there: two groups, small outlets {A, B, C} and big outlets {D, E}."
   },
   "mistakes": [
     "Running it on very large data: it needs pairwise distances (memory ~ n²).",
@@ -40,7 +40,7 @@
     "Very large datasets"
   ],
   "practice": {
-    "code": "import numpy as np\nfrom scipy.cluster.hierarchy import linkage, fcluster\nX = np.random.default_rng(0).normal(size=(30, 2)); X[:15] += 4\nZ = linkage(X, method=\"ward\")\nprint(fcluster(Z, t=2, criterion=\"maxclust\"))\n# scipy.cluster.hierarchy.dendrogram(Z) draws the tree (needs matplotlib)"
+    "code": "import numpy as np\nfrom scipy.cluster.hierarchy import linkage, fcluster\nZ = linkage([[1], [2], [4], [10], [11]], method=\"single\")   # outlets A–E\nprint(Z[:, 2])                                           # merge heights [1. 1. 2. 6.]\nprint(fcluster(Z, t=2, criterion=\"maxclust\"))            # {A, B, C} vs {D, E}\nX = np.random.default_rng(0).normal(size=(30, 2)); X[:15] += 4\nprint(fcluster(linkage(X, method=\"ward\"), t=2, criterion=\"maxclust\"))\n# scipy.cluster.hierarchy.dendrogram(Z) draws the tree (needs matplotlib)"
   },
   "check": [
     {
@@ -66,5 +66,9 @@
       "why": "Higher joins = less similar groups."
     }
   ],
-  "chapterMinutes": 19
+  "chapterMinutes": 19,
+  "formula": {
+    "tex": "d_{\\text{single}}(A,B) = \\min_{a \\in A,\\, b \\in B} d(a,b), \\qquad d_{\\text{complete}}(A,B) = \\max_{a \\in A,\\, b \\in B} d(a,b)",
+    "plain": "Single linkage: two groups are as close as their two closest members. Complete linkage: as far as their two farthest members."
+  }
 }

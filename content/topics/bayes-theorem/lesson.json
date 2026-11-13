@@ -9,7 +9,7 @@
   "why": "Spam filters, medical diagnosis, fraud alerts and Bayesian A/B testing all update beliefs with evidence. Ignoring base rates leads to badly wrong decisions.",
   "explain": [
     "Bayes' theorem tells you how to **update a belief** when new evidence arrives: **posterior ∝ likelihood × prior**.",
-    "The **prior** is what you believed before (1% of transactions are fraud). The **likelihood** is how probable the evidence is under each hypothesis (an alert fires for 99% of frauds but also for 5% of normal transactions).",
+    "The **prior** is what you believed before (0.2% of card payments are fraud). The **likelihood** is how probable the evidence is under each hypothesis (the alert fires for 95% of frauds but also for 2% of honest payments).",
     "The **posterior** is the updated belief: given that the alert fired, how likely is fraud?",
     "The famous surprise: when the base rate is low, even an accurate test produces mostly false alarms. That is the **base-rate fallacy**."
   ],
@@ -18,14 +18,14 @@
     "plain": "Belief in H after seeing evidence E = how well H explains E × prior belief in H, normalised."
   },
   "example": {
-    "title": "A positive medical test",
+    "title": "Fraud alerts at a card issuer",
     "steps": [
-      "Prevalence (prior) 1%; sensitivity 99%; false-positive rate 5%",
-      "Out of 10,000 people: 100 sick → 99 test positive",
-      "9,900 healthy → 5% = 495 false positives",
-      "P(sick | positive) = 99 / (99 + 495) ≈ 16.7%"
+      "Prior 0.2% fraud; the model flags 95% of fraud and 2% of honest payments",
+      "Out of 1,00,000 payments: 200 fraudulent → 95% = 190 true alerts",
+      "99,800 honest → 2% = 1,996 false alerts; total alerts = 2,186",
+      "P(fraud | alert) = 190 ÷ 2,186 ≈ 8.7%"
     ],
-    "result": "A \"99% accurate\" test gives only a 17% chance of disease after one positive result. Confirmatory tests exist for exactly this reason."
+    "result": "More than 9 in 10 alerts are honest customers, so a quick SMS check beats blocking the card. The same arithmetic for a medical test (1% prevalence, 99% sensitivity, 5% false positives, the animation's example) gives 99 ÷ (99 + 495) ≈ 16.7%."
   },
   "mistakes": [
     "Ignoring the base rate (prior).",
@@ -37,7 +37,7 @@
     "Think in natural frequencies (out of 10,000 people)"
   ],
   "practice": {
-    "code": "prior, sens, fpr = 0.01, 0.99, 0.05\np_pos = sens * prior + fpr * (1 - prior)\nprint(round(sens * prior / p_pos, 3))      # 0.167"
+    "code": "def posterior(prior, sens, fpr):\n    p_evidence = sens * prior + fpr * (1 - prior)\n    return sens * prior / p_evidence\nprint(round(posterior(0.002, 0.95, 0.02), 3))   # 0.087  fraud alert\nprint(round(posterior(0.01, 0.99, 0.05), 3))    # 0.167  medical test\nprint(round(posterior(0.167, 0.99, 0.05), 3))   # ≈ 0.8  after a second positive test"
   },
   "check": [
     {

@@ -8,25 +8,25 @@
   ],
   "why": "Linear regression is the first model to try for any numeric prediction: prices, demand, costs, fuel consumption. It is fast, explainable, and the baseline every fancier model must beat.",
   "explain": [
-    "Plot area against price for recent flat sales and you see an upward cloud. Linear regression draws the **one straight line** that passes as close as possible to all the points: **price = slope × area + intercept**.",
+    "Plot area against price for recent flat sales and you see an upward cloud. Linear regression draws the **one straight line** that passes as close as possible to all the points: **price = b₀ + b₁ × area** (intercept plus slope × area).",
     "\"As close as possible\" has a precise meaning: for each flat, the vertical gap between the real price and the line is the **residual** (the error). The line chosen is the one with the **smallest sum of squared residuals**. That is why it is called **least squares**.",
-    "The **slope** is the business insight: \"each extra 100 sq ft adds about ₹4 lakh\". The **intercept** is the predicted price at zero area. It often has no real meaning; it simply positions the line.",
+    "The **slope** b₁ is the business insight: \"each extra 100 sq ft adds about ₹4.3 lakh\". The **intercept** b₀ is the predicted price at zero area. It often has no real meaning; it simply positions the line.",
     "With many features (area, floor, age) it becomes **multiple regression**: one coefficient per feature, each read as \"holding the others constant\".",
     "Judge it with **R²** (share of variation explained) and **RMSE** (typical error in rupees), always on **test data** it has not seen."
   ],
   "formula": {
-    "tex": "\\hat y = m x + b, \\qquad \\min_{m,b} \\sum_i (y_i - \\hat y_i)^2",
-    "plain": "Prediction = slope × input + intercept; choose slope and intercept to make the total squared error as small as possible."
+    "tex": "\\hat y = b_0 + b_1 x, \\qquad \\min_{b_0,b_1} \\sum_i (y_i - \\hat y_i)^2",
+    "plain": "Prediction = intercept + slope × input; choose intercept and slope to make the sum of squared residuals as small as possible (least squares)."
   },
   "example": {
-    "title": "Price a flat from three past sales",
+    "title": "Fitting the flat-price line by hand",
     "steps": [
-      "Sales (area in 100 sq ft → price ₹L): (5 → 30), (8 → 42), (11 → 54)",
-      "Each extra 300 sq ft adds ₹12L → slope = 12 / 3 = ₹4L per 100 sq ft",
-      "Intercept: 30 = 4 × 5 + b → b = 10",
-      "Model: price = 4 × area + 10 → a 1,000 sq ft flat (area 10) → ₹50L"
+      "Five sales, area (100 sq ft) → price (₹L): 6 → 35, 8 → 44, 10 → 50, 12 → 62, 14 → 69. Averages x̄ = 10, ȳ = 52",
+      "Deviations of x: −4, −2, 0, 2, 4; of y: −17, −8, −2, 10, 17. Sum of products = 172; sum of squared x deviations = 40",
+      "Slope b₁ = 172 / 40 = 4.3; intercept b₀ = 52 − 4.3 × 10 = 9",
+      "Line: price = 9 + 4.3 × area → a 1,100 sq ft flat (area 11) → 9 + 4.3 × 11 = ₹56.3L"
     ],
-    "result": "Real data never sits perfectly on a line, so least squares finds the slope and intercept that balance all the errors. The interpretation stays the same."
+    "result": "Each extra 100 sq ft adds about ₹4.3 lakh. The points do not sit exactly on the line (residuals 0.2, 0.6, −2.0, 1.4, −0.2); least squares makes the sum of their squares as small as possible."
   },
   "mistakes": [
     "Extrapolating far beyond the data range.",
@@ -56,7 +56,7 @@
     "OLS closed form vs gradient descent: when would you use each?"
   ],
   "practice": {
-    "code": "from sklearn.linear_model import LinearRegression\nimport numpy as np\nX = np.array([[5], [8], [11]]); y = np.array([30, 42, 54])\nm = LinearRegression().fit(X, y)\nprint(m.coef_, m.intercept_, m.predict([[10]]))     # [4.] 10.0 [50.]"
+    "code": "from sklearn.linear_model import LinearRegression\nimport numpy as np\nX = np.array([[6], [8], [10], [12], [14]]); y = np.array([35, 44, 50, 62, 69])\nm = LinearRegression().fit(X, y)\nprint(m.coef_, m.intercept_, m.predict([[11]]))     # [4.3] 9.0 [56.3]"
   },
   "check": [
     {

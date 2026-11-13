@@ -14,18 +14,18 @@
     "Tune **C and gamma together** with a grid search on a log scale (0.001, 0.01, 0.1 …)."
   ],
   "formula": {
-    "tex": "K(x, x') = \\exp\\left(-\\gamma \\lVert x - x' \\rVert^2\\right)",
-    "plain": "RBF similarity: 1 for identical points, falling towards 0 with distance; gamma controls how fast it falls."
+    "tex": "K_{\\text{RBF}}(x, z) = \\exp\\left(-\\gamma \\lVert x - z \\rVert^2\\right)",
+    "plain": "RBF similarity: 1 for identical points, falling towards 0 with distance; gamma (γ) controls how fast it falls."
   },
   "example": {
-    "title": "Concentric circles",
+    "title": "Lifting one-dimensional data",
     "steps": [
-      "Linear SVM accuracy: about 50% (a coin flip)",
-      "Add feature r² = x² + y²: inner ring has small r², outer ring large",
-      "A single threshold on r² separates them perfectly",
-      "RBF SVM finds this boundary automatically: about 99% accuracy"
+      "Seven parts, deviation from target size (mm): −3, −2, −1, 0, 1, 2, 3. Parts within ±1 mm pass; the rest fail",
+      "Failures sit on both sides of the passes, so no single threshold on x works",
+      "Add the feature x²: 9, 4, 1, 0, 1, 4, 9. Passes have 0 or 1; failures 4 or 9",
+      "One flat cut at x² = 2.5 separates them; back in mm that is −1.58 < x < 1.58, a two-sided rule"
     ],
-    "result": "The kernel did the feature engineering implicitly."
+    "result": "One curved feature turned an impossible straight-line problem into an easy one. Kernels do this lift implicitly, for many features at once (the same idea as z = x² + y² for a ring)."
   },
   "mistakes": [
     "Large gamma + large C → memorising the data.",

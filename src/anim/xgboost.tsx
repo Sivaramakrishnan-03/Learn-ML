@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Region, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, Tex, C } from '../viz/kit';
-import { stores, storeTrend, RP, mean } from './_ensembles-helpers';
+import { mean } from '../viz/math';
+import { stores, storeTrend, RP } from './_ensembles-helpers';
 
 /* ---------- pure helpers: second-order (XGBoost-style) regression trees, squared loss so g = F − y, h = 1 ---------- */
 const gainOf = (GL: number, HL: number, GR: number, HR: number, lam: number) => 0.5 * (GL ** 2 / (HL + lam) + GR ** 2 / (HR + lam) - (GL + GR) ** 2 / (HL + HR + lam));

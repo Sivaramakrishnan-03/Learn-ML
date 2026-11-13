@@ -2,7 +2,7 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, Region, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
-import { mean, median, quantile, sdS, histCounts } from './_stats2-helpers';
+import { mean, median, quantileSorted, sdS, histogram, resampleIdx, tally } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 const DELIV = [22, 25, 28, 30, 31, 33, 35, 36, 38, 41, 52, 75]; // g-stats2: 12 delivery times (minutes)
@@ -10,11 +10,10 @@ type Stat = 'median' | 'mean' | 'p90';
 const STATS: Record<Stat, { label: string; f: (a: number[]) => number }> = {
   median: { label: 'Median', f: median },
   mean: { label: 'Mean', f: mean },
-  p90: { label: '90th percentile', f: (a) => quantile([...a].sort((x, y) => x - y), 0.9) },
+  p90: { label: '90th percentile', f: (a) => quantileSorted([...a].sort((x, y) => x - y), 0.9) },
 };
 /** B bootstrap resamples, stored as index arrays so we can show which original points were drawn. */
-function resampleIdx(n: number, B: number, seed: number) { const r = rng(seed); return Array.from({ length: B }, () => Array.from({ length: n }, () => Math.floor(r() * n))); }
-const counts = (idx: number[], n: number) => { const c = Array(n).fill(0); idx.forEach((i) => c[i]++); return c; };
+function resamples(n: number, B: number, seed: number) { const r = rng(seed); return Array.from({ length: B }, () => resampleIdx(n, r)); }
 /** Dots of a resample on a number line, stacking repeated values. */
 function stackRow(vals: number[], y0: number, dy: number) { const seen: Record<number, number> = {}; return [...vals].sort((a, b) => a - b).map((v) => { const k = (seen[v] = (seen[v] ?? -1) + 1); return { x: v, y: y0 + k * dy }; }); }
 
@@ -30,7 +29,7 @@ const FRAMES: Fr[] = [
 ];
 
 function Animate() {
-  const idx = useMemo(() => resampleIdx(12, B, 2024), []);
+  const idx = useMemo(() => resamples(12, B, 2024), []);
   const meds = useMemo(() => idx.map((ix) => median(ix.map((i) => DELIV[i]))), [idx]);
   const means = useMemo(() => idx.map((ix) => mean(ix.map((i) => DELIV[i]))), [idx]);
   const sortedMed = useMemo(() => [...meds].sort((a, b) => a - b), [meds]);
@@ -39,17 +38,17 @@ function Animate() {
   const f = FRAMES[p.i];
   const useMean = f.stage === 'mean';
   const cur = idx[f.s].slice(0, f.draws);
-  const cnt = counts(cur, 12);
+  const cnt = tally(cur, 12);
   const curVals = cur.map((i) => DELIV[i]);
   const curMed = f.draws === 12 ? median(curVals) : NaN;
   const oob = cnt.filter((c) => c === 0).length;
   const shown = (useMean ? means : meds).slice(0, f.k);
-  const h = histCounts(shown, 21.75, 56.25, 69);
+  const h = histogram(shown, 21.75, 56.25, 69);
   const yMax = Math.max(3, ...h.map((d) => d.y)) * 1.15;
   const sorted = useMean ? sortedMean : sortedMed;
-  const lo = quantile(sorted, 0.025), hi = quantile(sorted, 0.975);
+  const lo = quantileSorted(sorted, 0.025), hi = quantileSorted(sorted, 0.975);
   const se = sdS(meds), seMean = sdS(means);
-  const medLo = quantile(sortedMed, 0.025), medHi = quantile(sortedMed, 0.975);
+  const medLo = quantileSorted(sortedMed, 0.025), medHi = quantileSorted(sortedMed, 0.975);
   const showCI = f.stage === 'ci' || f.stage === 'mean';
   const rep = cnt.map((c, i) => ({ c, i })).filter((d) => d.c > 1);
   const cap: Record<Fr['stage'], ReactNode> = {
@@ -116,12 +115,12 @@ function Playground() {
   const [nB, setNB] = useState(2000);
   const [seed, setSeed] = useState(1);
   const fn = STATS[stat].f;
-  const boot = useMemo(() => { const r = rng(seed * 101 + data.length); const n = data.length; return Array.from({ length: nB }, () => fn(Array.from({ length: n }, () => data[Math.floor(r() * n)]))).sort((a, b) => a - b); }, [data, fn, nB, seed]);
-  const est = fn(data), a = (100 - conf) / 200, lo = quantile(boot, a), hi = quantile(boot, 1 - a), se = sdS(boot);
+  const boot = useMemo(() => { const r = rng(seed * 101 + data.length); const n = data.length; return Array.from({ length: nB }, () => fn(resampleIdx(n, r).map((i) => data[i]))).sort((a, b) => a - b); }, [data, fn, nB, seed]);
+  const est = fn(data), a = (100 - conf) / 200, lo = quantileSorted(boot, a), hi = quantileSorted(boot, 1 - a), se = sdS(boot);
   const dMax = Math.max(160, ...data) + 5;
   const bLo = boot[0], bHi = boot[boot.length - 1], bPad = Math.max(1.5, (bHi - bLo) * 0.08);
   const xMin = Math.floor(bLo - bPad), xMax = Math.ceil(bHi + bPad);
-  const bins = 60, w = (xMax - xMin) / bins, h = histCounts(boot, xMin, xMax, bins);
+  const bins = 60, w = (xMax - xMin) / bins, h = histogram(boot, xMin, xMax, bins);
   const yMax = Math.max(...h.map((d) => d.y), 1) * 1.15;
   return (
     <Layout

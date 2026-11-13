@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why are an MLP's weights initialised with small **random** numbers rather than all zeros?",
+      "options": [
+        "With identical starting weights, every neuron in a layer computes the same thing and receives the same update, so they stay identical and the layer is no better than one neuron",
+        "Zeros would make the first forward pass too slow",
+        "Random weights guarantee the network finds the global minimum",
+        "Zeros are not allowed by the ReLU activation"
+      ],
+      "answer": 0,
+      "why": "Backpropagation gives each neuron a gradient that depends on its own weights; if all start equal, all gradients are equal and the symmetry never breaks. Randomness lets neurons specialise. It does not guarantee the best solution: different random starts give different networks.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A hidden layer computes weighted sums **a = (−1.5, 0, 2.3)**. What are its outputs after **ReLU**?",
+      "options": [
+        "(1.5, 0, 2.3)",
+        "(0, 0, 2.3)",
+        "(0.18, 0.5, 0.91)",
+        "(−1.5, 0, 2.3)"
+      ],
+      "answer": 1,
+      "why": "ReLU(z) = max(0, z): negatives become 0 and positives pass through unchanged. (1.5, 0, 2.3) takes the absolute value, which is not ReLU. (0.18, 0.5, 0.91) is the sigmoid of each value. Leaving the values unchanged would make the layer linear.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Using the chapter's loan network (a₁ = 0.5x₁ + 0.3x₂ + 0.1; a₂ = −0.2x₁ + 0.8x₂; h = ReLU(a); z = 1.2h₁ − 0.7h₂ − 0.2; p = sigmoid(z)), what is p for an applicant with **x₁ = 2.0, x₂ = 0.2**?",
+      "options": [
+        "About 0.636",
+        "About 0.796",
+        "About 0.767",
+        "About 1.192"
+      ],
+      "answer": 2,
+      "why": "a₁ = 1.0 + 0.06 + 0.1 = 1.16 → h₁ = 1.16. a₂ = −0.4 + 0.16 = −0.24 → h₂ = ReLU(−0.24) = 0. z = 1.2 × 1.16 − 0 − 0.2 = 1.192, p = sigmoid(1.192) ≈ 0.767. 0.796 forgets the ReLU and lets the negative a₂ through; 1.192 is z, not a probability; 0.636 is the chapter's original applicant.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "During training, training loss keeps falling every epoch, but validation loss bottoms out at epoch 25 and then rises steadily. What should you do?",
+      "options": [
+        "Keep training: falling training loss means the model is still improving",
+        "Add more hidden layers so the validation loss falls again",
+        "Raise the learning rate to push past the bump",
+        "Use early stopping: keep the weights from around epoch 25, because after that the network is memorising the training set"
+      ],
+      "answer": 3,
+      "why": "The gap opening between falling training loss and rising validation loss is the signature of overfitting. Early stopping (plus L2 penalty or dropout) prevents it. More layers add capacity and usually make memorising worse, and a higher learning rate does not address overfitting.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "In a trained MLP, a hidden neuron's output weight to the final layer is exactly **0**. During backpropagation, how much do that neuron's incoming weights change because of the output error?",
+      "options": [
+        "The most, because the neuron is clearly useless",
+        "Nothing: blame flows back in proportion to the connection strength, so with v = 0 its gradient from this error is 0",
+        "The same amount as every other neuron in the layer",
+        "It depends only on the learning rate"
+      ],
+      "answer": 1,
+      "why": "By the chain rule, the gradient for a first-layer weight contains the factor v (how strongly that neuron feeds the output). If v = 0 the product is 0: the neuron did not influence the mistake, so it gets no update from it. The learning rate only scales a gradient; it cannot create one.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "Same applicant (x₁ = 2.0, x₂ = 0.2, p ≈ 0.767, actually repaid so y = 1). Using **∂L/∂w₁₁ = (p − y) × v₁ × 1[a₁ > 0] × x₁** with v₁ = 1.2, what is the gradient for w₁₁?",
+      "options": [
+        "About −0.280",
+        "About +0.559",
+        "0",
+        "About −0.559"
+      ],
+      "answer": 3,
+      "why": "(0.767 − 1) × 1.2 × 1 × 2.0 = −0.233 × 2.4 ≈ −0.559. Neuron 1 was active (a₁ = 1.16 > 0), so its ReLU link is 1. −0.280 forgets the input x₁ = 2.0. The sign is negative because increasing w₁₁ would raise p towards the true label and reduce the loss.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "For that same applicant, the gradients for **every weight feeding hidden neuron 2** come out as exactly 0. Why?",
+      "options": [
+        "Because neuron 2's weighted sum was negative (a₂ = −0.24), so ReLU output 0 and its slope there is 0; the chain of blame is cut at the ReLU link",
+        "Because neuron 2's output weight is negative",
+        "Because the loss for this applicant is 0",
+        "Because the learning rate is too small to register a change"
+      ],
+      "answer": 0,
+      "why": "The gradient includes the factor 1[a₂ > 0], which is 0 for this applicant, so neuron 2 neither influenced the prediction nor learns from it. A negative output weight still passes blame back; it just flips the sign. The loss (about 0.265) is not zero. A neuron that is inactive for every example is called a dead ReLU.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview question: \"You have 3,000 rows of tabular churn data with mixed numeric and categorical columns. Would you start with an MLP?\"",
+      "options": [
+        "Yes: neural networks are always the most accurate model",
+        "Yes, as long as it has at least ten hidden layers",
+        "No: on small to medium tabular data, gradient-boosted trees usually beat an MLP with far less tuning and are easier to explain; reach for MLPs with unstructured or very large data",
+        "No, because MLPs cannot handle categorical columns at all"
+      ],
+      "answer": 2,
+      "why": "MLPs are data-hungry and sensitive to scaling and settings; with a few thousand rows they tend to overfit or need careful regularisation. Boosting handles mixed columns well and pairs naturally with SHAP. MLPs can handle categories (for example through embeddings), and depth alone does not make a better model.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

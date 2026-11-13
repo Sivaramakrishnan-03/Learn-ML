@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In ARIMA, what does the **MA (moving average)** part use?",
+      "options": [
+        "A rolling average of the last q values",
+        "Past forecast errors (shocks) from the last q periods",
+        "The average of the whole series",
+        "The moving average trend from decomposition"
+      ],
+      "answer": 1,
+      "why": "Despite the name, the MA part is a weighted sum of past shocks, not an average of past values. The name is historical. Rolling averages belong to smoothing and decomposition.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A share price behaves like a random walk: tomorrow = today + an unpredictable change. Which ARIMA model describes it, and what is its best forecast?",
+      "options": [
+        "ARIMA(0,1,0); forecast today's price (the naive forecast)",
+        "ARIMA(1,0,0); forecast the long-run mean",
+        "ARIMA(0,0,1); forecast the last shock",
+        "ARIMA(2,1,2); forecast a rising trend"
+      ],
+      "answer": 0,
+      "why": "One difference makes the changes white noise, leaving nothing for AR or MA terms. The best forecast is the latest value. Reverting to a mean would assume stationarity that a random walk does not have.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "An AR(1) model is y_t = 30 + 0.4 × y_{t−1} + shock. Today's value is 80. What is the forecast **two steps ahead**?",
+      "options": [
+        "62.0",
+        "50.0",
+        "54.8",
+        "12.8"
+      ],
+      "answer": 2,
+      "why": "One step: 30 + 0.4 × 80 = 62. Two steps: 30 + 0.4 × 62 = 54.8 (future shocks are set to their average, zero). 62 is only one step; 50 is the long-run mean 30 / (1 − 0.4), which the forecast approaches; 12.8 forgets the constant.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A stationary series has an ACF that cuts off sharply after lag 2 and a PACF that decays gradually. Which model is suggested?",
+      "options": [
+        "AR(2)",
+        "ARIMA(0,2,0)",
+        "MA(2)",
+        "White noise"
+      ],
+      "answer": 2,
+      "why": "An ACF that cuts off after lag q with a decaying PACF is the MA(q) signature. AR(p) is the mirror image: PACF cuts off after lag p. d counts differences, which a stationary series does not need, and white noise has no significant spikes.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "ARIMA(1,1,0) on monthly sales: the last value is 500, the last change was +20, and the model for changes is Δy_t = 0.5 × Δy_{t−1} + shock. What is the forecast level **two months ahead**?",
+      "options": [
+        "515",
+        "540",
+        "510",
+        "520"
+      ],
+      "answer": 0,
+      "why": "Forecast changes: 0.5 × 20 = +10, then 0.5 × 10 = +5. Levels: 510, then 515. 540 assumes the +20 continues; 520 is the long-run level the forecast approaches (500 + 10 + 5 + 2.5 + …).",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "An MA(1) model is y_t = 50 + ε_t + 0.6 × ε_{t−1}. This week's forecast was 50, but the actual was 45. What is the forecast **two weeks ahead**?",
+      "options": [
+        "47",
+        "48.2",
+        "44",
+        "50"
+      ],
+      "answer": 3,
+      "why": "This week's shock is −5. Next week: 50 + 0.6 × (−5) = 47. Two weeks ahead the only shock involved is next week's, which is unknown (average zero), so the forecast is the mean, 50. An MA(q) model remembers a surprise for exactly q periods; 48.2 wrongly lets it decay like an AR term.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "After fitting an ARIMA model, a Ljung–Box test on the residuals gives p = 0.003. What should you conclude?",
+      "options": [
+        "The residuals are white noise, so the model is good",
+        "The series is not stationary, so the test is invalid",
+        "The model's forecasts are 99.7% accurate",
+        "There is significant autocorrelation left in the residuals: the model has missed predictable structure, so revisit the orders, seasonal terms or regressors"
+      ],
+      "answer": 3,
+      "why": "Ljung–Box tests H₀: residuals are uncorrelated (white noise). A small p-value rejects that, meaning structure remains. It says nothing about forecast accuracy as a percentage. If the residuals were white noise, you would expect a large p-value.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "In an interview: \"Why do long-range ARIMA forecasts turn into a flat or straight line?\"",
+      "options": [
+        "Because the software stops forecasting after a few steps",
+        "Far ahead, the effects of known past values and shocks have faded, so the forecast settles at the mean (d = 0), a flat line (d = 1, no constant) or a straight trend line (d = 1 with a constant), while the prediction interval keeps widening",
+        "Because ARIMA cannot model trends",
+        "Because the residuals are white noise"
+      ],
+      "answer": 1,
+      "why": "AR effects decay and MA effects vanish after q steps, so only the deterministic part remains. That is why the interval, not the line, carries the information at long horizons: each future step adds a new unknown shock. ARIMA with d = 1 and a constant does produce a trend.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

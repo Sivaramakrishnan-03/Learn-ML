@@ -10,17 +10,18 @@
   "explain": [
     "**k-fold CV**: cut the training data into k equal folds (often 5). Train on 4 folds, validate on the 5th. Rotate until every fold has been the validation fold once. Average the 5 scores.",
     "Every row is used for both training and validation (in different rounds), so the estimate uses your data efficiently.",
-    "Report the **mean and standard deviation**: \"0.84 ± 0.02\" is stable; \"0.84 ± 0.10\" means the result depends heavily on which rows you happen to use.",
+    "Report the **mean and standard deviation**: \"0.84 ± 0.014\" is stable; \"0.84 ± 0.10\" means the result depends heavily on which rows you happen to use.",
     "Use **stratified k-fold** for classification, **group k-fold** when several rows belong to the same customer (so a customer is never in both train and validation), and **time-series split** for temporal data."
   ],
   "example": {
-    "title": "5-fold CV scores",
+    "title": "Summarising five fold scores",
     "steps": [
-      "Fold accuracies: 0.82, 0.85, 0.84, 0.86, 0.83",
-      "Mean = (0.82 + 0.85 + 0.84 + 0.86 + 0.83) / 5 = 0.84",
-      "Spread is about ±0.015 → stable"
+      "5-fold CV accuracies: 0.82, 0.85, 0.84, 0.86, 0.83",
+      "Mean = 4.20 / 5 = 0.84",
+      "Differences from the mean: −0.02, +0.01, 0, +0.02, −0.01 → squares sum to 0.0010; ÷ 5 = 0.0002",
+      "SD = √0.0002 ≈ 0.014 (dividing by k − 1 = 4 gives ≈ 0.016; say which you used)"
     ],
-    "result": "Report \"accuracy 0.84 ± 0.015 (5-fold CV)\". Then confirm once on the untouched test set."
+    "result": "Report \"accuracy 0.84 ± 0.014 (5-fold CV)\": a small spread, so the estimate is stable. Then confirm once on the untouched test set."
   },
   "mistakes": [
     "Scaling or selecting features before CV (leakage). Put the preprocessing inside a Pipeline.",

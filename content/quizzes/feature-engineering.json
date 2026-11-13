@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "For which column is ordinal encoding (1, 2, 3, …) appropriate?",
+      "options": [
+        "Payment method: card, UPI, cash",
+        "City: Chennai, Mumbai, Pune",
+        "Product colour: red, blue, green",
+        "T-shirt size: small, medium, large"
+      ],
+      "answer": 3,
+      "why": "Ordinal codes carry an order, so they suit categories with a real order such as sizes or education level. Giving cities or colours ordered numbers invents a ranking (\"Pune is three times Chennai\") that a linear model will take literally.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A churn model is scored on 31 March 2026. A customer last bought on 14 February 2026. What is `days_since_last_purchase`?",
+      "options": [
+        "45",
+        "47",
+        "17",
+        "48"
+      ],
+      "answer": 0,
+      "why": "14 days remain in February 2026 (a 28-day month) plus 31 days of March gives **45**. 47 assumes a 30-day February; 17 just subtracts the day numbers. Recency in days is far more useful to a model than a raw date.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "`pd.get_dummies(df, columns=[\"city\"])` creates `city_Chennai`, `city_Mumbai` and `city_Pune`. What does a customer from Pune look like?",
+      "options": [
+        "city_Chennai = 1, city_Mumbai = 1, city_Pune = 0",
+        "city_Chennai = 3, city_Mumbai = 3, city_Pune = 3",
+        "city_Chennai = 0, city_Mumbai = 0, city_Pune = 1",
+        "A single column with the value 3"
+      ],
+      "answer": 2,
+      "why": "One-hot encoding gives each row exactly one 1, in the column for its own value, and 0 elsewhere. A single column holding 3 is ordinal encoding, which would wrongly rank the cities.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Order values are transformed with log10(1 + x). What do ₹0, ₹99 and ₹9,999 become?",
+      "options": [
+        "1, 100 and 10,000",
+        "Undefined, 2 and 4",
+        "0, 1.99 and 3.99",
+        "0, 2 and 4"
+      ],
+      "answer": 3,
+      "why": "log10(1) = 0, log10(100) = 2 and log10(10,000) = 4: equal steps for each hundredfold increase. Adding 1 first is exactly what keeps ₹0 valid; plain log(0) would be undefined.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Overall churn is 10%. A small city has 10 customers, 5 of whom churned (50%). With smoothing strength m = 40, what is its smoothed target encoding?",
+      "options": [
+        "0.50",
+        "0.18",
+        "0.30",
+        "0.10"
+      ],
+      "answer": 1,
+      "why": "(n × city mean + m × global mean) / (n + m) = (10 × 0.5 + 40 × 0.1) / (10 + 40) = 9 / 50 = **0.18**. With so few rows the result is pulled most of the way towards the global 10%. 0.30 is a plain average of 50% and 10% that ignores how many rows support each.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A new feature raises the training score noticeably, but the validation score does not change. What should you conclude?",
+      "options": [
+        "Keep it, because the training score improved",
+        "It is probably fitting noise in the training data; drop it, or try a better version, and judge features on held-out data",
+        "The validation set must be wrong",
+        "Add more features of the same kind"
+      ],
+      "answer": 1,
+      "why": "A feature earns its place only if it helps on data the model has not seen. Gains that appear only on training data are the signature of overfitting, which is why features are added one group at a time and checked on validation data.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"What goes wrong if you compute target encoding on the full dataset before splitting?\" Which answer is best?",
+      "options": [
+        "Nothing; the averages are the same either way",
+        "It makes training slower but does not affect accuracy",
+        "Leakage: each row's own outcome feeds its feature, and test outcomes shape the training features, so scores look better than real performance. Compute it inside each training fold, for example with scikit-learn's `TargetEncoder` in a pipeline",
+        "It only matters for one-hot encoding"
+      ],
+      "answer": 2,
+      "why": "Target encoding uses the label itself, so computing it on all rows lets the answers seep into the inputs. Thinking \"an average is harmless\" is the trap. Cross-fitting inside folds keeps a row's own outcome out of its feature.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "A `product_id` column has 50,000 distinct values. Which approach is most sensible for a model?",
+      "options": [
+        "Use a smoothed target encoding (fitted within training folds) or a grouping such as product category",
+        "Ordinal-encode it as 1 to 50,000",
+        "One-hot encode it into 50,000 columns",
+        "Drop the column without considering it"
+      ],
+      "answer": 0,
+      "why": "With very high cardinality, one-hot encoding creates a huge, sparse table with few rows per column, and ordinal codes invent a meaningless order. Smoothed target encoding or a sensible grouping keeps the information compactly; dropping it may throw away a useful signal.",
+      "level": 3,
+      "kind": "concept"
+    }
+  ]
+}

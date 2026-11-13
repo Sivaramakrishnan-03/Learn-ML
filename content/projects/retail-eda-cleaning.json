@@ -1,0 +1,100 @@
+{
+  "id": "retail-eda-cleaning",
+  "title": "Clean and explore a messy retail sales extract",
+  "track": "python",
+  "level": 1,
+  "hours": 3,
+  "summary": "Turn a deliberately messy 6,000-row point-of-sale extract into a trustworthy table, then answer which cities and categories drive revenue, with a data-quality log you can hand to the business.",
+  "business": "A grocery-and-home retail chain with stores in Chennai, Bengaluru, Hyderabad, Pune and Kochi is preparing its quarterly review. The regional head asks: **which cities and categories drive revenue, how much do returns and discounts eat into it, and how far can we trust the numbers?** The extract from the stores' POS systems has duplicate uploads, inconsistent city names, two date formats, missing prices and a few ₹ amounts typed with an extra zero. Your job is to clean it transparently and report revenue in ₹ lakh.",
+  "topics": [
+    "pandas",
+    "data-cleaning",
+    "descriptive-stats",
+    "plotting",
+    "feature-engineering"
+  ],
+  "dataset": {
+    "name": "Synthetic POS extract (6,000 order lines)",
+    "how": "Generated in step 1 with `numpy.random.default_rng(7)`: order id, date (mixed `YYYY-MM-DD` and `DD/MM/YYYY` strings), city (with stray spaces and casing), category, quantity (negative = return), unit price in ₹ (some missing, some ×10 typos), discount %, payment mode, plus ~3% duplicated rows. No download needed."
+  },
+  "steps": [
+    {
+      "title": "Generate the raw extract",
+      "detail": "Real extracts are messy in predictable ways, so we simulate them on purpose: duplicate uploads, free-text city names, two date formats, missing prices, ×10 typing errors and returns stored as negative quantities. Keep the seed fixed so your numbers match your classmates'. Do not peek at the generator when cleaning: treat `raw` as something you received by email.",
+      "code": "import numpy as np\nimport pandas as pd\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\n\nrng = np.random.default_rng(7)\nn = 6000\ncities = [\"Chennai\", \"Bengaluru\", \"Hyderabad\", \"Pune\", \"Kochi\"]\ncity_w = [0.28, 0.27, 0.2, 0.15, 0.1]\ncats = {\"Staples\": 180, \"Snacks\": 60, \"Personal care\": 220, \"Home care\": 260, \"Electronics\": 2400}\ndates = pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 90, n), unit=\"D\")\ncat = rng.choice(list(cats), n, p=[0.35, 0.25, 0.18, 0.15, 0.07])\nbase = np.array([cats[c] for c in cat])\nraw = pd.DataFrame({\n    \"order_id\": np.arange(100001, 100001 + n),\n    \"date\": [d.strftime(\"%Y-%m-%d\") if rng.random() < 0.7 else d.strftime(\"%d/%m/%Y\") for d in dates],\n    \"city\": rng.choice(cities, n, p=city_w),\n    \"category\": cat,\n    \"qty\": rng.integers(1, 6, n),\n    \"unit_price\": np.round(base * rng.lognormal(0, 0.25, n), 2),\n    \"discount_pct\": rng.choice([0, 5, 10, 15, 20], n, p=[0.5, 0.2, 0.15, 0.1, 0.05]).astype(float),\n    \"payment\": rng.choice([\"UPI\", \"Card\", \"Cash\", \"Wallet\"], n, p=[0.5, 0.25, 0.2, 0.05]),\n})\n# --- inject realistic mess ---\nraw.loc[(raw[\"city\"] == \"Bengaluru\") & (rng.random(n) < 0.3), \"city\"] = \"Bangalore\"\nmessy = rng.random(n)\nraw.loc[messy < 0.15, \"city\"] = raw.loc[messy < 0.15, \"city\"].str.upper()\nspaced = (messy >= 0.15) & (messy < 0.25)\nraw.loc[spaced, \"city\"] = \"  \" + raw.loc[spaced, \"city\"].str.lower() + \" \"\nraw.loc[rng.random(n) < 0.04, \"unit_price\"] = np.nan\ntypo = rng.random(n) < 0.006\nraw.loc[typo, \"unit_price\"] = raw.loc[typo, \"unit_price\"] * 10\nret = rng.random(n) < 0.03\nraw.loc[ret, \"qty\"] = -raw.loc[ret, \"qty\"]\nraw.loc[rng.random(n) < 0.05, \"discount_pct\"] = np.nan\nraw.loc[rng.random(n) < 0.02, \"payment\"] = None\nraw = pd.concat([raw, raw.sample(frac=0.03, random_state=1)]).sample(frac=1, random_state=2).reset_index(drop=True)\nprint(raw.head())"
+    },
+    {
+      "title": "First look: shape, types, missing values, duplicates",
+      "detail": "Before changing anything, write down what you see. `info()` shows that `date` is text, not a date; `isna().mean()` gives the share missing per column; `duplicated('order_id')` reveals repeated uploads. Record these counts in a `log` dictionary: the before/after numbers become your data-quality report at the end.",
+      "code": "print(raw.shape)\nraw.info()\nprint(raw.isna().mean().round(3))\nprint(\"Duplicate order ids:\", raw.duplicated(\"order_id\").sum())\nprint(raw[\"city\"].value_counts().head(12))\nlog = {\"rows_received\": len(raw),\n       \"duplicate_rows\": int(raw.duplicated(\"order_id\").sum()),\n       \"missing_price\": int(raw[\"unit_price\"].isna().sum())}"
+    },
+    {
+      "title": "Fix text and dates",
+      "detail": "Strip spaces and fix casing with the `.str` accessor, then map known synonyms (`Bangalore` → `Bengaluru`). For dates, never trust a single 'smart' parser on mixed formats: `03/04/2025` is ambiguous. Parse the ISO format strictly, then parse the remaining rows as `DD/MM/YYYY`, and assert nothing is left unparsed. Explicit beats clever.",
+      "code": "df = raw.drop_duplicates(\"order_id\").copy()\ndf[\"city\"] = df[\"city\"].str.strip().str.title().replace({\"Bangalore\": \"Bengaluru\"})\niso = pd.to_datetime(df[\"date\"], format=\"%Y-%m-%d\", errors=\"coerce\")\ndmy = pd.to_datetime(df[\"date\"], format=\"%d/%m/%Y\", errors=\"coerce\")\ndf[\"date\"] = iso.fillna(dmy)\nassert df[\"date\"].notna().all(), \"some dates failed to parse\"\nprint(df[\"city\"].value_counts())\nprint(df[\"date\"].min(), \"to\", df[\"date\"].max())"
+    },
+    {
+      "title": "Find impossible and suspicious values",
+      "detail": "Returns (negative quantity) are legitimate business events, so flag them rather than delete them. Price typos are different: compare each price with its **category median**; a ratio above about 5 is almost certainly an extra zero. Fix only what you can justify, and count every fix. The robust median is used because the mean is itself pulled up by the typos.",
+      "code": "df[\"is_return\"] = df[\"qty\"] < 0\nratio = df[\"unit_price\"] / df.groupby(\"category\")[\"unit_price\"].transform(\"median\")\ntypos = ratio > 5\nprint(df.loc[typos, [\"category\", \"unit_price\"]].head())\ndf.loc[typos, \"unit_price\"] = df.loc[typos, \"unit_price\"] / 10\nlog[\"price_typos_fixed\"] = int(typos.sum())\nlog[\"returns_flagged\"] = int(df[\"is_return\"].sum())\nprint(df.groupby(\"category\")[\"unit_price\"].describe().round(0))"
+    },
+    {
+      "title": "Handle missing values deliberately",
+      "detail": "Each column needs its own rule, chosen with the business: a blank discount at this chain means *no promotion* (fill 0), a blank payment mode is genuinely unknown (fill `Unknown`, don't guess), and a missing price is imputed with the category median, with an indicator column so analysts can exclude imputed rows later. Dropping every row with any blank would silently throw away about 10% of revenue.",
+      "code": "df[\"price_imputed\"] = df[\"unit_price\"].isna()\ndf[\"unit_price\"] = df[\"unit_price\"].fillna(df.groupby(\"category\")[\"unit_price\"].transform(\"median\"))\ndf[\"discount_pct\"] = df[\"discount_pct\"].fillna(0)\ndf[\"payment\"] = df[\"payment\"].fillna(\"Unknown\")\nassert df.isna().sum().sum() == 0\nlog[\"prices_imputed\"] = int(df[\"price_imputed\"].sum())\nprint(df.isna().sum())"
+    },
+    {
+      "title": "Engineer business columns",
+      "detail": "Create the measures the business actually talks about: gross amount, discount in ₹, net revenue (negative for returns), month and weekday. Keep them as explicit columns so every later number is traceable to a formula.",
+      "code": "df[\"gross\"] = df[\"qty\"] * df[\"unit_price\"]\ndf[\"discount_rs\"] = df[\"gross\"] * df[\"discount_pct\"] / 100\ndf[\"net\"] = df[\"gross\"] - df[\"discount_rs\"]\ndf[\"month\"] = df[\"date\"].dt.to_period(\"M\").astype(str)\ndf[\"weekday\"] = df[\"date\"].dt.day_name()\nprint(df[[\"gross\", \"discount_rs\", \"net\"]].describe().round(1))"
+    },
+    {
+      "title": "Answer the business questions with group-bys",
+      "detail": "Use `groupby` and `pivot_table` to get revenue by city and by category in ₹ lakh, return and discount leakage as a percentage of gross, and mean versus median order value. Wherever the mean sits noticeably above the median, the distribution is right-skewed: report the median as the 'typical' order line and say why.",
+      "code": "sales = df[~df[\"is_return\"]]\nby_city = df.groupby(\"city\").agg(net_lakh=(\"net\", lambda s: s.sum() / 1e5),\n                                 orders=(\"order_id\", \"nunique\")).sort_values(\"net_lakh\", ascending=False)\nby_city[\"share_%\"] = (100 * by_city[\"net_lakh\"] / by_city[\"net_lakh\"].sum()).round(1)\nprint(by_city.round(2))\npivot = df.pivot_table(index=\"category\", columns=\"city\", values=\"net\", aggfunc=\"sum\") / 1e5\nprint(pivot.round(2))\nleak = pd.Series({\"returns_%\": -df.loc[df[\"is_return\"], \"gross\"].sum() / sales[\"gross\"].sum() * 100,\n                  \"discount_%\": df[\"discount_rs\"].sum() / sales[\"gross\"].sum() * 100})\nprint(leak.round(2))\nprint(sales.groupby(\"category\")[\"net\"].agg([\"mean\", \"median\"]).round(0))"
+    },
+    {
+      "title": "Plot the story",
+      "detail": "Three charts are enough: weekly net revenue over time (trend and any dips), net revenue by city (sorted bar) and the distribution of order value on a log axis (shows the long Electronics tail). Label axes with units (₹ lakh) and save the figure for your slide.",
+      "code": "fig, ax = plt.subplots(1, 3, figsize=(15, 4))\nweekly = df.set_index(\"date\")[\"net\"].resample(\"W\").sum() / 1e5\nweekly.plot(ax=ax[0], marker=\"o\"); ax[0].set_title(\"Weekly net revenue\"); ax[0].set_ylabel(\"₹ lakh\")\nby_city[\"net_lakh\"].sort_values().plot.barh(ax=ax[1]); ax[1].set_title(\"Net revenue by city\"); ax[1].set_xlabel(\"₹ lakh\")\nax[2].hist(sales[\"net\"], bins=np.logspace(1, 5, 40)); ax[2].set_xscale(\"log\")\nax[2].set_title(\"Order-line value\"); ax[2].set_xlabel(\"₹ (log scale)\")\nplt.tight_layout(); plt.savefig(\"retail_eda.png\", dpi=110); plt.close()"
+    },
+    {
+      "title": "Write the data-quality log",
+      "detail": "Finish with a small table of every issue found and what you did about it, plus the revenue at stake. This is what makes analysis trustworthy: anyone can rerun the notebook and see that, for example, imputed prices touch only a small share of revenue.",
+      "code": "log[\"rows_clean\"] = len(df)\nlog[\"imputed_revenue_share_%\"] = round(100 * df.loc[df[\"price_imputed\"], \"net\"].sum() / df[\"net\"].sum(), 2)\nquality = pd.DataFrame.from_dict(log, orient=\"index\", columns=[\"value\"])\nprint(quality)\nprint(f\"Total net revenue: ₹{df['net'].sum() / 1e5:,.1f} lakh across {df['order_id'].nunique():,} order lines\")"
+    }
+  ],
+  "deliverables": [
+    "A notebook that runs top to bottom from the raw extract to the clean table without manual edits.",
+    "A data-quality log: issue, rows affected, fix applied, and revenue share touched.",
+    "A one-page summary: revenue by city and category in ₹ lakh, returns and discount leakage in %, with the three charts.",
+    "A short list of questions for the business (for example: is a blank discount really 'no promotion'?)."
+  ],
+  "rubric": [
+    {
+      "criterion": "Reproducibility",
+      "good": "Fixed seed, no manual edits, every cleaning rule is code; rerunning gives identical numbers."
+    },
+    {
+      "criterion": "Cleaning decisions",
+      "good": "Each fix (duplicates, synonyms, dates, typos, blanks) is justified and counted; returns are flagged, not deleted."
+    },
+    {
+      "criterion": "Date handling",
+      "good": "Mixed formats parsed explicitly with an assertion that nothing is left unparsed; no ambiguous day/month swaps."
+    },
+    {
+      "criterion": "Business answers",
+      "good": "Revenue by city/category in ₹ lakh, leakage %, and mean vs median discussed for skewed categories."
+    },
+    {
+      "criterion": "Communication",
+      "good": "Charts have titles and units; the summary leads with the answer, then the caveats from the quality log."
+    }
+  ],
+  "extensions": [
+    "Wrap the cleaning steps into one function `clean(raw) -> (df, log)` and write three `assert`-based tests for it.",
+    "Detect outliers per city with the IQR rule on daily revenue and check whether they line up with weekends or festivals.",
+    "Use a chi-square test to check whether payment mode mix differs significantly between cities."
+  ]
+}

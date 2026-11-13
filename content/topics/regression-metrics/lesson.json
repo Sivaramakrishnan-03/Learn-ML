@@ -18,14 +18,14 @@
     "plain": "MAE averages the absolute misses; RMSE averages the squared misses, then takes the square root."
   },
   "example": {
-    "title": "Three predictions",
+    "title": "Three predictions by hand",
     "steps": [
       "Actual: 10, 20, 30; predicted: 12, 18, 36",
-      "Errors: −2, +2, −6 → absolute 2, 2, 6",
-      "MAE = (2 + 2 + 6) / 3 = 3.33",
-      "MSE = (4 + 4 + 36) / 3 = 14.67 → RMSE = 3.83"
+      "Errors (actual − predicted): −2, +2, −6 → absolute 2, 2, 6 → MAE = 10 / 3 ≈ 3.33",
+      "Squared: 4, 4, 36 → MSE = 44 / 3 ≈ 14.67 → RMSE ≈ 3.83",
+      "Lazy model (always predict the mean 20): squared errors 100 + 0 + 100 = 200 → R² = 1 − 44 / 200 = 0.78"
     ],
-    "result": "RMSE > MAE because the single big miss (6) is punished more. A big gap between them signals occasional large errors."
+    "result": "MAE 3.33, RMSE 3.83, R² 0.78. RMSE > MAE because the single miss of 6 is punished more than the two misses of 2. A big gap between them signals occasional large errors."
   },
   "mistakes": [
     "Reporting only R², which says nothing about error size in business units.",
@@ -38,7 +38,7 @@
     "Pick the metric that mirrors business cost"
   ],
   "practice": {
-    "code": "from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score\ny, p = [10, 20, 30], [12, 18, 36]\nprint(mean_absolute_error(y, p), mean_squared_error(y, p) ** 0.5, r2_score(y, p))"
+    "code": "from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score\ny, p = [10, 20, 30], [12, 18, 36]\nprint(round(mean_absolute_error(y, p), 2),         # 3.33\n      round(mean_squared_error(y, p) ** 0.5, 2),   # 3.83\n      round(r2_score(y, p), 2))                    # 0.78"
   },
   "check": [
     {

@@ -11,17 +11,17 @@
     "A point is a **core point** if at least **min_samples** points lie within radius **eps** of it. Core points that are close to each other join the same cluster, so clusters grow through dense regions.",
     "Points near a cluster but not dense themselves are **border** points. Everything else is **noise** (label −1).",
     "Like crowds at a festival: dense groups form clusters, scattered wanderers are noise.",
-    "Tuning: set min_samples ≈ 2 × the number of features; pick eps from the \"knee\" of a k-distance plot. It struggles when clusters have very different densities (try HDBSCAN)."
+    "Tuning: set min_samples to at least the number of features + 1 (about 2 × the number of features for noisy data); pick eps from the \"knee\" of a k-distance plot. It struggles when clusters have very different densities (try HDBSCAN)."
   ],
   "example": {
-    "title": "Delivery hotspots from GPS points",
+    "title": "Delivery drop-offs on a city grid",
     "steps": [
-      "eps = 300 m, min_samples = 20",
-      "Dense areas such as markets and tech parks → clusters of any shape, even along roads",
-      "Isolated one-off deliveries → noise",
-      "Result: 7 hotspots, 4% of points labelled noise"
+      "Nine drop-offs (km): A (1, 1), B (2, 1), C (1, 2), D (2, 2), E (3.2, 2), F (6, 5), G (7, 5), H (6.5, 6), N (8, 1). eps = 1.5 km, min_samples = 3 (counting the point itself)",
+      "A, B, C, D each have at least 3 points within 1.5 km → core. E has only D nearby (2 points) → not core, but it is within eps of core D → border",
+      "F, G, H are 1.0 to 1.12 km apart → each has 3 points → core, a second cluster",
+      "N has nothing within 1.5 km → noise (label −1)"
     ],
-    "result": "K-means would have forced every point into a round cluster, including the outliers."
+    "result": "Two hotspots, {A, B, C, D, E} with E on its edge and {F, G, H}, plus one stray. K-means would have forced N into a cluster."
   },
   "mistakes": [
     "Not scaling features.",
@@ -41,7 +41,7 @@
     "High-dimensional data"
   ],
   "practice": {
-    "code": "from sklearn.datasets import make_moons\nfrom sklearn.cluster import DBSCAN, KMeans\nX, _ = make_moons(400, noise=0.06, random_state=0)\nprint(\"DBSCAN labels:\", set(DBSCAN(eps=0.2, min_samples=8).fit(X).labels_))\nprint(\"k-means splits the moons badly:\", KMeans(2, n_init=10, random_state=0).fit(X).labels_[:10])"
+    "code": "import numpy as np\nfrom sklearn.datasets import make_moons\nfrom sklearn.cluster import DBSCAN, KMeans\ndrops = np.array([[1, 1], [2, 1], [1, 2], [2, 2], [3.2, 2], [6, 5], [7, 5], [6.5, 6], [8, 1]])\nprint(DBSCAN(eps=1.5, min_samples=3).fit(drops).labels_)   # [ 0  0  0  0  0  1  1  1 -1]\nX, _ = make_moons(400, noise=0.06, random_state=0)\nprint(\"DBSCAN labels:\", set(DBSCAN(eps=0.2, min_samples=8).fit(X).labels_))\nprint(\"k-means splits the moons badly:\", KMeans(2, n_init=10, random_state=0).fit(X).labels_[:10])"
   },
   "check": [
     {
@@ -67,5 +67,9 @@
       "why": "Density connectivity follows curved shapes."
     }
   ],
-  "chapterMinutes": 17
+  "chapterMinutes": 17,
+  "formula": {
+    "tex": "|N_{\\varepsilon}(p)| \\ge \\text{min\\_samples} \\;\\Rightarrow\\; p \\text{ is a core point}",
+    "plain": "Count the points within distance eps of p (including p itself). If there are at least min_samples, p is a core point."
+  }
 }

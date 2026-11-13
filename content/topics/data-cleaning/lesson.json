@@ -14,14 +14,15 @@
     "**Leakage**: a feature that would not be known at prediction time, such as \"collections_flag\" in a default model or \"discharge_date\" when predicting length of stay. Leakage gives fantastic test scores and a useless model in production."
   ],
   "example": {
-    "title": "Cleaning a loan file",
+    "title": "Mean or median? Filling missing incomes",
     "steps": [
-      "10,000 rows; income missing in 600 (6%)",
-      "Missing incomes are mostly self-employed applicants → add an income_missing flag and impute the median",
-      "150 duplicate application IDs → drop them",
-      "\"days_past_due\" is only filled after a default → remove it (leakage)"
+      "Seven applicants' incomes (₹ lakh): 6, 8, missing, 9, 12, missing, 95 (the 95 is a verified business owner)",
+      "Mean of the five known = 130 / 5 = ₹26 lakh; median = ₹9 lakh",
+      "Mean fill claims both unknown applicants earn ₹26 lakh, more than four of the five known ones; median fill gives a typical ₹9 lakh",
+      "Add income_missing = 1 for the two blank rows (0 otherwise) so the model can learn whether a missing income itself signals risk",
+      "Keep the 95: it is an outlier, but a real one"
     ],
-    "result": "A clean, honest dataset. Accuracy may drop from a suspicious 99% to a believable 82%, and that is good news."
+    "result": "Median for skewed money columns, plus a missing-flag. One genuine high earner made the mean almost three times the median."
   },
   "mistakes": [
     "Imputing before the train/test split, so test information leaks into training.",
@@ -34,7 +35,7 @@
     "Every feature must be available at prediction time"
   ],
   "practice": {
-    "code": "import pandas as pd, numpy as np\nfrom sklearn.impute import SimpleImputer\ndf = pd.DataFrame({\"income\": [12, np.nan, 30, 8, np.nan], \"id\": [1, 2, 3, 3, 4]})\ndf = df.drop_duplicates(subset=\"id\")\ndf[\"income_missing\"] = df.income.isna().astype(int)\ndf[\"income\"] = SimpleImputer(strategy=\"median\").fit_transform(df[[\"income\"]])\nprint(df)"
+    "code": "import pandas as pd, numpy as np\nfrom sklearn.impute import SimpleImputer\ndf = pd.DataFrame({\"income\": [6, 8, np.nan, 9, 12, np.nan, 95]})\nprint(df.income.mean(), df.income.median())      # 26.0 9.0 (NaNs skipped)\ndf[\"income_missing\"] = df.income.isna().astype(int)\ndf[\"income\"] = SimpleImputer(strategy=\"median\").fit_transform(df[[\"income\"]]).ravel()\nprint(df)                                        # blanks → 9.0, flag = 1\n# In a real project: fit the imputer on the training split only."
   },
   "check": [
     {

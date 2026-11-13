@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, Tex, C, Scales, rng, gauss } from '../viz/kit';
+import { mean, histogram } from '../viz/math';
 import { LP, equalH } from './_clf-helpers';
 
 /* ---------- pure helpers ---------- */
@@ -18,16 +19,15 @@ function cigars(n: number, sep: number, long: number, short: number, tilt: numbe
     return { x: a * u[0] + b * v[0], y: a * u[1] + b * v[1], c };
   });
 }
-const meanOf = (a: number[]) => a.reduce((s, v) => s + v, 0) / Math.max(a.length, 1);
 function stats(pts: LP[]) {
   const g = [0, 1].map((c) => pts.filter((p) => p.c === c));
-  const m = g.map((q) => [meanOf(q.map((p) => p.x)), meanOf(q.map((p) => p.y))]);
+  const m = g.map((q) => [mean(q.map((p) => p.x)), mean(q.map((p) => p.y))]);
   // pooled within-class scatter S_W and total covariance
   let a = 0, b = 0, d = 0;
   g.forEach((q, c) => q.forEach((p) => { const dx = p.x - m[c][0], dy = p.y - m[c][1]; a += dx * dx; b += dx * dy; d += dy * dy; }));
   const det = a * d - b * b || 1e-9, diff = [m[1][0] - m[0][0], m[1][1] - m[0][1]];
   const wl = [(d * diff[0] - b * diff[1]) / det, (-b * diff[0] + a * diff[1]) / det];
-  const mx = meanOf(pts.map((p) => p.x)), my = meanOf(pts.map((p) => p.y));
+  const mx = mean(pts.map((p) => p.x)), my = mean(pts.map((p) => p.y));
   let sxx = 0, sxy = 0, syy = 0; pts.forEach((p) => { sxx += (p.x - mx) ** 2; sxy += (p.x - mx) * (p.y - my); syy += (p.y - my) ** 2; });
   const thPCA = 0.5 * Math.atan2(2 * sxy, sxx - syy);
   const norm = (t: number) => ((t % Math.PI) + Math.PI) % Math.PI;
@@ -38,18 +38,14 @@ function project(pts: LP[], th: number) {
   const d = [Math.cos(th), Math.sin(th)];
   const z = pts.map((p) => p.x * d[0] + p.y * d[1]);
   const z0 = z.filter((_, i) => pts[i].c === 0), z1 = z.filter((_, i) => pts[i].c === 1);
-  const m0 = meanOf(z0), m1 = meanOf(z1);
-  const v0 = meanOf(z0.map((v) => (v - m0) ** 2)), v1 = meanOf(z1.map((v) => (v - m1) ** 2));
+  const m0 = mean(z0), m1 = mean(z1);
+  const v0 = mean(z0.map((v) => (v - m0) ** 2)), v1 = mean(z1.map((v) => (v - m1) ** 2));
   const J = (m1 - m0) ** 2 / (v0 + v1 || 1e-9);
   const cut = (m0 + m1) / 2, sgn = m1 >= m0 ? 1 : -1;
   const errors = z.filter((v, i) => ((sgn * (v - cut) > 0 ? 1 : 0) !== pts[i].c)).length;
   return { d, z, m0, m1, v0, v1, J, cut, errors };
 }
-function hist(vals: number[], lo: number, hi: number, bins: number) {
-  const w = (hi - lo) / bins, c = Array(bins).fill(0);
-  vals.forEach((v) => { const i = Math.floor((v - lo) / w); if (i >= 0 && i < bins) c[i]++; });
-  return c.map((k, i) => ({ x: lo + (i + 0.5) * w, y: k }));
-}
+const hist = (vals: number[], lo: number, hi: number, bins: number) => histogram(vals, lo, hi, bins, { closed: false });
 
 /** The 2-D scene: projection line through the origin, feet of the perpendiculars, faint connectors. */
 function Scene({ s, pts, th, showLines = true, extra }: { s: Scales; pts: LP[]; th: number; showLines?: boolean; extra?: { th: number; color: string; label: string }[] }) {

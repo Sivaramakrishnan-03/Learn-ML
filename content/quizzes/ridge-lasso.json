@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why must you **standardise** the features before fitting Ridge or Lasso?",
+      "options": [
+        "Because the solver cannot handle negative numbers",
+        "Because standardising removes multicollinearity",
+        "Because Ridge and Lasso only work when every feature is between 0 and 1",
+        "Because the penalty looks at coefficient size, which depends on units; without scaling, the same feature is penalised differently in sq ft and in hundreds of sq ft"
+      ],
+      "answer": 3,
+      "why": "Measured in sq ft, area gets a tiny coefficient that the penalty barely touches; in hundreds of sq ft it gets a big one that is heavily penalised. Putting every feature on a mean-0, spread-1 scale makes the penalty fair. Standardising does not change how correlated two features are, so it does not cure multicollinearity.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What do Ridge, Lasso and Elastic Net all become when the penalty strength **λ = 0**?",
+      "options": [
+        "A model that predicts the average for every case",
+        "A model with every coefficient exactly zero",
+        "Ordinary least squares",
+        "Logistic regression"
+      ],
+      "answer": 2,
+      "why": "With no fee for large coefficients, only the squared-error term is left, which is plain least squares. Predicting the average for everyone is the opposite end of the dial: a huge λ drives every coefficient to zero.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "For the five flats, Sxy = 172 and Sxx = 40, so the ordinary slope is 4.3. Using **b_ridge = Sxy / (Sxx + λ)**, what is the Ridge slope at λ = 20?",
+      "options": [
+        "About 2.87",
+        "About 3.80",
+        "About 8.60",
+        "Exactly 0"
+      ],
+      "answer": 0,
+      "why": "172 / (40 + 20) = 172 / 60 ≈ 2.87 ₹ lakh per 100 sq ft. 3.80 comes from (172 − 20) / 40, which mixes in the Lasso-style subtraction. 8.60 adds λ to the top instead. Ridge shrinks the slope smoothly and never reaches exactly zero for finite λ.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Same flats (Sxy = 172, Sxx = 40). Using the Lasso formula **b_lasso = max(Sxy − λ/2, 0) / Sxx**, what is the slope at λ = 120?",
+      "options": [
+        "1.3",
+        "2.8",
+        "1.08",
+        "3.05"
+      ],
+      "answer": 1,
+      "why": "(172 − 120/2) / 40 = (172 − 60) / 40 = 112 / 40 = 2.8. 1.3 subtracts the full λ instead of λ/2, and 1.08 is Ridge's 172 / (40 + 120), the wrong formula. 3.05 is the slope at λ = 100. (This λ corresponds to scikit-learn's `Lasso(alpha=12)` on these five rows, because scikit-learn scales the squared error by 1/(2n).)",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "In the twelve-flat example, OLS gives built-up area **+18.0** and carpet area **−9.5** (standardised, correlation 0.998). What is the best reading of the −9.5?",
+      "options": [
+        "Bigger carpet area genuinely lowers the price",
+        "The two near-identical area columns are fighting each other: large opposite-sign coefficients that cancel on the training data, a symptom of collinearity",
+        "Carpet area is the least important feature",
+        "The data must contain a typing error in the carpet-area column"
+      ],
+      "answer": 1,
+      "why": "When two features carry almost the same information, least squares can give one a big positive and the other a big negative coefficient that cancel on the training data. Ridge (α = 1) shares the credit as +4.4 and +3.8. A sign that contradicts common sense is a warning about the model, not a business finding.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Lasso (α = 0.3) keeps built-up area (+8.3) and sets carpet area to exactly 0. A manager concludes: \"carpet area does not affect price\". What is the right response?",
+      "options": [
+        "Disagree: among highly correlated features Lasso keeps one somewhat arbitrarily; the zero means carpet area adds little once built-up area is in, not that it is irrelevant",
+        "Agree: a zero coefficient proves the feature has no effect",
+        "Agree, but only because α was tuned by cross-validation",
+        "Disagree: Lasso should never set coefficients to zero, so the fit has failed"
+      ],
+      "answer": 0,
+      "why": "With a correlation of 0.998, the two areas are near-twins and either could carry the signal; Lasso picks one, and a different sample could flip the choice. Rerunning on bootstrap samples shows how stable the selection is. Tuning α by CV improves predictions but does not make Lasso's choice between twins meaningful.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A junior analyst picks λ by choosing the value with the lowest **training** error. What will happen?",
+      "options": [
+        "They will pick the best λ, because training error measures fit",
+        "They will always pick the largest λ in the grid",
+        "It makes no difference whether training or cross-validated error is used",
+        "They will always pick λ = 0 (no regularisation), because training error is lowest without a penalty"
+      ],
+      "answer": 3,
+      "why": "The penalty deliberately makes the training fit worse, so training error is minimised at λ = 0, which is just ordinary least squares and throws away the whole point. λ must be chosen by cross-validated error, which `RidgeCV`, `LassoCV` and `ElasticNetCV` do for you.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"Why does the L1 penalty produce exact zeros while L2 does not?\"",
+      "options": [
+        "Because L1 is applied only to small coefficients",
+        "Because L2 uses gradient descent and L1 does not",
+        "Because near zero the L2 penalty b² is almost flat, so the last bit of shrinkage saves almost nothing, while |b| keeps a constant slope with a corner at zero, so weak coefficients are pushed all the way to zero",
+        "Because L1 penalises larger coefficients more heavily than L2 does"
+      ],
+      "answer": 2,
+      "why": "Shrinking a coefficient from 0.1 to 0 cuts the Ridge penalty by only 0.01 but cuts the Lasso penalty by 0.1, the same rate as anywhere else. In the one-feature formulas, Ridge divides by Sxx + λ (never zero) while Lasso subtracts λ/2 and floors at zero. For large coefficients L2 actually penalises **more** heavily than L1, so the claim that L1 penalises large coefficients more heavily has it backwards.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

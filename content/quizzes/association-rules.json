@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What does the **support** of the itemset {bread, butter} measure?",
+      "options": [
+        "The share of all baskets that contain both bread and butter",
+        "The share of bread baskets that also contain butter",
+        "How much more often bread and butter appear together than by chance",
+        "The number of different items in the basket"
+      ],
+      "answer": 0,
+      "why": "Support is how common the combination is across all baskets. The share of bread baskets that also contain butter is the confidence of bread → butter, and the comparison with chance is lift.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Rule A → B has confidence 0.6. What can you say about B → A?",
+      "options": [
+        "Its confidence is also 0.6, because rules are symmetric",
+        "Its confidence is 0.4, because the two must add to 1",
+        "Both its confidence and its lift can differ",
+        "Its confidence can differ, but its lift is the same as for A → B"
+      ],
+      "answer": 3,
+      "why": "Confidence divides by the antecedent's support, so it depends on direction; lift divides the together-support by both supports, so it is the same both ways. That is why you check confidence for the direction you will act on, such as showing protectors to case buyers.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "In the chapter's ten bills, bread appears in 7, butter in 4, and both together in 4. What are the confidence and lift of {bread} → {butter}?",
+      "options": [
+        "Confidence 0.40, lift 1.00",
+        "Confidence 0.57, lift 0.82",
+        "Confidence 0.57, lift 1.43",
+        "Confidence 1.00, lift 1.43"
+      ],
+      "answer": 2,
+      "why": "Confidence = 4 / 7 ≈ 0.57; lift = 0.57 / support(butter) 0.4 ≈ 1.43, the same lift as butter → bread. Confidence 1.00 belongs to the reverse rule butter → bread, 0.40 is the support, and 0.82 divides by bread's support instead of butter's.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Out of 2,000 baskets, 400 contain nappies, 300 contain beer and 120 contain both. What is the lift of {nappies} → {beer}?",
+      "options": [
+        "0.06",
+        "0.30",
+        "0.40",
+        "2.00"
+      ],
+      "answer": 3,
+      "why": "Confidence = 120 / 400 = 0.30; support(beer) = 300 / 2,000 = 0.15; lift = 0.30 / 0.15 = 2.0, so nappy buyers are twice as likely as average to buy beer. 0.06 is the support of the pair, 0.30 the confidence and 0.40 the confidence of beer → nappies.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "With minimum support 30%, {jam} appears in only 20% of baskets. Why does Apriori never count {jam, butter}?",
+      "options": [
+        "Because a bigger itemset can never be more common than any itemset inside it, so {jam, butter} is at most 20%",
+        "Because jam and butter are substitutes",
+        "Because Apriori only counts pairs that include the most popular item",
+        "Because pairs are always counted after triples"
+      ],
+      "answer": 0,
+      "why": "The Apriori principle: every basket containing {jam, butter} also contains {jam}, so the pair's support cannot exceed 20%, which is already below the threshold. Skipping such candidates is the whole saving. Apriori builds up from single items to pairs to triples, not the other way round.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A rule {chips} → {cola} has lift 2.5, but it is based on 12 baskets out of 12,000 in a year. What is the sensible reading?",
+      "options": [
+        "Redesign the store layout immediately; lift 2.5 is strong",
+        "Ignore lift and rank by confidence instead",
+        "Lift above 1 means chips cause cola purchases",
+        "With such tiny support it may be a coincidence among thousands of rules and would not pay for a shelf move anyway; check it on a later period before acting"
+      ],
+      "answer": 3,
+      "why": "Very high lifts on tiny supports are often chance findings, especially when thousands of rules are tested, and a pattern in 12 baskets a year is not actionable. Validate on a later time period. Lift never proves cause, and ranking by confidence alone promotes popular items.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Tea → biscuits has lift 3.33. If we move biscuits next to tea, will sales rise?\"",
+      "options": [
+        "Not necessarily: the rule shows co-occurrence, not cause; a third factor may drive both, so run an experiment such as an A/B test across stores",
+        "Yes, lift above 1 guarantees a sales increase",
+        "No, because lift above 1 means the items are substitutes",
+        "Only if confidence is also above 0.9"
+      ],
+      "answer": 0,
+      "why": "Items bought together may share a cause (a festival, a promotion, a type of customer), and the shelf move may change nothing. Only a controlled test shows the effect of the action. Lift below 1, not above, suggests substitutes.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "An online store has 3,000 laptop orders in a month; 900 already include a mouse. A \"frequently bought together\" prompt is expected to convert 4% of the remaining laptop buyers to a ₹500 mouse. What extra monthly revenue does that suggest?",
+      "options": [
+        "₹18,000",
+        "₹42,000",
+        "₹60,000",
+        "₹84"
+      ],
+      "answer": 1,
+      "why": "Buyers without a mouse = 3,000 − 900 = 2,100; 4% of them = 84 extra sales; × ₹500 = ₹42,000. ₹60,000 forgets the 900 who already bought one, and ₹84 confuses the number of sales with revenue. It remains a hypothesis until an A/B test confirms it.",
+      "level": 3,
+      "kind": "calculation"
+    }
+  ]
+}

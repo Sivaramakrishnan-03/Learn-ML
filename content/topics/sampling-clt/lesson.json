@@ -18,14 +18,14 @@
     "plain": "Sample means are roughly normal around the true mean, with spread σ / √n."
   },
   "example": {
-    "title": "Average basket size",
+    "title": "How precise is a 100-customer basket survey?",
     "steps": [
-      "Individual baskets are skewed: mean ₹500, SD ₹300",
-      "Sample n = 100 customers → SE = 300 / √100 = ₹30",
-      "So about 95% of sample means fall within ₹500 ± 2×30 = ₹440–₹560",
-      "With n = 400: SE = 300 / 20 = ₹15 (half the uncertainty)"
+      "Individual baskets are skewed: mean ₹500, SD ₹300. Sample n = 100 receipts",
+      "SE = σ / √n = 300 / 10 = ₹30; by the CLT sample means ≈ Normal(₹500, SD ₹30)",
+      "About 95% of sample means fall within 500 ± 1.96 × 30 = ₹441.2 to ₹558.8",
+      "With n = 400: SE = 300 / 20 = ₹15 → about ₹470.6 to ₹529.4"
     ],
-    "result": "You need 4× the data for 2× the precision, a key rule for budgeting surveys and experiments."
+    "result": "A 100-receipt sample usually lands within about ₹60 of the truth; quadrupling to 400 receipts halves that to about ₹30. You need 4× the data for 2× the precision."
   },
   "mistakes": [
     "Thinking the CLT makes the raw data normal. It is about the distribution of means.",
@@ -37,7 +37,7 @@
     "4× data → 2× precision"
   ],
   "practice": {
-    "code": "import numpy as np\nrng = np.random.default_rng(0)\npop = rng.exponential(500, 1_000_000)          # very skewed \"basket sizes\"\nmeans = [rng.choice(pop, 100).mean() for _ in range(5000)]\nprint(round(np.mean(means)), round(np.std(means), 1), round(pop.std() / 10, 1))  # SE ≈ σ/√n"
+    "code": "import numpy as np\nrng = np.random.default_rng(0)\npop = rng.gamma(shape=(500/300)**2, scale=300**2/500, size=1_000_000)  # skewed baskets: mean ≈ 500, SD ≈ 300\nmeans = [rng.choice(pop, 100).mean() for _ in range(5000)]\nprint(round(pop.mean()), round(pop.std()))                  # ≈ 500 300\nprint(round(np.mean(means)), round(np.std(means), 1))      # ≈ 500 30  → SE = σ/√n = 300/10"
   },
   "check": [
     {

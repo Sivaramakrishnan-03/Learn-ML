@@ -41,21 +41,21 @@ export default function Search() {
   return (
     <div className="reading">
       <h1>Search: "{raw}"</h1>
-      <h3>Topics ({topics.length})</h3>
+      <h2 className="h3">Topics ({topics.length})</h2>
       <div className="card" style={{ padding: 0, marginBottom: 18 }}>
-        {topics.map((t) => <Link key={t.id} className="topic-row" to={`/topic/${t.id}`}><span className="dot" style={{ background: TRACKS[t.track].color }} />{t.title}<span className="muted small">{t.blurb}</span></Link>)}
+        {topics.map((t) => <Link key={t.id} className="topic-row" to={`/topic/${t.id}`}><span className="dot" aria-hidden="true" style={{ background: TRACKS[t.track].color }} />{t.title}<span className="muted small">{t.blurb}</span></Link>)}
         {!topics.length && <p className="muted" style={{ padding: 14 }}>No topics found.</p>}
       </div>
-      <h3>Inside the textbook chapters ({chapters ? passages.length + (passages.length === 60 ? '+' : '') : 'searching…'})</h3>
+      <h2 className="h3">Inside the textbook chapters ({chapters ? passages.length + (passages.length === 60 ? '+' : '') : 'searching…'})</h2>
       <div className="card" style={{ padding: 0, marginBottom: 18 }}>
         {passages.map((p, i) => <Link key={i} className="topic-row search-hit" to={`/topic/${p.id}`} style={{ display: 'block' }}>
           <b>{TOPIC_BY_ID[p.id]?.title}</b> <span className="muted small">· {p.section}</span><div className="small">{snippet(p.text)}</div>
         </Link>)}
         {chapters && !passages.length && <p className="muted" style={{ padding: 14 }}>No passages found.</p>}
       </div>
-      <h3>Glossary ({terms.length})</h3>
+      <h2 className="h3">Glossary ({terms.length})</h2>
       <div className="card" style={{ padding: 0 }}>
-        {terms.map((g) => <div key={g.term} className="topic-row"><b>{g.term}</b><span className="small">{g.def}</span>{g.topic && <Link className="small" to={`/topic/${g.topic}`}>→</Link>}</div>)}
+        {terms.map((g) => <div key={g.term} className="topic-row"><b>{g.term}</b><span className="small">{g.def}</span>{g.topic && <Link className="small" to={`/topic/${g.topic}`} aria-label={`Open the lesson for ${g.term}`}>→</Link>}</div>)}
         {!terms.length && <p className="muted" style={{ padding: 14 }}>No terms found.</p>}
       </div>
     </div>

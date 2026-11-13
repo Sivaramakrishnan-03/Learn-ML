@@ -14,14 +14,14 @@
     "Choose the number of components with **BIC** (lower is better), which balances fit against complexity."
   ],
   "example": {
-    "title": "Two overlapping customer personas",
+    "title": "E-step: the ₹400 customer",
     "steps": [
-      "Component 1: mean spend ₹2k, weight 60%; component 2: mean ₹6k, weight 40%",
-      "A customer spending ₹4k sits between them",
-      "GMM says 55% component 1, 45% component 2",
-      "Marketing sends a blended offer instead of forcing one label"
+      "Monthly spend in ₹ hundred. Budget: share 0.6, mean 2, SD 1. Premium: share 0.4, mean 6, SD 1.5. Customer at x = 4",
+      "Bell heights at 4: budget (2 SDs away) ≈ 0.0540; premium (1.33 SDs away, wider and lower bell) ≈ 0.1093",
+      "Weighted: budget 0.6 × 0.0540 ≈ 0.0324; premium 0.4 × 0.1093 ≈ 0.0437; total ≈ 0.0761",
+      "Responsibilities: budget ≈ 0.43, premium ≈ 0.57"
     ],
-    "result": "Soft assignments keep the uncertainty that k-means throws away."
+    "result": "₹400 is halfway between the centres and the budget group is bigger, yet the customer is 57% premium because ₹400 is less unusual for the wider premium bell. K-means would call it a coin toss; the GMM keeps the uncertainty."
   },
   "mistakes": [
     "Too many components (overfits): use BIC.",
@@ -66,5 +66,9 @@
       "why": "The M-step then updates the parameters."
     }
   ],
-  "chapterMinutes": 17
+  "chapterMinutes": 17,
+  "formula": {
+    "tex": "r_{ik} = \\frac{\\pi_k \\, \\mathcal{N}(x_i \\mid \\mu_k, \\sigma_k^2)}{\\sum_{j} \\pi_j \\, \\mathcal{N}(x_i \\mid \\mu_j, \\sigma_j^2)}",
+    "plain": "E-step: the responsibility of component k for point i is its share times its bell-curve height at the point, divided by the total over all components."
+  }
 }

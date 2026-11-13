@@ -8,8 +8,8 @@ function Think({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="think">
-      <div><b>🤔 Pause and think:</b> <Md text={q} /></div>
-      {open ? <div className="think-a">💬 <Md text={a} /></div> : <button className="btn" style={{ marginTop: 8 }} onClick={() => setOpen(true)}>Reveal the answer</button>}
+      <div><b><span aria-hidden="true">🤔 </span>Pause and think:</b> <Md text={q} /></div>
+      {open ? <div className="think-a">💬 <Md text={a} /></div> : <button type="button" className="btn" style={{ marginTop: 8 }} onClick={() => setOpen(true)} aria-expanded={false}>Reveal the answer</button>}
     </div>
   );
 }
@@ -46,8 +46,8 @@ export function DeepView({ deep }: { deep: DeepLesson }) {
   return (
     <div className="deep">
       <div className="hook"><Md text={deep.hook} /></div>
-      <nav className="toc">
-        <span className="small muted">In this chapter:</span>
+      <nav className="toc" aria-label="In this chapter">
+        <span className="small muted" aria-hidden="true">In this chapter:</span>
         {deep.sections.map((s, i) => <a key={i} href={`#sec-${i}`} onClick={(e) => { e.preventDefault(); document.getElementById(`sec-${i}`)?.scrollIntoView({ behavior: 'smooth' }); }}>{i + 1}. {s.heading}</a>)}
         <a href="#sec-faq" onClick={(e) => { e.preventDefault(); document.getElementById('sec-faq')?.scrollIntoView({ behavior: 'smooth' }); }}>FAQ</a>
       </nav>

@@ -8,25 +8,25 @@
   ],
   "why": "Trees produce rules people can read, which is why banks and hospitals like them. They are also the building block of random forests and gradient boosting, the strongest models for tabular data.",
   "explain": [
-    "A decision tree plays **20 Questions** with your data. At each step it asks the single yes/no question (for example \"income ≤ ₹13 lakh?\") that best separates the classes.",
+    "A decision tree plays **20 Questions** with your data. At each step it asks the single yes/no question (for example \"income ≤ ₹13.5 lakh?\") that best separates the classes.",
     "\"Best\" means the children become as **pure** as possible. Purity is measured by **Gini impurity**: 0 when a node contains one class only, 0.5 for a 50/50 mix of two classes.",
     "The tree tries **every feature and every threshold**, keeps the split with the largest drop in impurity, and repeats inside each branch.",
     "Left alone, it keeps splitting until every leaf is pure, which means it memorises noise. Limit **max_depth** and **min_samples_leaf**, or prune it.",
     "To predict, drop a new case down the branches to a leaf: the leaf's majority class is the prediction, and its class mix is the probability."
   ],
   "formula": {
-    "tex": "G = 1 - \\sum_c p_c^2",
-    "plain": "Gini = 1 minus the sum of squared class shares. 0 = pure, higher = more mixed."
+    "tex": "G = 1 - \\sum_c p_c^{\\,2}, \\qquad G_{\\text{split}} = \\frac{n_L}{n} G_L + \\frac{n_R}{n} G_R",
+    "plain": "Gini = 1 minus the sum of squared class shares (0 = pure). A split is scored by the children's Gini, weighted by how many cases went each way."
   },
   "example": {
-    "title": "First split for loan approvals",
+    "title": "Choosing the root question for the loan tree",
     "steps": [
-      "Root: 20 repaid, 20 defaulted → Gini = 1 − (0.5² + 0.5²) = 0.5",
-      "Candidate \"income ≤ ₹13.5L\": left 4 repaid / 16 defaulted, right 16 / 4",
-      "Each child: Gini = 1 − (0.2² + 0.8²) = 0.32 → weighted = 0.32",
-      "Impurity drop 0.5 → 0.32 = gain 0.18; if no other split beats it, this becomes the root question"
+      "Root: 20 repaid, 20 defaulted → Gini = 1 − (0.5² + 0.5²) = 0.50",
+      "Candidate A \"income ≤ ₹13.5L?\": left 4 repaid / 16 defaulted, right 16 / 4 → each child 1 − (0.2² + 0.8²) = 0.32 → weighted 0.32, drop 0.18",
+      "Candidate B \"credit score < 650?\": left 3 / 12 (Gini 0.32), right 17 / 8 (Gini 0.4352) → weighted (15/40) × 0.32 + (25/40) × 0.4352 = 0.392, drop 0.108",
+      "Income gives the bigger drop (0.32 beats 0.392)"
     ],
-    "result": "The tree's first rule: income ≤ ₹13.5L → mostly default. It then repeats inside each branch."
+    "result": "\"Income ≤ ₹13.5 lakh?\" becomes the root question. Credit score is not discarded; it is tried again inside each branch."
   },
   "mistakes": [
     "Growing deep trees without limits (overfitting).",

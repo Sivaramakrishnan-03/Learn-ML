@@ -18,15 +18,15 @@
     "plain": "Slope = change in output ÷ change in input, as the change becomes tiny."
   },
   "example": {
-    "title": "Find the bottom of an error curve",
+    "title": "Watching the slope of x² appear at x = 3",
     "steps": [
-      "Error E(w) = (w − 3)²: how wrong a model is for weight w",
-      "Derivative E'(w) = 2(w − 3)",
-      "At w = 5: E' = 2×2 = +4 → positive, so decrease w",
-      "At w = 1: E' = 2×(−2) = −4 → negative, so increase w",
-      "At w = 3: E' = 0 → flat, the minimum"
+      "f(x) = x². Take a second point a nudge h to the right of x = 3 and compute the chord slope.",
+      "h = 1: (16 − 9) / 1 = 7",
+      "h = 0.1: (9.61 − 9) / 0.1 = 6.1",
+      "h = 0.01: (9.0601 − 9) / 0.01 = 6.01 → the pattern is 6 + h, heading for 6",
+      "Power rule check: f′(x) = 2x, so f′(3) = 6"
     ],
-    "result": "The derivative pointed us to w = 3 from either side. Gradient descent automates exactly this."
+    "result": "The slope of x² at x = 3 is 6: the tangent y = 6x − 9 touches the curve at (3, 9). If x² were a model's error and x a weight, the positive slope says \"decrease x\"; at x = 0 the slope is 0, the minimum."
   },
   "mistakes": [
     "Confusing the value of a function with its slope: a high error can have a small slope (a flat plateau).",
@@ -62,7 +62,7 @@
     }
   ],
   "practice": {
-    "code": "import sympy as sp                # symbolic maths\nw = sp.symbols('w')\nE = (w - 3)**2\nprint(sp.diff(E, w))              # 2*w - 6"
+    "code": "import sympy as sp                # symbolic maths\nf = lambda x: x**2\nfor h in [1, 0.1, 0.01]:\n    print(h, round((f(3 + h) - f(3)) / h, 4))  # chord slopes: 7, 6.1, 6.01 (→ 6)\nx = sp.symbols('x')\nprint(sp.diff(x**2, x))           # 2*x  → f'(3) = 6"
   },
   "chapterMinutes": 15
 }

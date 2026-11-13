@@ -1,0 +1,95 @@
+{
+  "id": "fraud-anomaly-detection",
+  "title": "Catch payment fraud with anomaly detection and precision@k",
+  "track": "unsupervised",
+  "level": 3,
+  "hours": 5,
+  "summary": "Score 60,000 card and UPI transactions for fraud without labels using Isolation Forest and Local Outlier Factor, compare against a rule baseline, evaluate with precision@k under a daily review capacity, and upgrade to a semi-supervised model with a time-based split.",
+  "business": "A payments company has just onboarded a new merchant segment (about 2,000 transactions a day). Confirmed fraud labels (chargebacks) arrive weeks later, so there are almost no labels yet, and the one analyst assigned to the segment can review only **15 alerts a day**. The risk head asks: **can an unsupervised model rank transactions so that the 15 daily reviews catch more fraud ₹ than the current rules, and what changes once some labels arrive?** Every alert that is not fraud costs analyst time and annoys a genuine customer with a blocked payment.",
+  "topics": [
+    "anomaly-detection",
+    "feature-engineering",
+    "scaling",
+    "classification-metrics",
+    "gradient-boosting"
+  ],
+  "dataset": {
+    "name": "Synthetic payment transactions (60,000 over 30 days)",
+    "how": "Generated in step 1 with `numpy.random.default_rng(5)`: customer id, day, hour, amount (₹), merchant category, distance from the customer's usual location (km), transactions by the same customer in the past hour, new-device flag and account age. About 0.4% are fraud, drawn from different patterns (late-night high amounts, bursts on new devices, far-away locations). Labels are used only for evaluation and, in the last step, as delayed training labels."
+  },
+  "steps": [
+    {
+      "title": "Generate 30 days of transactions",
+      "detail": "Genuine customers have personal habits (typical amount, usual hours); fraud follows a few distinct patterns: high amounts late at night, bursts of transactions on a new device, and transactions far from the customer's usual location. Fraud is rare (about 1 in 250), which is why accuracy is useless here and why we evaluate only the top of the ranking.",
+      "code": "import numpy as np\nimport pandas as pd\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom sklearn.ensemble import IsolationForest, HistGradientBoostingClassifier\nfrom sklearn.neighbors import LocalOutlierFactor\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.metrics import average_precision_score, roc_auc_score\n\nrng = np.random.default_rng(5)\nn, n_cust = 60000, 4000\ncust = rng.integers(0, n_cust, n)\ntypical = rng.lognormal(np.log(900), 0.8, n_cust)\ntx = pd.DataFrame({\n    \"customer\": cust, \"day\": rng.integers(0, 30, n),\n    \"hour\": np.clip(rng.normal(15, 4, n), 0, 23).round().astype(int),\n    \"amount\": np.round(typical[cust] * rng.lognormal(0, 0.5, n), 2),\n    \"merchant\": rng.choice([\"grocery\", \"fuel\", \"electronics\", \"travel\", \"gaming\", \"bills\"], n, p=[0.35, 0.15, 0.1, 0.1, 0.05, 0.25]),\n    \"distance_km\": np.round(rng.gamma(1.5, 3, n), 1),\n    \"tx_last_hour\": rng.poisson(0.3, n),\n    \"new_device\": (rng.random(n) < 0.03).astype(int),\n    \"account_age_days\": rng.integers(30, 3000, n)})\nfraud = rng.random(n) < 0.004\nkind = rng.integers(0, 3, n)\nf0, f1, f2 = fraud & (kind == 0), fraud & (kind == 1), fraud & (kind == 2)\ntx.loc[f0, \"hour\"] = rng.integers(0, 5, f0.sum()); tx.loc[f0, \"amount\"] *= rng.uniform(4, 15, f0.sum())\ntx.loc[f1, \"new_device\"] = 1; tx.loc[f1, \"tx_last_hour\"] = rng.integers(3, 9, f1.sum())\ntx.loc[f1, \"merchant\"] = rng.choice([\"electronics\", \"gaming\"], f1.sum())\ntx.loc[f2, \"distance_km\"] = rng.uniform(300, 2000, f2.sum()); tx.loc[f2, \"amount\"] *= rng.uniform(1.5, 5, f2.sum())\ntx.loc[fraud, \"account_age_days\"] = np.minimum(tx.loc[fraud, \"account_age_days\"], rng.integers(5, 400, fraud.sum()))\ntx[\"is_fraud\"] = fraud.astype(int)\ntx = tx.sort_values([\"day\", \"hour\"]).reset_index(drop=True)\nprint(tx.describe().round(1)); print(\"Fraud rate:\", round(tx[\"is_fraud\"].mean(), 4), \"| fraud ₹ lakh:\", round(tx.loc[tx[\"is_fraud\"] == 1, \"amount\"].sum() / 1e5, 1))"
+    },
+    {
+      "title": "Engineer behaviour features",
+      "detail": "A ₹20,000 payment is normal for one customer and alarming for another, so compare each transaction with the customer's own **median amount** (with about 15 transactions per customer, one fraud barely moves the median, whereas it would drag the mean). Add log amount, a night flag and one-hot merchant categories. Unsupervised detectors only see what features expose: this step matters more than the choice of algorithm.",
+      "code": "g = tx.groupby(\"customer\")[\"amount\"]\ntx[\"cust_median\"] = g.transform(\"median\")\ntx[\"amount_ratio\"] = tx[\"amount\"] / tx[\"cust_median\"]\ntx[\"log_amount\"] = np.log1p(tx[\"amount\"])\ntx[\"night\"] = tx[\"hour\"].between(0, 5).astype(int)\ntx[\"log_distance\"] = np.log1p(tx[\"distance_km\"])\ntx[\"log_age\"] = np.log(tx[\"account_age_days\"])\nfeats = [\"log_amount\", \"amount_ratio\", \"night\", \"log_distance\", \"tx_last_hour\", \"new_device\", \"log_age\"]\nM = pd.get_dummies(tx[\"merchant\"], prefix=\"m\", dtype=int)\nX = pd.concat([tx[feats], M], axis=1)\nXs = StandardScaler().fit_transform(X)\nprint(X.shape, \"features\")"
+    },
+    {
+      "title": "The rule baseline and the evaluation metric",
+      "detail": "Fraud ops already runs rules such as 'amount > ₹25,000' or 'night + new device'. Define **precision@k**: of the k highest-scored transactions per day, what fraction are fraud. With capacity 15 per day across 30 days, that is the number that matters, along with **₹ captured**: the fraud amount inside the reviewed alerts. Score the rule as a simple 0/1/2 count of rules fired, breaking ties by amount.",
+      "code": "def daily_topk(score, k=15):\n    d = tx.assign(score=score)\n    top = d.sort_values(\"score\", ascending=False).groupby(\"day\").head(k)\n    caught = top[\"is_fraud\"].sum()\n    return {\"precision@k\": caught / len(top), \"recall\": caught / tx[\"is_fraud\"].sum(),\n            \"fraud_rs_captured_%\": 100 * top.loc[top[\"is_fraud\"] == 1, \"amount\"].sum() / tx.loc[tx[\"is_fraud\"] == 1, \"amount\"].sum()}\nrule = (tx[\"amount\"] > 25000).astype(int) + ((tx[\"night\"] == 1) & (tx[\"new_device\"] == 1)).astype(int)\nrule_score = rule + tx[\"amount\"] / tx[\"amount\"].max()\nresults = {\"rules\": daily_topk(rule_score)}\nprint(pd.DataFrame(results).T.round(3))"
+    },
+    {
+      "title": "Isolation Forest",
+      "detail": "Isolation Forest builds random trees that split features at random values; anomalies sit in sparse regions and get **isolated in few splits**, so short average path length means a high anomaly score. It needs no labels and no distance metric, scales to millions of rows, and its `contamination` setting only affects the hard label threshold, not the ranking. Use `-score_samples` as the anomaly score.",
+      "code": "iso = IsolationForest(n_estimators=300, max_samples=512, random_state=0, n_jobs=-1).fit(Xs)\ntx[\"iso_score\"] = -iso.score_samples(Xs)\nresults[\"isolation_forest\"] = daily_topk(tx[\"iso_score\"])\nprint(pd.DataFrame(results).T.round(3))"
+    },
+    {
+      "title": "Local Outlier Factor as a second opinion",
+      "detail": "LOF compares the density around each point with the density around its neighbours: a point in a much sparser neighbourhood than its neighbours is an outlier. It catches *local* anomalies that a global method can miss, but it is distance-based (so scaling matters) and slower on large data. Compare both with ROC AUC and PR AUC on the full set, and then with the operational metric. Do not be surprised if LOF loses badly here: with one-hot and binary features, many genuine points share identical values and 'density' becomes a poor guide.",
+      "code": "lof = LocalOutlierFactor(n_neighbors=50, n_jobs=-1)\nlof.fit(Xs)\ntx[\"lof_score\"] = -lof.negative_outlier_factor_\nresults[\"lof\"] = daily_topk(tx[\"lof_score\"])\ntab = pd.DataFrame(results).T\ntab[\"roc_auc\"] = [roc_auc_score(tx[\"is_fraud\"], s) for s in (rule_score, tx[\"iso_score\"], tx[\"lof_score\"])]\ntab[\"pr_auc\"] = [average_precision_score(tx[\"is_fraud\"], s) for s in (rule_score, tx[\"iso_score\"], tx[\"lof_score\"])]\nprint(tab.round(3))"
+    },
+    {
+      "title": "Which fraud patterns does each method catch?",
+      "detail": "Label each fraud's pattern from its features (late-night high amount, device burst, far location) and break the caught frauds down by pattern. Methods often complement each other, which suggests a simple **rank average** ensemble; check whether it actually beats the best single method before adopting it (averaging in a weak detector can hurt). Then look at the false positives in the Isolation Forest's top alerts: are they genuinely odd customers (a first international trip) that an analyst could clear quickly?",
+      "code": "pat = pd.Series(\"genuine\", index=tx.index)\nfr = tx[\"is_fraud\"] == 1\npat[fr & (tx[\"night\"] == 1) & (tx[\"amount_ratio\"] > 3)] = \"night_high\"\npat[fr & (tx[\"new_device\"] == 1) & (tx[\"tx_last_hour\"] >= 3)] = \"device_burst\"\npat[fr & (tx[\"distance_km\"] >= 300)] = \"far_location\"\npat[fr & (pat == \"genuine\")] = \"other_fraud\"\ntx[\"pattern\"] = pat\ntx[\"ens_score\"] = tx[\"iso_score\"].rank(pct=True) + tx[\"lof_score\"].rank(pct=True)\nresults[\"rank_ensemble\"] = daily_topk(tx[\"ens_score\"])\nfor col in [\"iso_score\", \"lof_score\", \"ens_score\"]:\n    top = tx.sort_values(col, ascending=False).groupby(\"day\").head(15)\n    print(col, top.loc[top[\"is_fraud\"] == 1, \"pattern\"].value_counts().to_dict())\nfp = tx.sort_values(\"iso_score\", ascending=False).groupby(\"day\").head(15).query(\"is_fraud == 0\")\nprint(\"Typical IF false positives:\\n\", fp[[\"amount\", \"amount_ratio\", \"hour\", \"distance_km\", \"new_device\", \"merchant\"]].head(6))"
+    },
+    {
+      "title": "Capacity curve and ₹ impact",
+      "detail": "The team may get more analysts. Using the best unsupervised score, plot precision@k and recall for k = 5 … 60 alerts per day: precision falls as k grows, recall rises. Translate capacity into money: fraud ₹ prevented per month minus review cost (assume ₹45 per review) for each k, and compare with the rule baseline at today's 15.",
+      "code": "best_col = max([\"iso_score\", \"lof_score\", \"ens_score\"], key=lambda c: daily_topk(tx[c])[\"precision@k\"])\nprint(\"Best unsupervised score:\", best_col)\nks = [5, 10, 15, 30, 60]\nfraud_total = tx.loc[tx[\"is_fraud\"] == 1, \"amount\"].sum()\ncurve = pd.DataFrame([{**daily_topk(tx[best_col], k), \"k\": k} for k in ks]).set_index(\"k\")\ncurve[\"net_benefit_lakh\"] = (curve[\"fraud_rs_captured_%\"] / 100 * fraud_total - 30 * curve.index * 45) / 1e5\nprint(curve.round(3))\nfig, ax = plt.subplots(figsize=(6, 4))\nax.plot(ks, curve[\"precision@k\"], \"o-\", label=\"precision@k\"); ax.plot(ks, curve[\"recall\"], \"s-\", label=\"recall\")\nax.set_xlabel(\"alerts reviewed per day\"); ax.legend(); ax.set_title(\"Review capacity trade-off\")\nplt.savefig(\"fraud_capacity.png\", dpi=100); plt.close()\nfor name, sc in [(\"rules\", rule_score), (best_col, tx[best_col])]:\n    saved = daily_topk(sc)[\"fraud_rs_captured_%\"] / 100 * fraud_total\n    print(f\"{name} @15/day: fraud prevented ₹{saved / 1e5:.1f} lakh/month, review cost ₹{30 * 15 * 45 / 1e5:.2f} lakh\")"
+    },
+    {
+      "title": "When labels arrive: semi-supervised upgrade with a time split",
+      "detail": "After a few weeks chargebacks label the early days. Train a gradient boosting classifier on days 0–19 using the engineered features **plus the Isolation Forest score**, and evaluate on days 20–29 only. Splitting by time (never randomly) mimics production and prevents the model from learning about future fraud campaigns. Expect a clear gain, visible in precision@15 and even more in PR AUC (the quality of the whole ranking): labels are worth a lot, while the unsupervised score remains the safety net for fraud patterns no label has shown yet.",
+      "code": "Xf = X.assign(iso_score=tx[\"iso_score\"])\nearly, late = tx[\"day\"] < 20, tx[\"day\"] >= 20\ngb = HistGradientBoostingClassifier(max_iter=300, learning_rate=0.05, class_weight=\"balanced\", random_state=0)\ngb.fit(Xf[early], tx.loc[early, \"is_fraud\"])\np_late = gb.predict_proba(Xf[late])[:, 1]\ndef topk_late(score, k=15):\n    d = tx[late].assign(s=score)\n    top = d.sort_values(\"s\", ascending=False).groupby(\"day\").head(k)\n    return round(top[\"is_fraud\"].mean(), 3)\nprint(\"Days 20-29 precision@15 | IF only:\", topk_late(tx.loc[late, \"iso_score\"].values),\n      \"| ensemble:\", topk_late(tx.loc[late, \"ens_score\"].values), \"| supervised GB:\", topk_late(p_late))\nprint(\"Late PR AUC | IF:\", round(average_precision_score(tx.loc[late, \"is_fraud\"], tx.loc[late, \"iso_score\"]), 3),\n      \"| GB:\", round(average_precision_score(tx.loc[late, \"is_fraud\"], p_late), 3))"
+    }
+  ],
+  "deliverables": [
+    "A comparison table (rules, Isolation Forest, LOF, rank ensemble) with precision@15/day, recall, fraud ₹ captured, ROC AUC and PR AUC.",
+    "A breakdown of caught frauds by pattern and a short review of typical false positives.",
+    "A capacity curve (precision and recall vs alerts per day) with a recommended team size and the monthly ₹ impact.",
+    "A note on the time-split semi-supervised model: lift over unsupervised and how you would keep the unsupervised score for new fraud types."
+  ],
+  "rubric": [
+    {
+      "criterion": "Feature engineering",
+      "good": "Customer-relative features (amount ratio) and sensible transforms; explains why they matter for unsupervised detection."
+    },
+    {
+      "criterion": "Evaluation design",
+      "good": "Uses precision@k per day tied to review capacity and ₹ captured; does not report accuracy."
+    },
+    {
+      "criterion": "Method understanding",
+      "good": "Explains how Isolation Forest and LOF score anomalies, the role of contamination and of scaling."
+    },
+    {
+      "criterion": "Error analysis",
+      "good": "Breaks down catches by pattern and inspects false positives with an operational view."
+    },
+    {
+      "criterion": "Leakage and time",
+      "good": "Semi-supervised model trained on earlier days and tested on later days only."
+    }
+  ],
+  "extensions": [
+    "Add a velocity feature computed correctly in time order (customer's transactions in the previous 24 hours) and measure the change in precision@15.",
+    "Simulate a brand-new fraud pattern in days 25–29 that the supervised model never saw, and show whether the IF score in the feature set helps catch it.",
+    "Calibrate the supervised model and set a per-transaction block/review/allow policy using expected loss (fraud amount × probability vs ₹45 review cost and customer friction)."
+  ]
+}

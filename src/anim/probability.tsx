@@ -3,7 +3,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, Region, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, C, Scales } from '../viz/kit';
-import { V2, polyPath, f2 } from './_math-helpers';
+import { V2 } from '../viz/math';
+import { polyPath, f2 } from './_math-helpers';
 
 /* ---------- pure helpers ---------- */
 function flips(n: number, p: number, seed: number) { const r = rng(seed); return Array.from({ length: n }, () => (r() < p ? 1 : 0)); }

@@ -3,7 +3,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Region, Label, MatrixView, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C, SERIES, Scales } from '../viz/kit';
-import { alpha, mean, sd } from './_dataprep-helpers';
+import { mean, sd, sigmoid } from '../viz/math';
+import { alpha } from './_dataprep-helpers';
 
 /* ---------- pure helpers ---------- */
 interface Loan { s: number; u: number; y: number } // salary ₹k/month, credit utilisation %, y = 1 repaid / 0 defaulted
@@ -11,7 +12,6 @@ function loans(n: number, seed: number): Loan[] {
   const r = rng(seed);
   return Array.from({ length: n }, () => { const s = 20 + r() * 100, u = r() * 100; return { s, u, y: (s - 60) / 22 - (u - 50) / 22 + gauss(r) * 0.55 > 0 ? 1 : 0 }; });
 }
-const sig = (z: number) => 1 / (1 + Math.exp(-z));
 type W = [number, number, number];
 function trainLogit(data: Loan[], iters: number[], w0: W = [0.3, -0.6, 0.9], lr = 0.5) {
   const ms = mean(data.map((d) => d.s)), ss = sd(data.map((d) => d.s)) || 1, mu = mean(data.map((d) => d.u)), su = sd(data.map((d) => d.u)) || 1;
@@ -21,7 +21,7 @@ function trainLogit(data: Loan[], iters: number[], w0: W = [0.3, -0.6, 0.9], lr 
   if (want.has(0)) snaps.push({ it: 0, w: [...w] as W });
   while (it < last) {
     const g = [0, 0, 0];
-    X.forEach((x, i) => { const e = sig(w[0] * x[0] + w[1] * x[1] + w[2] * x[2]) - data[i].y; for (let j = 0; j < 3; j++) g[j] += e * x[j]; });
+    X.forEach((x, i) => { const e = sigmoid(w[0] * x[0] + w[1] * x[1] + w[2] * x[2]) - data[i].y; for (let j = 0; j < 3; j++) g[j] += e * x[j]; });
     for (let j = 0; j < 3; j++) w[j] -= (lr * g[j]) / X.length;
     it++;
     if (want.has(it)) snaps.push({ it, w: [...w] as W });
@@ -148,7 +148,7 @@ function Animate() {
         ['approach', sc.rule ? 'hand-written rule' : sc.w ? 'learned from data' : '–', sc.w ? C.yellow : undefined],
         ['mistakes', sc.rule || sc.w ? `${wrong.length} / ${data.length}` : '–', C.red],
         ['training step', sc.it ?? '–'],
-        ['log-loss', sc.w ? logLoss(data, (d) => sig(model.z(sc.w!, d.s, d.u))).toFixed(3) : '–'],
+        ['log-loss', sc.w ? logLoss(data, (d) => sigmoid(model.z(sc.w!, d.s, d.u))).toFixed(3) : '–'],
       ]} />
       <Legend items={[['repaid', C.blue], ['defaulted', C.purple], ['rule / model', C.yellow], ['mistake', C.red]]} />
     </>;

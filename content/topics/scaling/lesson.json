@@ -18,13 +18,14 @@
     "plain": "Subtract the mean, divide by the standard deviation: \"how many SDs from average\"."
   },
   "example": {
-    "title": "Standardise an age",
+    "title": "Standardising a new customer with StandardScaler",
     "steps": [
-      "Ages in training data: mean 40, SD 10",
-      "Customer aged 55 → z = (55 − 40) / 10 = 1.5",
-      "Customer aged 30 → z = (30 − 40) / 10 = −1.0"
+      "Training data (age, income ₹): (30, 4,00,000), (40, 9,00,000), (50, 15,00,000)",
+      "Age: mean 40, SD 8.165 (StandardScaler divides by n) → new customer aged 55: z = (55 − 40) / 8.165 ≈ 1.84",
+      "Income: mean ≈ ₹9,33,333, SD ≈ ₹4,49,691 → ₹6,00,000: z = (6,00,000 − 9,33,333) / 4,49,691 ≈ −0.74",
+      "The customer becomes (1.84, −0.74): both numbers now in \"standard deviation\" units"
     ],
-    "result": "Every feature now speaks the same \"SD units\", so no feature dominates by accident."
+    "result": "Two features whose units differed by a factor of tens of thousands now sit on the same scale, so neither dominates a distance by accident. The chapter's next example shows the payoff: unscaled, k-NN thinks B (60 yrs, ₹6.5 lakh) is 12× closer to A (25 yrs, ₹6 lakh) than C (27 yrs, ₹12 lakh); scaled, C wins (1.52 vs 2.74)."
   },
   "mistakes": [
     "Fitting the scaler on all data, including the test set (leakage). Fit on training data only.",
@@ -36,7 +37,7 @@
     "Fit the scaler on training data only, inside a pipeline"
   ],
   "practice": {
-    "code": "from sklearn.preprocessing import StandardScaler\nimport numpy as np\nX_train = np.array([[30, 400000], [40, 900000], [50, 1500000]])\nsc = StandardScaler().fit(X_train)\nprint(sc.transform([[55, 600000]]).round(2))   # same \"SD units\" for both columns"
+    "code": "from sklearn.preprocessing import StandardScaler\nimport numpy as np\nX_train = np.array([[30, 400000], [40, 900000], [50, 1500000]])\nsc = StandardScaler().fit(X_train)             # fit on training data only\nprint(sc.mean_.round().tolist(), sc.scale_.round(3).tolist())  # [40.0, 933333.0] [8.165, 449691.252]\nprint(sc.transform([[55, 600000]]).round(2))   # [[ 1.84 -0.74]]"
   },
   "check": [
     {

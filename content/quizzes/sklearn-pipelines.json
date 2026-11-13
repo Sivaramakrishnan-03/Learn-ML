@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "For a scikit-learn transformer such as `StandardScaler`, what is the difference between `.fit()` and `.transform()`?",
+      "options": [
+        "`.fit()` learns settings from data (such as each column's mean and SD); `.transform()` applies those learned settings to any data",
+        "They are two names for the same thing",
+        "`.fit()` changes the data; `.transform()` trains the model",
+        "`.transform()` must always be called before `.fit()`"
+      ],
+      "answer": 0,
+      "why": "A transformer learns once and then applies a fixed formula. Confusing the two is how people end up refitting on test data, which uses statistics a real new row could never have.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A pipeline containing a scaler is evaluated with 5-fold cross-validation. How many times is the scaler fitted during CV, and on what?",
+      "options": [
+        "5 times, each on that fold's training rows only",
+        "Once, on all the data",
+        "5 times, each on the validation fold",
+        "10 times, on training and validation rows separately"
+      ],
+      "answer": 0,
+      "why": "Each CV round refits the whole pipeline on that round's training rows and only transforms the validation rows. Fitting once on all data is exactly the leakage a pipeline prevents.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Training incomes are 20, 40, missing and 30. A pipeline applies a median imputer, then `StandardScaler` (which divides by n). What does a new income of 37 become?",
+      "options": [
+        "About 0.86",
+        "About 0.99",
+        "7",
+        "About 0.70"
+      ],
+      "answer": 1,
+      "why": "The imputer learns the median 30, so the column is 20, 40, 30, 30. The scaler learns mean 30 and SD √((100 + 100 + 0 + 0) / 4) = √50 ≈ 7.071. (37 − 30) / 7.071 ≈ **0.99**. About 0.86 uses the n − 1 SD (≈ 8.165); 7 forgets to divide by the SD.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "In production, your pipeline crashes with \"Found unknown categories ['Kochi']\". What is the cause and the usual fix?",
+      "options": [
+        "Kochi is spelt wrongly in the training data; retrain with a spell-checker",
+        "The model needs refitting every time a new row arrives",
+        "The scaler cannot handle text; remove the city column",
+        "The one-hot encoder never saw Kochi in training; set `handle_unknown=\"ignore\"` so unseen cities become all zeros instead of crashing"
+      ],
+      "answer": 3,
+      "why": "The encoder learned a fixed list of categories from training rows. With `handle_unknown=\"ignore\"`, a new category is encoded as (0, 0, …, 0). Refitting on every new row would break the rule that settings come from training data only.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You build `make_pipeline(StandardScaler(), LogisticRegression())` and want to tune the regularisation strength C with `GridSearchCV`. What is the parameter name?",
+      "options": [
+        "`C`",
+        "`LogisticRegression.C`",
+        "`logisticregression__C`",
+        "`pipeline_C`"
+      ],
+      "answer": 2,
+      "why": "Pipeline settings are addressed as step name, double underscore, parameter. `make_pipeline` names each step after its class in lower case. Plain `C` fails because the pipeline itself has no parameter of that name.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A team picks the 20 most label-related genes out of 10,000 using all 80 samples, then gets 92% CV accuracy. With `SelectKBest(k=20)` moved inside the pipeline, CV accuracy drops to 58%. Which number should they believe?",
+      "options": [
+        "92%, because more information was used",
+        "58%: selecting on all rows let the validation labels choose the features, so 92% is leakage",
+        "The average, 75%",
+        "Neither; feature selection invalidates CV"
+      ],
+      "answer": 1,
+      "why": "With many more columns than rows, some columns match the labels by chance, including the validation rows' labels. Selecting inside each fold removes that advantage. The same trap turned pure noise into a fake 95.5% in the chapter's simulation.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Training incomes are 10, 20, 30 and 40; validation incomes are 100 and 200. If a scaler is wrongly fitted on all six rows, what mean does it learn, compared with the correct one?",
+      "options": [
+        "25 in both cases",
+        "25 instead of 66.7",
+        "150 instead of 25",
+        "About 66.7 instead of 25"
+      ],
+      "answer": 3,
+      "why": "All six: 400 / 6 ≈ **66.7**. Training only: 100 / 4 = 25. Every training row is then shifted using validation information that would not exist yet in real use. 150 is the validation mean alone.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"Why ship a whole pipeline to production rather than just the trained model?\" Which answer is best?",
+      "options": [
+        "Pipelines make predictions more accurate on their own",
+        "Models cannot be saved without a pipeline",
+        "The pipeline carries the exact preprocessing learned in training (imputer values, scaling, category lists) in the right order, so production rows are treated identically and nothing has to be rewritten by hand",
+        "Pipelines retrain themselves automatically on new data"
+      ],
+      "answer": 2,
+      "why": "Hand-copied preprocessing drifts: a different median, a reordered column or a missing category silently changes predictions. One saved pipeline object removes that whole class of errors. It does not improve the model's accuracy by itself or retrain on its own.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

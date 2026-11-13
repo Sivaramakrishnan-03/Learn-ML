@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why does a random forest restrict each split to a random subset of features?",
+      "options": [
+        "Mainly to speed up training; accuracy is unaffected",
+        "To make the trees less alike, so their errors are less correlated and cancel better when averaged",
+        "To reduce the bias of each individual tree",
+        "To permanently drop weak features from the model"
+      ],
+      "answer": 1,
+      "why": "Without the restriction, a dominant feature sits at the top of almost every tree and the trees make similar mistakes. Hiding features at random lowers the correlation ρ between trees. Each tree actually gets slightly weaker (more bias), not stronger; the gain comes from independence.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What happens as you keep increasing `n_estimators` in a random forest?",
+      "options": [
+        "The average stabilises and gains level off; more trees cost time and memory but do not cause overfitting",
+        "Accuracy keeps rising in proportion to the number of trees",
+        "The forest starts to overfit once you pass about 100 trees",
+        "Each tree becomes shallower to compensate"
+      ],
+      "answer": 0,
+      "why": "More trees only shrink the (1 − ρ)σ² / B part of the variance, so improvement is fast at first and then flattens. They never make the forest overfit; that comes from individual trees fitting noise, which `min_samples_leaf` controls.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A classification dataset has p = 25 features and uses the default m = √p. In what share of splits is one particular feature **not** available?",
+      "options": [
+        "0.04",
+        "0.20",
+        "0.80",
+        "0.96"
+      ],
+      "answer": 2,
+      "why": "m = √25 = 5 features are offered, so 25 − 5 = 20 are left out: 20 / 25 = 0.80. The tempting 0.20 is the share of splits where the feature is offered; 0.96 wrongly assumes only one feature is offered.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A broadband forest gives a customer a churn probability of 0.40. The customer is worth ₹6,000, a retention call saves about 30% of leavers, and the call costs ₹500. What is the expected net benefit of calling?",
+      "options": [
+        "−₹140",
+        "₹1,900",
+        "₹720",
+        "₹220"
+      ],
+      "answer": 3,
+      "why": "Expected value saved = 0.40 × ₹6,000 × 0.30 = ₹720; minus the ₹500 cost gives ₹220, so the call is worth making. ₹720 forgets the cost, and ₹1,900 forgets that only 30% of leavers are actually saved.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Your forest's `feature_importances_` ranks `customer_id` as the top churn driver. What is the most likely explanation?",
+      "options": [
+        "Customer ID genuinely causes churn and should be investigated",
+        "The features were not scaled before training",
+        "Impurity-based importance is biased towards features with many distinct values; check with permutation importance",
+        "The forest has too few trees for importances to be meaningful"
+      ],
+      "answer": 2,
+      "why": "An ID has a unique value per row, so trees can always find splits on it that reduce impurity on training data, inflating its built-in importance. Permutation importance (shuffle the column and measure the drop in score) exposes this. Importance never proves cause, and trees do not need scaling.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A forest is trained on house sales up to ₹2 crore. For a new mansion that is clearly worth about ₹5 crore, it predicts roughly ₹2 crore. Why?",
+      "options": [
+        "Each tree predicts an average of training targets in a leaf, so a forest cannot predict beyond the range it has seen",
+        "The forest has too few trees",
+        "The features should have been standardised first",
+        "`max_features` was set too low, so the size feature was ignored"
+      ],
+      "answer": 0,
+      "why": "Trees cannot extrapolate: the largest possible prediction is an average of the most expensive houses in training. A linear model or a target transformation is needed when you expect values beyond history. More trees or scaling change nothing here.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"What happens if you set `max_features = 1`?\" Which answer is best?",
+      "options": [
+        "It is always best, because the trees have the lowest possible correlation",
+        "It makes each tree overfit more strongly",
+        "It is identical to plain bagging",
+        "Trees become very diverse but individually weak, since the one feature offered is often useless; the forest can get worse"
+      ],
+      "answer": 3,
+      "why": "`max_features` balances individual tree strength against independence. With m = 1 the split is forced onto a random feature, so trees are diverse but poor. Plain bagging is the opposite extreme (m = p, all features).",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"Can you use a random forest's predicted probabilities directly to set prices or risk premiums?\" Which answer is best?",
+      "options": [
+        "Be careful: forest probabilities tend to avoid 0 and 1, so calibrate them (for example with `CalibratedClassifierCV`) when exact probabilities matter",
+        "No, a forest only outputs class labels",
+        "Yes, forest probabilities are always perfectly calibrated because they average many trees",
+        "Only if you first scale every feature to the range 0 to 1"
+      ],
+      "answer": 0,
+      "why": "Averaging leaf proportions across trees pulls probabilities towards the middle, which is fine for ranking but not for decisions that need precise probabilities. Calibration fixes this. Averaging does not guarantee calibration, and forests do output probabilities.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

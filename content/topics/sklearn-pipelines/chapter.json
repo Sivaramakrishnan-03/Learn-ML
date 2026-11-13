@@ -204,7 +204,7 @@
             "setup": "Same four training rows, plus two validation rows with incomes 60 and 80. Suppose the imputer and scaler are wrongly fitted on all six rows.",
             "steps": [
               "Wrong median of the known incomes 10, 20, 15, 60, 80 = 20, so the missing training income is filled with 20 instead of 15.",
-              "Wrong mean of 10, 20, 15, 15, 60, 80 = 200 / 6 ≈ 33.3 instead of 15.",
+              "Wrong scaler: the filled column is now 10, 20, 20, 15, 60, 80, so the mean is 205 / 6 ≈ 34.2 (instead of 15) and the standard deviation ≈ 26.2 (instead of 3.54).",
               "Every training row is now shifted using information from the validation rows, which in real life would not exist yet.",
               "Inside a pipeline, each fold's imputer and scaler are fitted only on that fold's training rows, so this cannot happen."
             ],

@@ -18,14 +18,14 @@
     "plain": "Applying matrix A to eigenvector v gives the same direction v, just scaled by the number λ (the eigenvalue)."
   },
   "example": {
-    "title": "Height and weight of employees",
+    "title": "Spotting eigenvectors by testing arrows",
     "steps": [
-      "Height and weight are strongly correlated: the data forms a tilted ellipse",
-      "Covariance matrix eigenvectors: one along the ellipse's long axis (a \"body size\" direction), one across it",
-      "Suppose the eigenvalues are 9.5 and 0.5",
-      "Share of variance on the first direction = 9.5 / (9.5 + 0.5) = 95%"
+      "A = [[2, 1], [1, 2]]. Multiply three arrows by A and see which ones stay on their own line.",
+      "A [1, 0] = [2, 1]: the arrow pointed east, now north-east. Turned, so not an eigenvector.",
+      "A [1, 1] = [3, 3] = 3 × [1, 1]: same direction, three times longer. Eigenvector, eigenvalue λ = 3.",
+      "A [1, −1] = [1, −1] = 1 × [1, −1]: unchanged. Eigenvector, eigenvalue λ = 1."
     ],
-    "result": "One number (\"body size\") captures 95% of the information in two. That is PCA reducing 2 features to 1."
+    "result": "A stretches the diagonal direction by 3 and leaves the anti-diagonal alone; every other arrow gets pulled towards the diagonal. If A were a covariance matrix, the [1, 1] direction would hold 3 / (3 + 1) = 75% of the variance, and PCA would keep it first."
   },
   "mistakes": [
     "Forgetting to scale features before PCA: a feature with big units dominates the covariance matrix.",
@@ -61,7 +61,7 @@
     }
   ],
   "practice": {
-    "code": "import numpy as np\nX = np.random.default_rng(0).multivariate_normal([0, 0], [[3, 2.5], [2.5, 3]], 500)\nvals, vecs = np.linalg.eigh(np.cov(X.T))\nprint(vals / vals.sum())          # share of variance per direction\nprint(vecs)                       # the directions (columns)"
+    "code": "import numpy as np\nA = np.array([[2, 1], [1, 2]])\nvals, vecs = np.linalg.eigh(A)    # symmetric matrix → eigh\nprint(vals)                       # [1. 3.]\nprint(vecs)                       # columns ∝ [1, −1] and [1, 1]\nprint(A @ np.array([1, 1]))       # [3 3] = 3 × [1, 1]\nprint(vals / vals.sum())          # [0.25 0.75] share of 'variance' per direction"
   },
   "chapterMinutes": 18
 }

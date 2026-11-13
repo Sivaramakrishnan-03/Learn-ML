@@ -7,9 +7,9 @@ export const sy = scaleLinear().domain([0, 10]).range([H - PAD, 12]);
 export const CLASS_COLORS = ['#58c4dd', '#fc6255', '#83c167', '#f0ac5f', '#9a72ac', '#5cd0b3', '#ffff00', '#c55f73'];
 
 /** Shared 0..10 × 0..10 coordinate canvas with grid, axes and optional click-to-add. */
-export function World({ children, xLabel = 'feature 1', yLabel = 'feature 2', onAdd, width = W, height = H, fx = String, fy = String }: {
+export function World({ children, xLabel = 'feature 1', yLabel = 'feature 2', onAdd, width = W, height = H, fx = String, fy = String, ariaLabel }: {
   children: ReactNode; xLabel?: string; yLabel?: string; fx?: (v: number) => string; fy?: (v: number) => string;
-  onAdd?: (pt: { x: number; y: number }, shift: boolean) => void; width?: number; height?: number;
+  onAdd?: (pt: { x: number; y: number }, shift: boolean) => void; width?: number; height?: number; ariaLabel?: string;
 }) {
   const ref = useRef<SVGSVGElement>(null);
   const ticks = [0, 2, 4, 6, 8, 10];
@@ -24,13 +24,14 @@ export function World({ children, xLabel = 'feature 1', yLabel = 'feature 2', on
   };
   return (
     <svg ref={ref} viewBox={`0 0 ${W} ${H}`} width={width} height={height} className="canvas"
-      onClick={click} style={{ cursor: onAdd ? 'crosshair' : 'default', maxWidth: '100%' }}>
+      onClick={click} style={{ cursor: onAdd ? 'crosshair' : 'default', maxWidth: '100%', height: 'auto' }}
+      role="img" aria-label={ariaLabel ?? `Chart of ${yLabel} against ${xLabel}${onAdd ? ' (click to add points)' : ''}`}>
       {ticks.map((t) => (
         <g key={t}>
           <line x1={sx(t)} x2={sx(t)} y1={sy(0)} y2={sy(10)} stroke="#1b2230" />
           <line x1={sx(0)} x2={sx(10)} y1={sy(t)} y2={sy(t)} stroke="#1b2230" />
-          <text x={sx(t)} y={H - 16} fill="#5b6576" fontSize={10} textAnchor="middle">{fx(t)}</text>
-          <text x={PAD - 8} y={sy(t) + 3} fill="#5b6576" fontSize={10} textAnchor="end">{fy(t)}</text>
+          <text x={sx(t)} y={H - 16} fill="#8b95a7" fontSize={10} textAnchor="middle">{fx(t)}</text>
+          <text x={PAD - 8} y={sy(t) + 3} fill="#8b95a7" fontSize={10} textAnchor="end">{fy(t)}</text>
         </g>
       ))}
       <text x={(W + PAD) / 2} y={H - 2} fill="#8b95a7" fontSize={11} textAnchor="middle">{xLabel}</text>

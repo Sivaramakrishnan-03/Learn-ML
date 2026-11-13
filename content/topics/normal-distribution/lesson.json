@@ -18,14 +18,15 @@
     "plain": "z-score = distance from the mean in units of standard deviations."
   },
   "example": {
-    "title": "Bolt diameters on a production line",
+    "title": "How many men are taller than a car door?",
     "steps": [
-      "Diameter ~ Normal(mean 10.00 mm, SD 0.02 mm)",
-      "Tolerance 9.96–10.04 mm = mean ± 2 SD",
-      "Within ±2 SD ≈ 95% → about 5% of bolts are rejected",
-      "Tighten the process to SD 0.0133 mm → ±3 SD → only 0.3% rejected"
+      "Adult male heights ≈ Normal(mean 170 cm, SD 7 cm); we need P(height > 184)",
+      "Standardise: z = (184 − 170) / 7 = 2.0",
+      "norm.cdf(2.0) = 0.9772 → 97.72% are shorter than 184 cm",
+      "Tail = 1 − 0.9772 = 0.0228",
+      "Bonus: 163–177 cm is z = −1 to +1 → 68.27% of men"
     ],
-    "result": "Reducing variation, not moving the mean, is what cuts scrap. That is the core idea of Six Sigma."
+    "result": "About 2.3% of men (roughly 1 in 44) are taller than 184 cm. Designing headroom for them is a deliberate business choice. The same z-score logic sets bolt tolerances and warranty periods."
   },
   "mistakes": [
     "Assuming everything is normal: incomes, claim sizes and web traffic are heavily skewed.",
@@ -37,7 +38,7 @@
     "z-scores standardise values"
   ],
   "practice": {
-    "code": "from scipy.stats import norm\nprint(norm.cdf(2) - norm.cdf(-2))          # 0.954  share within ±2 SD\nprint(norm.cdf(184, loc=170, scale=7))     # height 184 cm → 97.7th percentile"
+    "code": "from scipy.stats import norm\nz = (184 - 170) / 7\nprint(z, round(1 - norm.cdf(z), 4))                    # 2.0 0.0228  taller than 184 cm\nprint(round(norm.sf(184, loc=170, scale=7), 4))       # same, without standardising\nprint(round(norm.cdf(177, 170, 7) - norm.cdf(163, 170, 7), 4))  # 0.6827 within ±1 SD"
   },
   "check": [
     {

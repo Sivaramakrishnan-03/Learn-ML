@@ -1,0 +1,108 @@
+{
+  "id": "churn-model-comparison",
+  "title": "Churn model bake-off: logistic vs random forest vs gradient boosting",
+  "track": "ensembles",
+  "level": 3,
+  "hours": 6,
+  "summary": "Compare three churn models fairly inside one preprocessing pipeline with stratified cross-validation, tune the winner, spot a leakage trap, and judge the result by retention value in the top decile rather than by AUC alone.",
+  "business": "A telecom operator's postpaid base loses about 1 in 6 subscribers a year. For its next quarterly campaign the retention team can call **10% of the base (50,000 of 5 lakh subscribers)** and offer a ₹300 bill credit; a saved customer is worth about **₹4,800** in margin over the next year and roughly 30% of called would-be churners stay. The head of retention asks: **which model should rank customers for the call list, how much better is it than a simple logistic regression, and what is the ₹ value of one campaign using it?**",
+  "topics": [
+    "sklearn-pipelines",
+    "cross-validation",
+    "logistic-regression",
+    "random-forest",
+    "gradient-boosting",
+    "hyperparameter-tuning",
+    "classification-metrics",
+    "feature-engineering",
+    "data-cleaning"
+  ],
+  "dataset": {
+    "name": "Synthetic postpaid subscriber snapshot (8,000 rows)",
+    "how": "Generated in step 1 with `numpy.random.default_rng(99)`: tenure, monthly bill (₹), data usage (GB), call drops, complaints in 90 days, plan, contract type, payment method, region and a churn flag from a non-linear rule (interactions and thresholds that trees can exploit). About 4% of some numeric fields are missing. A leaky column is included on purpose."
+  },
+  "steps": [
+    {
+      "title": "Generate the subscriber snapshot",
+      "detail": "Churn here depends on interactions (complaints matter much more for month-to-month customers) and thresholds (a jump after 3 call drops), which tree ensembles can capture and plain logistic regression cannot without hand-made features. We also add `retention_call_logged`, which is filled in *after* a customer calls to cancel: a classic leakage trap.",
+      "code": "import numpy as np\nimport pandas as pd\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, RandomizedSearchCV\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.preprocessing import OneHotEncoder, StandardScaler\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier\nfrom sklearn.metrics import roc_auc_score, average_precision_score\nfrom sklearn.inspection import permutation_importance\nfrom scipy import stats\n\npd.set_option(\"display.width\", 160); pd.set_option(\"display.max_columns\", 20)\nrng = np.random.default_rng(99)\nn = 8000\nd = pd.DataFrame({\n    \"tenure_m\": rng.integers(1, 72, n),\n    \"monthly_bill\": np.round(rng.normal(649, 220, n).clip(199, 1999)),\n    \"data_gb\": np.round(rng.gamma(3, 8, n), 1),\n    \"call_drops\": rng.poisson(1.5, n),\n    \"complaints_90d\": rng.poisson(0.4, n),\n    \"plan\": rng.choice([\"Basic\", \"Plus\", \"Max\"], n, p=[0.5, 0.35, 0.15]),\n    \"contract\": rng.choice([\"Monthly\", \"Annual\"], n, p=[0.6, 0.4]),\n    \"payment\": rng.choice([\"Autopay\", \"UPI\", \"Cash\"], n, p=[0.45, 0.4, 0.15]),\n    \"region\": rng.choice([\"North\", \"South\", \"East\", \"West\"], n),\n})\nmonthly = d[\"contract\"] == \"Monthly\"\nz = (-2.0 + 0.6 * monthly - 0.02 * d[\"tenure_m\"] + 1.6 * (d[\"call_drops\"] > 3)\n     + d[\"complaints_90d\"].clip(0, 3) * np.where(monthly, 1.4, 0.0) + 0.003 * (d[\"monthly_bill\"] - 649).clip(0) * monthly\n     + 0.6 * (d[\"payment\"] == \"Cash\") - 0.8 * (d[\"data_gb\"].between(15, 40)) + 1.5 * ((d[\"tenure_m\"] < 6) & monthly))\nd[\"churn\"] = (rng.random(n) < 1 / (1 + np.exp(-z))).astype(int)\nd[\"retention_call_logged\"] = ((d[\"churn\"] == 1) & (rng.random(n) < 0.7)) | (rng.random(n) < 0.03)\nfor c in [\"data_gb\", \"monthly_bill\", \"call_drops\"]:\n    d.loc[rng.random(n) < 0.04, c] = np.nan\nprint(d.head()); print(\"Churn rate:\", round(d[\"churn\"].mean(), 3))"
+    },
+    {
+      "title": "Hold out a test set and build one preprocessing block",
+      "detail": "Split off 20% as a final test set, stratified on churn. Then define preprocessing **once** as a `ColumnTransformer`: median imputation plus scaling for numbers, most-frequent imputation plus one-hot encoding for categories. Putting it inside each model's pipeline means imputation medians are learned only from the training folds during CV, so nothing leaks from validation rows.",
+      "code": "features = [\"tenure_m\", \"monthly_bill\", \"data_gb\", \"call_drops\", \"complaints_90d\", \"plan\", \"contract\", \"payment\", \"region\"]\nnum = features[:5]; cat = features[5:]\ntrain, test = train_test_split(d, test_size=0.2, stratify=d[\"churn\"], random_state=1)\nXtr, ytr, Xte, yte = train[features], train[\"churn\"], test[features], test[\"churn\"]\npre = ColumnTransformer([\n    (\"num\", Pipeline([(\"imp\", SimpleImputer(strategy=\"median\")), (\"sc\", StandardScaler())]), num),\n    (\"cat\", Pipeline([(\"imp\", SimpleImputer(strategy=\"most_frequent\")), (\"oh\", OneHotEncoder(handle_unknown=\"ignore\"))]), cat)])\nprint(Xtr.isna().mean().round(3)[lambda s: s > 0])"
+    },
+    {
+      "title": "Define the three candidate pipelines",
+      "detail": "Same preprocessing, three learners: regularised **logistic regression** (the transparent baseline), a **random forest** (bagged deep trees, robust, little tuning) and **histogram gradient boosting** (sequential shallow trees, usually strongest on tabular data, very fast). Scaling is irrelevant for trees but harmless, and keeping one preprocessing block keeps the comparison fair.",
+      "code": "models = {\n    \"logistic\": Pipeline([(\"pre\", pre), (\"m\", LogisticRegression(C=1.0, max_iter=2000))]),\n    \"random_forest\": Pipeline([(\"pre\", pre), (\"m\", RandomForestClassifier(n_estimators=200, min_samples_leaf=5, n_jobs=-1, random_state=0))]),\n    \"grad_boost\": Pipeline([(\"pre\", pre), (\"m\", HistGradientBoostingClassifier(max_iter=200, learning_rate=0.05, random_state=0))]),\n}"
+    },
+    {
+      "title": "Compare with stratified 5-fold cross-validation",
+      "detail": "Use the **same** `StratifiedKFold` splits for every model so differences come from the models, not from lucky folds. Score both ROC AUC and average precision (PR AUC), and report mean ± SD across folds. A difference smaller than about one fold-SD is not worth a more complex model.",
+      "code": "cv = StratifiedKFold(5, shuffle=True, random_state=0)\nscores = {name: cross_validate(m, Xtr, ytr, cv=cv, scoring=[\"roc_auc\", \"average_precision\"]) for name, m in models.items()}\ntable = pd.DataFrame({name: {\"auc_mean\": s[\"test_roc_auc\"].mean(), \"auc_sd\": s[\"test_roc_auc\"].std(),\n                             \"ap_mean\": s[\"test_average_precision\"].mean(), \"ap_sd\": s[\"test_average_precision\"].std()}\n                      for name, s in scores.items()}).T\nprint(table.round(4))"
+    },
+    {
+      "title": "Is the winner really better? Paired fold comparison",
+      "detail": "Because all models saw identical folds, compare them **pairwise per fold**. The fold-by-fold differences in AUC tell you whether one model wins consistently. A paired t-test on 5 folds is only a rough guide (folds share training data, so it is over-optimistic), but a model that wins on every fold by a clear margin is a safe choice.",
+      "code": "diff = scores[\"grad_boost\"][\"test_roc_auc\"] - scores[\"logistic\"][\"test_roc_auc\"]\nprint(\"GB − logistic AUC per fold:\", diff.round(4), \"| wins:\", int((diff > 0).sum()), \"of 5\")\nprint(\"paired t-test p =\", round(stats.ttest_rel(scores[\"grad_boost\"][\"test_roc_auc\"], scores[\"logistic\"][\"test_roc_auc\"]).pvalue, 4))"
+    },
+    {
+      "title": "Tune gradient boosting with a randomized search",
+      "detail": "Search learning rate, tree size, number of iterations and L2 regularisation with `RandomizedSearchCV` (12 random combinations, 3-fold CV on the training set only). Randomized search covers wide ranges cheaply. Keep the expectations modest: tuning usually adds a point or two of AUC, much less than good features.",
+      "code": "search = RandomizedSearchCV(models[\"grad_boost\"], {\n    \"m__learning_rate\": [0.02, 0.05, 0.1], \"m__max_leaf_nodes\": [8, 15, 31], \"m__max_iter\": [150, 300],\n    \"m__l2_regularization\": [0.0, 0.1, 1.0], \"m__min_samples_leaf\": [20, 50]},\n    n_iter=12, cv=StratifiedKFold(3, shuffle=True, random_state=0), scoring=\"roc_auc\", random_state=0, n_jobs=-1)\nsearch.fit(Xtr, ytr)\nprint(\"Best params:\", search.best_params_, \"CV AUC\", round(search.best_score_, 4))\nbest = search.best_estimator_"
+    },
+    {
+      "title": "Score the test set once and translate into ₹",
+      "detail": "Refit the baseline and use the tuned model on the full training set, then score the untouched test set. The business metric is the **top decile**: of the 10% of customers the model ranks riskiest, how many actually churn (precision@10%) and what share of all churners that captures. Campaign value ≈ churners reached × 30% save rate × ₹4,800 − calls × ₹300 credit (credit given to everyone called), scaled from the test set to the 5 lakh base. Include the untuned random forest too: if it is within noise of the tuned booster, the simpler-to-tune model may be the better operational choice.",
+      "code": "def top_decile(y, p):\n    k = int(0.1 * len(y)); idx = np.argsort(-p)[:k]\n    return y.to_numpy()[idx].sum(), k\nbase_n, save, value, credit = 500_000, 0.30, 4800, 300\nrows = []\nfor name, m in {\"logistic\": models[\"logistic\"].fit(Xtr, ytr), \"random_forest\": models[\"random_forest\"].fit(Xtr, ytr), \"grad_boost_tuned\": best}.items():\n    p = m.predict_proba(Xte)[:, 1]\n    hit, k = top_decile(yte, p)\n    scale = base_n / len(yte)\n    rows.append({\"model\": name, \"test_auc\": roc_auc_score(yte, p), \"test_ap\": average_precision_score(yte, p),\n                 \"precision@10%\": hit / k, \"churners_captured_%\": 100 * hit / yte.sum(),\n                 \"campaign_value_cr\": (hit * scale * save * value - k * scale * credit) / 1e7})\nprint(pd.DataFrame(rows).set_index(\"model\").round(3))\nprint(\"Random call list precision:\", round(yte.mean(), 3))"
+    },
+    {
+      "title": "Interpret with permutation importance",
+      "detail": "Permutation importance shuffles one input at a time on the test set and measures how much AUC drops: model-agnostic and computed on unseen data. Check that the top drivers make business sense (contract, complaints, tenure, call drops). If a feature you cannot act on or explain dominates, investigate before shipping.",
+      "code": "imp = permutation_importance(best, Xte, yte, scoring=\"roc_auc\", n_repeats=5, random_state=0, n_jobs=-1)\nprint(pd.Series(imp.importances_mean, index=features).sort_values(ascending=False).round(4))"
+    },
+    {
+      "title": "The leakage trap",
+      "detail": "Add `retention_call_logged` and rerun the logistic model in CV: AUC jumps towards 0.9+. It looks like a breakthrough but the field is only filled after the customer has already called to cancel, so it will not exist at prediction time. Ask of every feature: **would I know this value on the day I need the prediction?**",
+      "code": "leaky = Pipeline([(\"pre\", ColumnTransformer([(\"num\", Pipeline([(\"imp\", SimpleImputer(strategy=\"median\")), (\"sc\", StandardScaler())]), num + [\"retention_call_logged\"]),\n                                              (\"cat\", Pipeline([(\"imp\", SimpleImputer(strategy=\"most_frequent\")), (\"oh\", OneHotEncoder(handle_unknown=\"ignore\"))]), cat)])),\n                  (\"m\", LogisticRegression(max_iter=2000))])\nleak_auc = cross_validate(leaky, train[features + [\"retention_call_logged\"]].astype({\"retention_call_logged\": int}), ytr, cv=cv, scoring=\"roc_auc\")[\"test_score\"]\nprint(f\"AUC with leaky feature: {leak_auc.mean():.3f}  vs honest logistic {table.loc['logistic', 'auc_mean']:.3f}\")"
+    }
+  ],
+  "deliverables": [
+    "A CV comparison table (ROC AUC and PR AUC, mean ± SD) for the three pipelines on identical folds.",
+    "The tuned model's parameters and the paired per-fold comparison that justifies (or rejects) the extra complexity.",
+    "A test-set business table: precision@10%, share of churners captured and campaign ₹ value vs the logistic baseline.",
+    "A permutation-importance chart with a short interpretation, and a paragraph on the leakage trap and how you would prevent it in production."
+  ],
+  "rubric": [
+    {
+      "criterion": "Fair comparison",
+      "good": "One shared preprocessing block inside pipelines; same CV folds for all models; test set untouched until the end."
+    },
+    {
+      "criterion": "Statistical judgement",
+      "good": "Reports fold SDs and paired differences; does not claim a winner from a difference inside the noise."
+    },
+    {
+      "criterion": "Tuning",
+      "good": "Randomized search on training data only with sensible ranges; realistic about gains."
+    },
+    {
+      "criterion": "Business metric",
+      "good": "Top-decile precision and ₹ value computed with the stated save rate, value and credit cost."
+    },
+    {
+      "criterion": "Leakage awareness",
+      "good": "Identifies the leaky column, explains why it is unavailable at prediction time, quantifies the false gain."
+    },
+    {
+      "criterion": "Interpretation",
+      "good": "Permutation importance on test data; drivers checked for business sense."
+    }
+  ],
+  "extensions": [
+    "Add interaction features (complaints × monthly contract, call_drops > 3) to the logistic model and see how much of the gap to gradient boosting closes.",
+    "Use uplift thinking: simulate that the offer only works on customers with complaints, and compare ranking by churn risk vs by expected uplift.",
+    "Wrap the final pipeline with `CalibratedClassifierCV` and choose the call-list size that maximises expected ₹ value instead of a fixed 10%."
+  ]
+}

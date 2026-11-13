@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Which of these quantities is **continuous** rather than discrete?",
+      "options": [
+        "Number of defects on a metre of cable",
+        "Number of leads converted out of 20",
+        "Number of calls in a minute",
+        "Minutes until the next customer arrives"
+      ],
+      "answer": 3,
+      "why": "A waiting time can take any value in a range (2.37 minutes), so it is continuous and probabilities are areas under a curve. The other three are counts (0, 1, 2 …), which are discrete and have a probability for each exact value.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A fuel station wants to model the **time between** randomly arriving cars. Which distribution fits the story best?",
+      "options": [
+        "Exponential",
+        "Binomial",
+        "Uniform",
+        "Poisson"
+      ],
+      "answer": 0,
+      "why": "The exponential describes waiting times between events of a Poisson process. Poisson is tempting because it is the same process, but it counts events per interval, not the gap between them. Binomial needs a fixed number of yes/no tries.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Calls arrive as a Poisson process with λ = 3 per minute. Which statement about the number of calls per minute is true?",
+      "options": [
+        "Mean 3, variance 3",
+        "Mean 3, variance 9",
+        "Mean 3, variance √3",
+        "Mean 3, variance unknown without more data"
+      ],
+      "answer": 0,
+      "why": "For a Poisson distribution mean = variance = λ, so both are 3. Variance 9 confuses variance with λ²; √3 ≈ 1.73 is the SD, not the variance. This property is also the check for over-dispersion.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A salesperson closes 10% of leads and has 20 leads this week. What is the probability she closes **exactly 2**?",
+      "options": [
+        "0.010",
+        "0.100",
+        "0.285",
+        "0.190"
+      ],
+      "answer": 2,
+      "why": "Binomial: (20 choose 2) × 0.1² × 0.9¹⁸ = 190 × 0.01 × 0.1501 = 0.285. 0.010 forgets both the 190 orderings and the failures; 0.100 is just 2/20; 0.190 is P(exactly 3).",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Daily complaint counts at a branch have mean 4 and variance 19. Someone proposes a Poisson model. What does the data suggest?",
+      "options": [
+        "Poisson fits well, since counts are always Poisson",
+        "The data are over-dispersed (variance far above the mean); a negative binomial model is likely to fit better",
+        "The data are under-dispersed; use a binomial",
+        "Switch to a normal distribution because the variance is large"
+      ],
+      "answer": 1,
+      "why": "A Poisson model forces variance = mean. A variance almost five times the mean is over-dispersion, often caused by bad days clustering, and a negative binomial allows for it. A normal model would still ignore that the data are small counts that cannot go below zero.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Calls arrive at λ = 3 per minute (Poisson). What is the **smallest** per-minute capacity that keeps overloaded minutes (more calls than capacity) below 1%?",
+      "options": [
+        "4 calls",
+        "6 calls",
+        "7 calls",
+        "8 calls"
+      ],
+      "answer": 3,
+      "why": "P(more than 6) = 0.0335, P(more than 7) = 0.0119 (still just over 1%), P(more than 8) = 0.0038. So 8 is the first capacity under 1%. Planning near the average of 3 or 4 guarantees frequent overloads.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Gaps between cars at a fuel station are exponential with mean 2 minutes. No car has arrived for 5 minutes. What is the probability the attendant waits **more than 3 more minutes**?",
+      "options": [
+        "0.018, because the total wait would be 8 minutes",
+        "0.223, the same as for a fresh wait, because the exponential is memoryless",
+        "0.082, because 5 minutes have already passed",
+        "Lower than 0.1, because a car is now \"due\""
+      ],
+      "answer": 1,
+      "why": "The exponential is memoryless: P(wait > 3) = e^(−3/2) = 0.223 whatever has already happened. 0.018 = e^(−8/2) wrongly treats it as a fresh 8-minute wait. The idea that a car is \"due\" is the gambler's fallacy for random arrivals.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "In an interview: \"A colleague models daily product returns, which average 0.8 per day, with a normal distribution. What is your critique?\"",
+      "options": [
+        "Fine, because the normal approximates everything",
+        "Use a uniform distribution instead, since every count is equally likely",
+        "The normal is wrong here: small counts are discrete, skewed and cannot be negative; use a Poisson (or negative binomial if over-dispersed)",
+        "Use a t-distribution because the sample is small"
+      ],
+      "answer": 2,
+      "why": "With a mean below 1, most days are 0 or 1 and the normal would put real probability on negative returns. The normal approximation only works for large counts (for a binomial, when n·p and n·(1 − p) are both at least about 10). The t-distribution is for test statistics, not raw counts.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

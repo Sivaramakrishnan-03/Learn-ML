@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, Region, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C } from '../viz/kit';
-import { mean, sdS, quantile, median, stackY } from './_stats1-helpers';
+import { mean, sdS, quantile, median } from '../viz/math';
+import { stackY } from './_stats1-helpers';
 
 /* ---------- pure helpers ---------- */
 const DOWNTIME = [12, 15, 17, 18, 20, 22, 25, 27, 30, 95];

@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, Caption, Readout, Slider, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { lstsq, mean, corr, clamp } from './_regression-helpers';
+import { lstsq, mean, corr, clamp } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 // Chennai flats: area in hundreds of sq ft, bedrooms 1–4, price in ₹ lakh. True model: price = 5 + 3.9·area + 1.5·bedrooms + noise.

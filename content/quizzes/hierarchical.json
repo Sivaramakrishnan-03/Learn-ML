@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "You have built a dendrogram and now want exactly three clusters. What do you do?",
+      "options": [
+        "Cut the tree with a horizontal line at a height that crosses exactly three branches",
+        "Re-run the algorithm with k = 3",
+        "Take the three leaves furthest to the left",
+        "Count the leaves and divide by three"
+      ],
+      "answer": 0,
+      "why": "The tree already contains every possible number of clusters; cutting it at a chosen height (or asking for three clusters) reads one off without re-running anything. Left-to-right leaf order is arbitrary and carries no meaning.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "You run agglomerative clustering twice on the same data with the same settings. What happens?",
+      "options": [
+        "It depends on the `n_init` setting",
+        "You may get different trees, because the starting points are random as in k-means",
+        "The tree is the same, but the number of clusters changes",
+        "You get exactly the same tree, because there is no randomness in the procedure"
+      ],
+      "answer": 3,
+      "why": "Agglomerative clustering always merges the two closest clusters, which is fully determined by the data and linkage. Random starts and `n_init` belong to k-means.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Five outlets have daily orders (hundreds) of 2, 3, 6, 15 and 17. With **complete** linkage, at what height is the final merge?",
+      "options": [
+        "9",
+        "11",
+        "12.33",
+        "15"
+      ],
+      "answer": 3,
+      "why": "Merges: {2, 3} at 1, {15, 17} at 2, then 6 joins {2, 3} at max(4, 3) = 4. The final merge uses the farthest pair, 2 and 17, giving 15. The tempting 9 is the single-linkage answer (closest pair, 6 to 15) and 12.33 is average linkage.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Roughly how much memory does the pairwise distance matrix need for 20,000 customers, storing each of the n(n − 1)/2 distances in 8 bytes?",
+      "options": [
+        "160 KB",
+        "160 MB",
+        "1.6 GB",
+        "3.2 GB"
+      ],
+      "answer": 2,
+      "why": "20,000 × 19,999 / 2 ≈ 200 million distances × 8 bytes ≈ 1.6 GB. 160 KB is n × 8, forgetting that every pair is needed; 3.2 GB stores the full n × n square instead of half. Memory growing with n² is why the method tops out around tens of thousands of items.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Seven stores are clustered and the six merge heights are 0.5, 0.7, 0.9, 1.2, 4.8 and 5.3. Cutting in the biggest gap gives how many clusters?",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "answer": 1,
+      "why": "The biggest gap is between 1.2 and 4.8. Cutting there keeps the first four merges, and each merge reduces the count by one: 7 − 4 = 3 clusters. Choosing 2 would mean cutting between 4.8 and 5.3, a much smaller gap.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "On noisy customer data, single linkage produces one huge cluster plus a few singletons. What is the most likely cause?",
+      "options": [
+        "The features were standardised",
+        "The dendrogram was cut too low",
+        "Chaining: single linkage merges groups if any one pair is close, so a thin line of noise points bridges real groups",
+        "Single linkage always produces equal-sized clusters, so the data must be unusual"
+      ],
+      "answer": 2,
+      "why": "Single linkage needs only one close pair between two groups, so stray points act as stepping stones. Ward or average linkage resist chaining. Standardising is recommended, not a cause of the problem.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Your documents are compared with cosine distance. Can you use Ward linkage?\"",
+      "options": [
+        "Ward only makes sense with Euclidean distance because it minimises the increase in within-cluster sum of squares; use average or complete linkage instead",
+        "Yes, Ward works with any distance",
+        "Yes, but only if you cut the tree at a fixed height",
+        "No, hierarchical clustering cannot use cosine distance at all"
+      ],
+      "answer": 0,
+      "why": "Ward measures merge cost as the rise in squared Euclidean spread around cluster centres, which has no meaning for other distances. Average and complete linkage work with any distance, so hierarchical clustering itself is fine with cosine distance.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"A new store opens. How do you assign it to your existing hierarchical clusters?\"",
+      "options": [
+        "Call the model's `predict` method",
+        "Re-run the whole clustering and hope the old clusters survive",
+        "Put it in the largest cluster",
+        "There is no `predict`; compute each final cluster's centroid and assign the store to the nearest one, or train a simple classifier on the cluster labels"
+      ],
+      "answer": 3,
+      "why": "Agglomerative clustering produces a tree for the given data only and has no built-in way to place new items. Nearest centroid or a classifier trained on the labels is the usual practice. Re-running can reshuffle labels and confuse downstream users.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

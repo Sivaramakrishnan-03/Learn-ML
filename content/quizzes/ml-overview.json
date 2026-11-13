@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "How does machine learning differ from traditional programming?",
+      "options": [
+        "In ML, rules plus data produce answers",
+        "In ML, data plus answers produce the rules",
+        "ML needs no data, only a clever algorithm",
+        "ML programs cannot be run on new data"
+      ],
+      "answer": 1,
+      "why": "Traditional software applies rules a programmer wrote; ML learns the rules (the model) from examples with known answers. \"Rules plus data produce answers\" describes the traditional approach, which is why it is the tempting distractor.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A finance team asks, \"Will this invoice be paid late: yes or no?\" They have years of invoices with the outcome recorded. What type of problem is this?",
+      "options": [
+        "Supervised classification",
+        "Supervised regression",
+        "Unsupervised clustering",
+        "Reinforcement learning"
+      ],
+      "answer": 0,
+      "why": "The answer is a category (late or not) and past labels exist, so it is supervised classification. It would be regression if the question were \"how many days late?\", a number; clustering applies only when there is no answer column.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Why is part of the data, often 20%, kept aside as a test set that the model never sees in training?",
+      "options": [
+        "To make training faster",
+        "Because models can only learn from 80% of the data",
+        "To measure generalisation: how well the model predicts new data it has never seen",
+        "To give the model extra examples later if accuracy is low"
+      ],
+      "answer": 2,
+      "why": "Doing well on training data proves nothing; the trainee must be tested on files they never studied. Feeding the test set back in when accuracy disappoints is exactly what destroys its value as an honest check.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Four flats: area (hundreds of sq ft) 8, 10, 12, 15; price (₹ lakh) 52, 61, 70, 83. What is the mean squared error of line C: price = 4.5 × area + 15?",
+      "options": [
+        "3.25",
+        "0.8125",
+        "0.875",
+        "2.25"
+      ],
+      "answer": 1,
+      "why": "Predictions 51, 60, 69, 82.5 give errors 1, 1, 1, 0.5; squares 1, 1, 1, 0.25 sum to 3.25; divide by 4: **0.8125**. 3.25 forgets to average; 0.875 averages the plain errors without squaring; 2.25 is line B's MSE. So C beats line B.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A churn model is 91% accurate on 500 test customers, of whom 10% actually churned. How should you read this?",
+      "options": [
+        "Excellent: 91% is far above chance",
+        "Accuracy cannot be computed when classes are unequal",
+        "The model is useless and should be discarded",
+        "Predicting \"nobody churns\" already scores 90%, so the model adds only 1 percentage point of accuracy; look at how many churners it catches"
+      ],
+      "answer": 3,
+      "why": "Always compare with a simple baseline: 450 of 500 stayed, so the do-nothing model is 90% accurate. Judging 91% against 50% \"chance\" is the trap. Whether it is useful depends on how many of the 50 churners it finds per customer flagged, so do not discard it on accuracy alone.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "The fitted line for flat prices is price ≈ 4.43 × area + 16.66, with area in hundreds of sq ft. What does it predict for a 1,300 sq ft flat?",
+      "options": [
+        "About ₹74.3 lakh",
+        "About ₹57.6 lakh",
+        "About ₹5,776 lakh",
+        "About ₹65.4 lakh"
+      ],
+      "answer": 0,
+      "why": "Area is in hundreds, so use 13: 4.43 × 13 + 16.66 ≈ **₹74.3 lakh**. Plugging in 1,300 directly gives the absurd ₹5,776 lakh (a units slip); ₹57.6 lakh forgets the intercept; ₹65.4 lakh is the prediction for 1,100 sq ft.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A price model has training MSE 0.5 and test MSE 40. Predicting the average price for every flat gives a test MSE of 35. What is happening?",
+      "options": [
+        "The model is excellent, because training error is tiny",
+        "The test set must be broken, because errors should be similar",
+        "The model is overfitting: it memorised the training data and does worse on new data than a simple baseline",
+        "The model is underfitting, because test error is high"
+      ],
+      "answer": 2,
+      "why": "A huge gap between training and test error, with test error worse than a do-nothing baseline, is the signature of overfitting. Underfitting would show high error on both sets. Celebrating the training score is the classic mistake; only performance on unseen data counts.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"When would you advise a client not to use machine learning?\" Which answer is best?",
+      "options": [
+        "Never; ML always beats hand-written rules",
+        "Whenever the target is a number rather than a category",
+        "Only when the data is stored in Excel",
+        "When the rules are known and few, the decision is rare, or there is little labelled historical data; a simple rule or a SQL query is cheaper and easier to explain"
+      ],
+      "answer": 3,
+      "why": "ML pays off when a decision is repeated many times, there is plenty of history with known outcomes, and the rules are too complex to write down. Reaching for ML where a rule would do is a common and costly mistake. Numeric targets are handled by regression, so they are no reason to avoid ML.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

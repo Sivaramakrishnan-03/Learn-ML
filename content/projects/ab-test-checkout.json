@@ -1,0 +1,106 @@
+{
+  "id": "ab-test-checkout",
+  "title": "A/B test a one-tap UPI checkout",
+  "track": "stats",
+  "level": 2,
+  "hours": 4,
+  "summary": "Plan, check and analyse an online experiment end to end: sample size from a power analysis, sample-ratio and guardrail checks, a two-proportion test with a confidence interval, a bootstrap on revenue, and a ₹ roll-out decision.",
+  "business": "An Indian fashion e-commerce app converts **3.2%** of checkout visitors at an average order value of about **₹1,450**. Product built a one-tap UPI checkout and wants to know: **does it raise conversion enough to justify rolling it out to all ~9 lakh monthly checkout visitors?** Leadership will only ship if the lift is at least 0.4 percentage points (the cost of maintaining the new flow) and revenue per visitor does not fall. You must size the test, analyse it honestly and recommend ship / don't ship with a ₹ impact range.",
+  "topics": [
+    "ab-testing",
+    "hypothesis-testing",
+    "confidence-intervals",
+    "sampling-clt",
+    "bootstrap",
+    "chi-square",
+    "t-test"
+  ],
+  "dataset": {
+    "name": "Simulated experiment log",
+    "how": "Generated in step 2 with `numpy.random.default_rng(42)`: one row per visitor with variant (A = current, B = one-tap), device, converted (0/1) and order value in ₹ (log-normal). The true effect is hidden inside the generator; analyse as if you did not know it."
+  },
+  "steps": [
+    {
+      "title": "Size the test before you run it",
+      "detail": "Decide the **minimum detectable effect** (0.4 pp on a 3.2% base), significance level α = 0.05 and power 80% *before* seeing data. `proportion_effectsize` converts two rates into Cohen's h and `NormalIndPower` solves for visitors per arm. Then translate into calendar time: the team will expose only 20% of checkout traffic (about 6,000 visitors a day, split 50/50) to limit risk, so how many days must the test run? Round up to whole weeks so weekday/weekend behaviour is balanced.",
+      "code": "import numpy as np\nimport pandas as pd\nfrom scipy import stats\nfrom statsmodels.stats.power import NormalIndPower\nfrom statsmodels.stats.proportion import proportion_effectsize, proportions_ztest, confint_proportions_2indep\nfrom statsmodels.stats.multitest import multipletests\n\np_base, mde = 0.032, 0.004\nh = proportion_effectsize(p_base + mde, p_base)\nn_per_arm = int(np.ceil(NormalIndPower().solve_power(effect_size=h, alpha=0.05, power=0.8, alternative=\"two-sided\")))\ndaily = 6000  # 20% of ~30,000 daily checkout visitors\ndays = int(np.ceil(2 * n_per_arm / daily / 7) * 7)\nprint(f\"Cohen's h = {h:.4f}; need {n_per_arm:,} visitors per arm -> run {days} days\")"
+    },
+    {
+      "title": "Simulate the experiment log",
+      "detail": "We generate the data the experiment would produce: random 50/50 assignment, a device mix, conversion with a modest true lift and order values that are right-skewed like real baskets. In real life this table comes from your event pipeline; everything after this step is exactly what you would do on real data.",
+      "code": "rng = np.random.default_rng(42)\nN = days * daily\ndf = pd.DataFrame({\"variant\": rng.choice([\"A\", \"B\"], N),\n                   \"device\": rng.choice([\"mobile\", \"desktop\"], N, p=[0.82, 0.18])})\np = np.where(df[\"device\"] == \"mobile\", 0.031, 0.037) + np.where(df[\"variant\"] == \"B\", 0.0045, 0)\ndf[\"converted\"] = (rng.random(N) < p).astype(int)\ndf[\"order_value\"] = np.where(df[\"converted\"] == 1, np.round(rng.lognormal(np.log(1250), 0.55, N), 0), 0.0)\ndf[\"revenue\"] = df[\"order_value\"]\nprint(df.groupby(\"variant\").agg(visitors=(\"converted\", \"size\"), conv_rate=(\"converted\", \"mean\"),\n                               rev_per_visitor=(\"revenue\", \"mean\")).round(4))"
+    },
+    {
+      "title": "Sanity checks: sample ratio mismatch",
+      "detail": "Before looking at the outcome, check the plumbing. With a 50/50 split the arm sizes should differ only by chance; a chi-square goodness-of-fit test with a tiny p-value (say < 0.001) signals a **sample ratio mismatch** (broken assignment, bots, logging loss), and then no result can be trusted. Also check that the device mix is balanced across arms.",
+      "code": "counts = df[\"variant\"].value_counts().sort_index()\nchi2, p_srm = stats.chisquare(counts, f_exp=[counts.sum() / 2] * 2)\nprint(counts.to_dict(), f\"SRM p-value = {p_srm:.3f}\")\nmix = pd.crosstab(df[\"variant\"], df[\"device\"])\nprint(mix, \"\\nDevice balance p =\", round(stats.chi2_contingency(mix)[1], 3))"
+    },
+    {
+      "title": "Primary metric: two-proportion z-test and confidence interval",
+      "detail": "Test H0: conversion is equal in both arms. `proportions_ztest` gives the p-value; `confint_proportions_2indep` gives a 95% confidence interval for the **difference** B − A, which is what the business actually needs: a p-value says *whether*, the interval says *how much*. Compare the interval with the 0.4 pp shipping bar, not just with zero.",
+      "code": "conv = df.groupby(\"variant\")[\"converted\"].agg([\"sum\", \"count\"])\nz, p_val = proportions_ztest(conv[\"sum\"].values[::-1], conv[\"count\"].values[::-1])\nlo, hi = confint_proportions_2indep(conv.loc[\"B\", \"sum\"], conv.loc[\"B\", \"count\"],\n                                    conv.loc[\"A\", \"sum\"], conv.loc[\"A\", \"count\"], method=\"wald\")\nrate = conv[\"sum\"] / conv[\"count\"]\nlift = rate[\"B\"] - rate[\"A\"]\nprint(f\"A {rate['A']:.4%}  B {rate['B']:.4%}  lift {lift * 100:.2f} pp  (95% CI {lo * 100:.2f} to {hi * 100:.2f} pp), z = {z:.2f}, p = {p_val:.2g}\")"
+    },
+    {
+      "title": "Cross-check with a chi-square test",
+      "detail": "A 2×2 chi-square test of independence (variant × converted) is the same question in another form: without continuity correction its statistic equals z². Seeing two methods agree is a cheap guard against coding mistakes.",
+      "code": "table = pd.crosstab(df[\"variant\"], df[\"converted\"])\nchi2, p_chi, _, _ = stats.chi2_contingency(table, correction=False)\nprint(f\"chi2 = {chi2:.2f} (z^2 = {z ** 2:.2f}), p = {p_chi:.2g}\")"
+    },
+    {
+      "title": "Guardrail: revenue per visitor with Welch's t-test and a bootstrap",
+      "detail": "Conversion could rise while basket size falls. Revenue per visitor is mostly zeros plus a long tail, so check the Welch t-test (unequal variances) against a **bootstrap** confidence interval for the difference in means, which makes no normality assumption. Resample each arm with replacement 1,000 times (whole visitors, zeros included) and take the 2.5th and 97.5th percentiles of the difference.",
+      "code": "a = df.loc[df[\"variant\"] == \"A\", \"revenue\"].to_numpy()\nb = df.loc[df[\"variant\"] == \"B\", \"revenue\"].to_numpy()\nt, p_rev = stats.ttest_ind(b, a, equal_var=False)\nboot = np.empty(1000)\nfor i in range(1000):\n    ma = rng.choice(a, a.size).mean()\n    mb = rng.choice(b, b.size).mean()\n    boot[i] = mb - ma\nci = np.percentile(boot, [2.5, 97.5])\nprint(f\"Revenue/visitor A ₹{a.mean():.2f}  B ₹{b.mean():.2f}; Welch p = {p_rev:.3g}; bootstrap 95% CI ₹{ci[0]:.2f} to ₹{ci[1]:.2f}\")"
+    },
+    {
+      "title": "Segments, with a multiple-testing correction",
+      "detail": "Stakeholders will ask 'does it work on desktop too?'. Each extra segment test is another lottery ticket for a false positive, so adjust the p-values with **Holm's method** and treat segment results as hypotheses for the next test, not as findings. Note how much wider the desktop interval is: smaller segment, less certainty.",
+      "code": "rows = []\nfor dev, g in df.groupby(\"device\"):\n    c = g.groupby(\"variant\")[\"converted\"].agg([\"sum\", \"count\"])\n    _, pv = proportions_ztest(c[\"sum\"].values[::-1], c[\"count\"].values[::-1])\n    l, u = confint_proportions_2indep(c.loc[\"B\", \"sum\"], c.loc[\"B\", \"count\"], c.loc[\"A\", \"sum\"], c.loc[\"A\", \"count\"])\n    rows.append({\"device\": dev, \"lift_pp\": 100 * (c.loc[\"B\", \"sum\"] / c.loc[\"B\", \"count\"] - c.loc[\"A\", \"sum\"] / c.loc[\"A\", \"count\"]),\n                 \"ci_low_pp\": 100 * l, \"ci_high_pp\": 100 * u, \"p\": pv})\nseg = pd.DataFrame(rows)\nseg[\"p_holm\"] = multipletests(seg[\"p\"], method=\"holm\")[1]\nprint(seg.to_string(float_format=lambda v: f\"{v:.3g}\"))"
+    },
+    {
+      "title": "Why you must not peek: an A/A simulation",
+      "detail": "If you check the p-value every day and stop at the first p < 0.05, the false-positive rate is far above 5%. Simulate 500 A/A tests (no true difference) with 14 daily looks each, using cumulative sums so it runs in a second, and count how often at least one look is 'significant'. This is the argument for fixing the sample size up front (or using a sequential method).",
+      "code": "sims, looks, per_day = 500, 14, 2000\nhits = 0\nfor _ in range(sims):\n    xa = rng.binomial(per_day, p_base, looks).cumsum()\n    xb = rng.binomial(per_day, p_base, looks).cumsum()\n    nn = per_day * np.arange(1, looks + 1)\n    pool = (xa + xb) / (2 * nn)\n    zz = (xb - xa) / nn / np.sqrt(pool * (1 - pool) * 2 / nn)\n    hits += np.any(np.abs(zz) > 1.96)\nprint(f\"False-positive rate with daily peeking: {hits / sims:.1%} (nominal 5%)\")"
+    },
+    {
+      "title": "Decide and quantify the ₹ impact",
+      "detail": "Turn the interval for the lift into monthly orders and revenue for 9 lakh visitors at the observed average order value. Then apply the pre-agreed rule: ship if the whole interval is above zero **and** the point estimate clears 0.4 pp and the revenue guardrail is not significantly worse (its interval is not entirely below zero). Notice what this rule does not demand: that the lower bound of the lift clears 0.4 pp. Discuss with the business whether it should. Write the decision in one sentence with the range, not a single number.",
+      "code": "visitors, aov = 900_000, df.loc[df[\"converted\"] == 1, \"order_value\"].mean()\nimpact = np.array([lo, lift, hi]) * visitors * aov / 1e5\nprint(f\"Extra revenue per month: ₹{impact[1]:.1f} lakh (95% CI ₹{impact[0]:.1f} to ₹{impact[2]:.1f} lakh)\")\nguardrail_ok = ci[1] > 0  # revenue per visitor not significantly worse\nship = (lo > 0) and (lift >= mde) and guardrail_ok\nprint(\"Decision:\", \"SHIP one-tap checkout\" if ship else \"Do not ship yet: evidence does not clear the bar\")"
+    }
+  ],
+  "deliverables": [
+    "A pre-registration note written before step 2: metric, MDE, α, power, sample size and run length.",
+    "An analysis notebook with SRM check, primary test with CI, guardrail bootstrap and segment table with Holm-adjusted p-values.",
+    "A one-slide decision memo: ship / don't ship, lift with 95% CI, monthly ₹ impact range and caveats.",
+    "A short explanation (for a product manager) of why daily peeking inflates false positives, using your simulation."
+  ],
+  "rubric": [
+    {
+      "criterion": "Design",
+      "good": "Sample size computed from MDE, α and power before analysis; run length rounded to whole weeks."
+    },
+    {
+      "criterion": "Validity checks",
+      "good": "SRM and covariate balance checked first, with a stated stop rule if they fail."
+    },
+    {
+      "criterion": "Inference",
+      "good": "Reports the effect with a confidence interval and compares it with the business threshold, not just p < 0.05."
+    },
+    {
+      "criterion": "Robustness",
+      "good": "Revenue guardrail checked with a method suited to skewed data (bootstrap) and agrees with Welch's test."
+    },
+    {
+      "criterion": "Multiple comparisons",
+      "good": "Segment results corrected (Holm) and framed as follow-up hypotheses."
+    },
+    {
+      "criterion": "Decision",
+      "good": "Clear recommendation with a ₹ impact range and the assumptions behind it."
+    }
+  ],
+  "extensions": [
+    "Re-run the analysis with CUPED: simulate a pre-experiment spend covariate and show how much it shrinks the confidence interval.",
+    "Replace the fixed-horizon test with a Bayesian analysis (Beta-Binomial) and report P(B beats A by ≥ 0.4 pp).",
+    "Implement an O'Brien–Fleming style alpha-spending boundary and show it keeps the A/A false-positive rate near 5% with 5 looks."
+  ]
+}

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { linearOrder, TOPICS, TRACKS } from '../data/curriculum';
 import { isUnlocked, useProgress } from '../lib/progress';
+import { readable } from '../components/color';
 
 const MODES = [
   { to: '/track', icon: '🛤', title: 'Linear track', best: 'Best if you want to be told what to do next.', text: 'All 69 topics in a safe order, Day 1 → Day 69.' },
@@ -48,7 +49,7 @@ export default function Home() {
       <div className="grid g3" style={{ marginBottom: 26 }}>
         {TOPICS.filter((t) => t.status === 'full').map((t) => (
           <Link key={t.id} to={`/topic/${t.id}`} className="card mode-card">
-            <span className="pill" style={{ borderColor: TRACKS[t.track].color, color: TRACKS[t.track].color }}>{TRACKS[t.track].title}</span>
+            <span className="pill track" style={{ borderColor: TRACKS[t.track].color, color: readable(TRACKS[t.track].color) }}>{TRACKS[t.track].title}</span>
             <h3 style={{ marginTop: 8 }}>★ {t.title}</h3>
             <p className="small" style={{ margin: 0 }}>{t.analogy}</p>
           </Link>

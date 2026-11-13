@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "You want to compare average cycle time between two **independent** plants. Which t-test should be your default?",
+      "options": [
+        "Paired t-test",
+        "One-sample t-test against the older plant's mean",
+        "Welch's two-sample t-test",
+        "Student's pooled t-test, because it is the original"
+      ],
+      "answer": 2,
+      "why": "Welch's test does not assume equal variances and loses almost nothing when they are equal, so it is the safe default (`equal_var=False` in scipy). A paired test needs the same units measured twice, and a one-sample test treats one plant's sample mean as a known target.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A beverage plant asks: \"Do our bottles labelled 500 ml contain 500 ml on average?\" Which test fits?",
+      "options": [
+        "Welch's two-sample t-test",
+        "Paired t-test",
+        "Chi-square test of independence",
+        "One-sample t-test of the mean fill against 500 ml"
+      ],
+      "answer": 3,
+      "why": "One sample is compared with a fixed target, so it is a one-sample t-test: t = (x̄ − 500) / (s / √n). There is no second group or pairing, and the outcome is a measurement, not a count.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Ten bottles have mean fill 497.5 ml and SD 2.173 ml. What is the one-sample t-statistic against 500 ml?",
+      "options": [
+        "−3.64",
+        "−1.15",
+        "−11.50",
+        "−2.50"
+      ],
+      "answer": 0,
+      "why": "SE = 2.173 / √10 = 0.687, so t = (497.5 − 500) / 0.687 = −3.64 with 9 degrees of freedom (p = 0.0054). −1.15 divides by the SD instead of the SE; −11.50 divides the SD by n instead of √n; −2.50 is the raw difference.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Two plants have mean cycle times 43.375 and 38.5 minutes, with sample variances 7.125 and 6.0 (8 shifts each). What is Cohen's d?",
+      "options": [
+        "3.81",
+        "4.875",
+        "1.90",
+        "0.37"
+      ],
+      "answer": 2,
+      "why": "d = difference ÷ pooled SD = 4.875 / √((7.125 + 6.0) / 2) = 4.875 / 2.562 = 1.90, a very large effect. 3.81 is the t-statistic, which divides by the standard **error** and so grows with sample size; 4.875 is the raw difference in minutes.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A report says: \"Training raised scores by 3.5 points (95% CI 2.5 to 4.5; paired t(7) = 8.28, p < 0.001).\" Which reading is correct?",
+      "options": [
+        "95% of employees gained between 2.5 and 4.5 points",
+        "There is a 99.9% probability that the training works",
+        "t(7) means 7 employees improved",
+        "The average gain is estimated at 3.5 points, with plausible values from 2.5 to 4.5; the 7 is the degrees of freedom (8 pairs − 1)"
+      ],
+      "answer": 3,
+      "why": "The CI is for the **mean** gain, not for individuals (individual gains ranged from 2 to 5). The p-value is not the probability that the training works. The number in brackets after t is the degrees of freedom, which tells the reader which t-distribution was used.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Eight staff are tested before and after training. A paired t-test gives p = 0.00007, but treating the groups as independent (Welch) gives p = 0.31. Why the huge difference?",
+      "options": [
+        "The Welch test has fewer degrees of freedom",
+        "The paired test analyses within-person gains, removing the large person-to-person differences that swamp the 3.5-point effect in the independent test",
+        "The paired test assumes equal variances",
+        "The Welch test is wrong for small samples"
+      ],
+      "answer": 1,
+      "why": "Each person acts as their own control, so the paired SE is based on the SD of the gains (1.2 points) rather than the SD between people (about 6.5 points). Using an independent test on paired data throws that away and can cancel a programme that works.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "With 50,000 users per group, a t-test finds p < 0.001 for a difference in session length equal to 0.02 SDs (Cohen's d = 0.02). What is the right conclusion?",
+      "options": [
+        "The difference is very unlikely to be pure noise, but it is tiny in practical terms; whether it matters is a business question",
+        "The effect is large because the p-value is tiny",
+        "The test must be wrong because d is small",
+        "The result is not significant because d is below 0.2"
+      ],
+      "answer": 0,
+      "why": "With huge samples the SE is so small that trivial differences become significant. Cohen's d measures size relative to natural variation, independent of n; 0.02 is far below even a \"small\" effect of 0.2. Significance and size are different questions, and d does not decide significance.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "In an interview: \"Why would you use Welch's t-test rather than Student's pooled t-test?\"",
+      "options": [
+        "Welch's test is only for paired data",
+        "Welch does not assume equal variances: it performs nearly as well as Student's when variances are equal and much better when they are not, so it is the safe default",
+        "Student's test cannot handle unequal sample sizes at all",
+        "Welch's test always gives a smaller p-value"
+      ],
+      "answer": 1,
+      "why": "Welch adjusts the degrees of freedom (often to a non-whole number) to allow for unequal variances. It does not always give smaller p-values, and Student's test does run with unequal sizes; it just becomes unreliable when unequal sizes combine with unequal variances.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

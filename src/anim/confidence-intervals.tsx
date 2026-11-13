@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
-import { mean, sdS, normalSample, normInv, tInv, pct } from './_stats1-helpers';
+import { mean, sdS, normalSample, normInv, tInv } from '../viz/math';
+import { pct } from './_stats1-helpers';
 
 /* ---------- pure helpers ---------- */
 const MU = 52, SIGMA = 10;

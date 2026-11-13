@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What does the **k** in k-means stand for?",
+      "options": [
+        "The number of neighbours that vote on a label",
+        "The number of iterations the algorithm runs",
+        "The number of clusters, which you choose before running it",
+        "The number of features in the data"
+      ],
+      "answer": 2,
+      "why": "In k-means, k is the number of groups (centroids) you ask for. \"The number of neighbours that vote\" describes k-NN, a supervised method that merely shares the letter k.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What does **inertia** measure in k-means?",
+      "options": [
+        "The number of points that switched cluster in the last round",
+        "The share of points correctly labelled",
+        "How far apart the different centroids are from each other",
+        "The total squared distance from every point to its own cluster's centroid"
+      ],
+      "answer": 3,
+      "why": "Inertia (within-cluster sum of squares) is the number k-means tries to minimise; small inertia means tight clusters. It says nothing about separation between clusters, and there are no correct labels in unsupervised clustering.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Run k-means with k = 2 on the numbers 1, 2, 4, 12, 14, starting with centroids at 1 and 2. After it converges, what is the inertia?",
+      "options": [
+        "2.00",
+        "4.00",
+        "5.33",
+        "6.67"
+      ],
+      "answer": 3,
+      "why": "First pass: {1} and {2, 4, 12, 14} with mean 8; then 2 and 4 move to the first cluster, giving {1, 2, 4} with mean 2.33 and {12, 14} with mean 13, after which nothing changes. Inertia = 1.78 + 0.11 + 2.78 + 1 + 1 ≈ 6.67. The tempting 5.33 adds plain (unsquared) distances; 2.00 counts only the big cluster.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A customer's average distance to the rest of its own cluster is a = 2, and to the nearest other cluster b = 5. What is its silhouette value s = (b − a) / max(a, b)?",
+      "options": [
+        "−0.6",
+        "0.4",
+        "0.6",
+        "2.5"
+      ],
+      "answer": 2,
+      "why": "s = (5 − 2) / 5 = 0.6, a comfortable fit with its own cluster. 0.4 is a / b, 2.5 is b / a (silhouette is always between −1 and +1), and a negative value would mean it sits closer to another cluster.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Inertia for k = 1 to 6 is 1,000, 420, 180, 160, 145 and 135. What does the elbow method suggest?",
+      "options": [
+        "k = 3, because after it extra clusters buy little improvement",
+        "k = 6, because it has the lowest inertia",
+        "k = 1, because inertia only goes down from there",
+        "No conclusion is possible without labels"
+      ],
+      "answer": 0,
+      "why": "The drops are 580, 240, then only 20, 15 and 10: the curve bends at k = 3. Inertia always falls as k grows, so choosing the lowest value would always pick the largest k. Confirm with the silhouette score and ask whether three segments are actionable.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You run k-means with k = 2 on data shaped like two concentric rings. It cuts both rings in half with a straight line. Why?",
+      "options": [
+        "k should have been 4",
+        "The algorithm had not converged; run more iterations",
+        "Each point joins its nearest centroid, so boundaries are straight lines and clusters are assumed round; rings break that assumption",
+        "More restarts (`n_init`) would find the rings"
+      ],
+      "answer": 2,
+      "why": "K-means can only produce compact, convex groups separated by straight boundaries, whatever k or however many restarts. Density-based methods such as DBSCAN, which follow the shape of dense regions, are suited to rings and moons.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"One enterprise customer spends 50 times more than anyone else and has dragged a segment's centroid far away from its other members. Why, and what would you do?\"",
+      "options": [
+        "Switch the distance to squared distance to reduce its effect",
+        "This cannot happen, because k-means ignores outliers",
+        "Increase k until the outlier sits alone; that is always the right fix",
+        "The mean is pulled by extreme values; scale features, then consider removing or capping the outlier, or use k-medoids, which uses real data points as centres"
+      ],
+      "answer": 3,
+      "why": "The update step uses the mean, and squared distances punish far points heavily, so a single extreme point moves a centroid a lot. K-medoids and outlier handling are the standard remedies. Giving one customer its own cluster wastes a segment, and k-means already uses squared distances.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"Marketing wants each customer's **probability** of belonging to each segment, and segments look like stretched ellipses. Would you use k-means, DBSCAN or a Gaussian Mixture Model?\"",
+      "options": [
+        "k-means, because it gives probabilities through inertia",
+        "A Gaussian Mixture Model, because it gives soft membership probabilities and models elliptical clusters",
+        "DBSCAN, because it finds any shape",
+        "Any of them; they give the same output"
+      ],
+      "answer": 1,
+      "why": "K-means gives hard labels and assumes round clusters; DBSCAN gives hard labels plus noise and no probabilities. A GMM gives each point a probability for each cluster and lets each cluster have its own shape and orientation.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

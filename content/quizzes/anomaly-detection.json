@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Electricity use that is normal in May in Chennai shows up in January. What kind of anomaly is this?",
+      "options": [
+        "A point anomaly",
+        "A collective anomaly",
+        "A contextual anomaly",
+        "Not an anomaly, because the value has been seen before"
+      ],
+      "answer": 2,
+      "why": "The value is only odd in its context (the season). A point anomaly is extreme on its own, and a collective anomaly is a group of individually normal points that is odd together, such as fifty small transfers to one new account. Having seen a value before does not make it normal in every context.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What does the `contamination` parameter of scikit-learn's Isolation Forest do?",
+      "options": [
+        "Removes that share of points from the training data before fitting",
+        "Sets the number of trees in the forest",
+        "Changes how the anomaly scores are calculated",
+        "Sets the threshold so that roughly that share of training points is flagged, without changing the scores"
+      ],
+      "answer": 3,
+      "why": "Contamination only decides where the cut-off falls on the score scale; the ranking of points stays the same. Guessing it badly (say 5% when the true rate is 0.1%) floods the team with alerts, so a threshold based on review capacity is often better.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A customer's transactions have mean ₹1,285 and standard deviation ₹377. A new transaction of ₹2,400 arrives. What is its z-score, and does the |z| > 3 rule flag it?",
+      "options": [
+        "z ≈ 2.96, not flagged",
+        "z ≈ 1.87, not flagged",
+        "z ≈ 2.96, flagged",
+        "z ≈ 3.50, flagged"
+      ],
+      "answer": 0,
+      "why": "z = (2,400 − 1,285) / 377 ≈ 2.96, just under 3, so the rule does not flag it. 1.87 is 2,400 / 1,285, a ratio rather than a distance in standard deviations; 3.50 is the value for ₹2,600. A hard cut-off means amounts just either side of it are treated very differently.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Daily support tickets have Q1 = 40 and Q3 = 64. Using the IQR rule, what is the upper fence above which a day is flagged?",
+      "options": [
+        "88",
+        "96",
+        "100",
+        "124"
+      ],
+      "answer": 2,
+      "why": "IQR = 64 − 40 = 24, and the upper fence = Q3 + 1.5 × IQR = 64 + 36 = 100. 88 forgets the 1.5 multiplier (Q3 + IQR), and 96 multiplies Q3 by 1.5 instead of the IQR.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "An Isolation Forest uses sub-samples of 256, so c(256) ≈ 10.24. A transaction has an average path length of 5. Using score = 2^(−E[h(x)] / c(n)), what is its anomaly score?",
+      "options": [
+        "0.29",
+        "0.49",
+        "0.71",
+        "0.82"
+      ],
+      "answer": 2,
+      "why": "2^(−5 / 10.24) = 2^(−0.488) ≈ 0.71, fairly anomalous (scores near 1 are anomalies; about 0.5 or below are normal). 0.49 is just the ratio 5 / 10.24, 0.29 is 1 minus the score, and 0.82 is the score for a path length of 3.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A ₹48,000 transaction was accidentally left in the history used to compute the mean and standard deviation. Its own z-score is now only about 3.01. What is happening?",
+      "options": [
+        "₹48,000 is genuinely not very unusual for this customer",
+        "The sample is too small to compute a z-score",
+        "Masking: the outlier inflates both the mean and the SD, so it hides itself; use the median and MAD (robust z) or a clean baseline",
+        "The z-score rule should be lowered to |z| > 2"
+      ],
+      "answer": 2,
+      "why": "One extreme value drags the mean up and the SD way up, shrinking its own z-score (with 11 values no z-score can exceed about 3.02). The median (₹1,300) and MAD (₹350) are not moved, giving a robust z of about 90. Lowering the cut-off would just add false alarms elsewhere.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Every year your anomaly detector floods the team with alerts in Diwali week. How would you fix it?\"",
+      "options": [
+        "Raise the contamination parameter for the whole year",
+        "Delete Diwali weeks from the training data",
+        "Switch off the detector during festivals",
+        "Treat seasonality as normal: add calendar and festival features, detect anomalies on residuals after removing the seasonal pattern, or compare with the same period last year"
+      ],
+      "answer": 3,
+      "why": "A predictable spike is not an anomaly; the model just does not know about the calendar. Giving it that context removes the false alarms while keeping it alert during the busiest, most fraud-prone weeks. Deleting festival weeks from training would make them look even stranger.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "The overall fraud rate is 0.2%. Analysts review the 200 highest-scoring transactions and confirm 30 as fraud. What is precision at 200, and how many times richer in fraud is the queue than random checking?",
+      "options": [
+        "15%, about 7.5 times richer",
+        "15%, about 75 times richer",
+        "30%, about 150 times richer",
+        "99.8%, because almost all transactions are correctly left alone"
+      ],
+      "answer": 1,
+      "why": "Precision@200 = 30 / 200 = 15%; random checking would find 0.2%, and 15% / 0.2% = 75. The 99.8% option is the accuracy trap: a detector that never raises an alert would score that too, which is why accuracy is useless for rare events.",
+      "level": 3,
+      "kind": "calculation"
+    }
+  ]
+}

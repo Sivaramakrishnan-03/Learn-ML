@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, Region, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C, Scales } from '../viz/kit';
-import { SWEETS_SEASON, holtWinters, holt, ses, pathD, mean, wape, toPts, Pt } from './_ts-helpers';
+import { mean } from '../viz/math';
+import { SWEETS_SEASON, holtWinters, holt, ses, pathD, wape, toPts, Pt } from './_ts-helpers';
 
 /* ---------- pure helpers ---------- */
 function Line({ s, pts, color, width = 2, dash, opacity = 1 }: { s: Scales; pts: Pt[]; color: string; width?: number; dash?: string; opacity?: number }) {

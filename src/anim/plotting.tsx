@@ -3,7 +3,7 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, Region, FnLine, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { boxStats, histCounts, lstsq, mean, median } from './_dataprep-helpers';
+import { boxStats, histogram, lstsq, mean, median } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 interface Pt { d: number; t: number }
@@ -20,7 +20,7 @@ function twoKitchens(seed = 9): Pt[] {
   for (let i = 0; i < 42; i++) { const slow = i % 2 === 1, d = 1 + r() * 8; pts.push({ d, t: (slow ? 38 : 14) + 1.2 * d + gauss(r) * 2 }); }
   return pts;
 }
-function fitLine(pts: Pt[]) { const [b0, b1] = lstsq(pts.map((p) => [1, p.d]), pts.map((p) => p.t)); return { b0, b1, f: (d: number) => b0 + b1 * d }; }
+function fitLine(pts: Pt[]) { const [b0, b1] = lstsq(pts.map((p) => [1, p.d]), pts.map((p) => p.t), 1e-8, true); return { b0, b1, f: (d: number) => b0 + b1 * d }; }
 function anomalies(pts: Pt[]) {
   const L = fitLine(pts), res = pts.map((p) => p.t - L.f(p.d));
   const s = median(res.map(Math.abs)) * 1.4826 || 1;
@@ -30,7 +30,7 @@ const T: [number, number] = [10, 80];
 
 /* ---------- three linked charts ---------- */
 function Charts({ pts, show, bins = 14, hlIdx, strip }: { pts: Pt[]; show: { hist: boolean; box: number; scatter: number; mean?: boolean }; bins?: number; hlIdx?: number[]; strip?: boolean }) {
-  const ts = pts.map((p) => p.t), b = boxStats(ts), h = histCounts(ts, T[0], T[1], bins), w = (T[1] - T[0]) / bins;
+  const ts = pts.map((p) => p.t), b = boxStats(ts), h = histogram(ts, T[0], T[1], bins), w = (T[1] - T[0]) / bins;
   const yMax = Math.max(6, ...h.map((d) => d.y)) * 1.15;
   const an = anomalies(pts);
   const hl = new Set(hlIdx ?? []);

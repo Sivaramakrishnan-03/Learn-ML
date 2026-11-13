@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What does the **likelihood** L(p) measure?",
+      "options": [
+        "The probability that the parameter value p is correct",
+        "The probability of the observed data if the parameter were p, viewed as a function of p",
+        "The prior belief about p",
+        "The proportion of observations equal to p"
+      ],
+      "answer": 1,
+      "why": "Likelihood is P(data | parameter), read as a score for how well each parameter value explains what was seen. Getting a probability **for** the parameter requires Bayes' theorem and a prior. Confusing the two is the most common MLE mistake.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Why do we usually maximise the **log**-likelihood rather than the likelihood itself?",
+      "options": [
+        "The log-likelihood has its peak at a different, better parameter value",
+        "Software cannot compute likelihoods",
+        "The log-likelihood is always positive",
+        "Logs turn products into sums, avoid numbers too tiny for a computer and make the calculus easier, while the peak stays at the same place"
+      ],
+      "answer": 3,
+      "why": "The log is always increasing, so it does not move the maximum. It turns the product of many small probabilities into a manageable sum. Log-likelihoods are usually negative (the log of a number below 1), which is fine.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Help-desk calls in five one-hour slots are 3, 5, 4, 6, 2. Under a Poisson model, what is the maximum likelihood estimate of λ?",
+      "options": [
+        "4 calls per hour",
+        "20 calls per hour",
+        "5 calls per hour",
+        "2.5 calls per hour"
+      ],
+      "answer": 0,
+      "why": "For a Poisson model the slope of the log-likelihood, (sum of counts) / λ − n, is zero at λ̂ = 20 / 5 = 4: the sample mean. 20 is the total, not the rate; 5 is the number of slots.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Five measurements are 4, 6, 8, 10, 12. What is the maximum likelihood estimate of the variance under a normal model?",
+      "options": [
+        "8",
+        "10",
+        "2.83",
+        "3.16"
+      ],
+      "answer": 0,
+      "why": "The MLE divides the sum of squared deviations (40) by n: 40 / 5 = 8. The unbiased sample variance divides by n − 1 and gives 10. 2.83 and 3.16 are standard deviations, not variances.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "For 7 conversions out of 10, the log-likelihood at p = 0.7 is −6.11, a small negative number. A colleague says \"the model fits badly because the likelihood is so tiny\". What is wrong with this?",
+      "options": [
+        "Nothing; a likelihood of 0.0022 means a poor fit",
+        "The likelihood is the probability of one exact sequence, which is always tiny; only relative values across parameter values (or models on the same data) are meaningful",
+        "Log-likelihoods should always be positive",
+        "The MLE must be wrong, since p = 0.5 would give a larger likelihood"
+      ],
+      "answer": 1,
+      "why": "L(0.7) = 0.0022 is small because any particular sequence of 10 outcomes is unlikely. MLE compares values: 0.7 beats 0.5 (0.00098) and 0.9 (0.00048). Log-likelihoods of probabilities below 1 are naturally negative.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A new product page has 1 conversion from its first visitor. The MLE of the conversion rate is 100%. What is the best way to handle this?",
+      "options": [
+        "Trust it; MLE is unbiased",
+        "Divide by n − 1 instead",
+        "Recognise that MLE overfits tiny samples; collect more data or add prior information (a Bayesian estimate) that pulls the rate towards a sensible base rate",
+        "Round it down to 50%"
+      ],
+      "answer": 2,
+      "why": "MLE uses only the evidence, so with one observation it jumps to the extreme. With lots of data, MLE and Bayesian estimates agree; with little data, a prior keeps estimates sensible. The n − 1 correction applies to variances, not proportions.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Model A has maximised log-likelihood −120 with 3 parameters; model B has −118 with 6 parameters. Which does AIC prefer?",
+      "options": [
+        "Model B, because its log-likelihood is higher",
+        "They are tied",
+        "Model A: AIC = 246 versus 248 for B",
+        "Model B: AIC = 236 versus 240"
+      ],
+      "answer": 2,
+      "why": "AIC = 2k − 2 ln L. A: 6 + 240 = 246. B: 12 + 236 = 248. Lower is better, so A wins: B's gain of 2 log-likelihood units does not pay for 3 extra parameters. 236 versus 240 forgets the parameter penalty.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "In an interview: \"How is logistic regression's log-loss related to maximum likelihood?\"",
+      "options": [
+        "They are unrelated; log-loss is just a convenient error measure",
+        "Log-loss is minimised by ordinary least squares",
+        "Log-loss is the likelihood of the coefficients being correct",
+        "Minimising log-loss is exactly maximising the Bernoulli (yes/no) likelihood of the observed labels, so logistic regression is MLE in disguise"
+      ],
+      "answer": 3,
+      "why": "Log-loss is the negative average log-likelihood of yes/no outcomes, so its minimum is the MLE. Just as squared error corresponds to normal errors (OLS), log-loss corresponds to yes/no outcomes. There is no closed form, so an optimiser does the climbing.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

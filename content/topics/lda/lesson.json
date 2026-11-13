@@ -14,14 +14,14 @@
     "With k classes, LDA can reduce the data to at most **k − 1** dimensions, ideal for 2-D plots of 3-class problems."
   ],
   "example": {
-    "title": "Two wine types, two chemical features",
+    "title": "Credit default by debt-to-income ratio (illustrative)",
     "steps": [
-      "PCA's first direction follows the overall spread, but both classes overlap along it",
-      "LDA's direction cuts across, where the class means differ most relative to their spread",
-      "Projected onto LDA's axis: two well-separated bumps",
-      "Classification accuracy: about 95% with one dimension"
+      "One feature, DTI (%): repaid customers average 30, defaulters 50, both with SD 10. 80% of customers repay. Applicant: DTI 44",
+      "Equal priors: cut-off = (30 + 50) / 2 = 40 → 44 is above it → predict default (probability ≈ 0.69)",
+      "Real priors: shift = 10² × ln(0.2 / 0.8) / (30 − 50) ≈ +6.93 → cut-off ≈ 46.9",
+      "44 is now below the cut-off → predict repaid (default probability ≈ 0.36)"
     ],
-    "result": "With labels available, LDA often gives a far more useful 1-D or 2-D view than PCA."
+    "result": "Because defaults are rare, LDA demands stronger evidence before calling one. If a missed default is very costly, set a lower threshold on the probability instead."
   },
   "mistakes": [
     "Using it with strongly non-normal or very unequal class covariances (try QDA or logistic regression).",
@@ -67,5 +67,9 @@
       "why": "k − 1 = 3."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "x^{*} = \\frac{\\mu_1 + \\mu_2}{2} + \\frac{\\sigma^2 \\ln(\\pi_2 / \\pi_1)}{\\mu_1 - \\mu_2}",
+    "plain": "With one feature and a shared spread σ, the cut-off between two classes is the midpoint of their means, shifted towards the rarer class by the log of the prior ratio."
+  }
 }

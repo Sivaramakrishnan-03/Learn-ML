@@ -3,7 +3,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, Region, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, C, Scales } from '../viz/kit';
-import { mean, variance, drawDiscrete, binomPmf, poissonPmf, f2 } from './_math-helpers';
+import { mean, variance, drawDiscrete, binomPmfs, poissonPmfs } from '../viz/math';
+import { f2 } from './_math-helpers';
 
 /* ---------- pure helpers ---------- */
 const VALS = [0, 1, 2], PROBS = [0.2, 0.5, 0.3];
@@ -125,8 +126,8 @@ function Animate() {
 type DK = 'orders' | 'binom' | 'poisson' | 'dice';
 function dist(k: DK, a: number, b: number): { vals: number[]; probs: number[]; label: string } {
   if (k === 'orders') { const p0 = a / 100, p1 = Math.min(b / 100, 1 - p0); return { vals: [0, 1, 2], probs: [p0, p1, Math.max(0, 1 - p0 - p1)], label: 'orders per day' }; }
-  if (k === 'binom') { const n = Math.round(a), pr = b / 100; return { vals: Array.from({ length: n + 1 }, (_, i) => i), probs: binomPmf(n, pr), label: `sales from ${n} calls` }; }
-  if (k === 'poisson') { const lam = a / 10, kmax = Math.ceil(lam + 5 * Math.sqrt(lam) + 3); return { vals: Array.from({ length: kmax + 1 }, (_, i) => i), probs: poissonPmf(lam, kmax), label: 'customers per hour' }; }
+  if (k === 'binom') { const n = Math.round(a), pr = b / 100; return { vals: Array.from({ length: n + 1 }, (_, i) => i), probs: binomPmfs(n, pr), label: `sales from ${n} calls` }; }
+  if (k === 'poisson') { const lam = a / 10, kmax = Math.ceil(lam + 5 * Math.sqrt(lam) + 3); return { vals: Array.from({ length: kmax + 1 }, (_, i) => i), probs: poissonPmfs(lam, kmax), label: 'customers per hour' }; }
   return { vals: [1, 2, 3, 4, 5, 6], probs: Array(6).fill(1 / 6), label: 'die face' };
 }
 const PARAMS: Record<DK, { label: string; a: [string, number, number, number, (v: number) => string]; b?: [string, number, number, number, (v: number) => string] }> = {

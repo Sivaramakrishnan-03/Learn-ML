@@ -8,11 +8,12 @@ import { CodeLab } from './CodeLab';
 import { Quiz } from './Quiz';
 import { DeepView } from './DeepView';
 import { BOOKS, REFERENCES } from '../data/references';
+import { TabList, TabPanel } from './Tabs';
 
 function Section({ icon, title, children, tone }: { icon: string; title: string; children: React.ReactNode; tone?: string }) {
   return (
     <section className={`lesson-sec ${tone ?? ''}`}>
-      <h3><span className="lesson-ico">{icon}</span>{title}</h3>
+      <h3><span className="lesson-ico" aria-hidden="true">{icon}</span>{title}</h3>
       {children}
     </section>
   );
@@ -55,14 +56,12 @@ export function LessonView({ topic, lesson, onPass }: { topic: Topic; lesson: Le
   ];
   return (
     <div className="lesson">
-      <div className="layer-switch" role="tablist" aria-label="Lesson depth">
-        {LAYERS.map((l) => (
-          <button key={l.id} role="tab" aria-selected={layer === l.id} className={`layer-btn ${layer === l.id ? 'on' : ''}`} onClick={() => setLayer(l.id)}>
-            <b>{l.label}</b><span className="small muted">{l.hint}</span>
-          </button>
-        ))}
-      </div>
+      <TabList label="Lesson depth" prefix="layer" value={layer} onChange={setLayer} className="layer-switch" tabClass="layer-btn" activeClass="on"
+        items={LAYERS.map((l) => ({ id: l.id, label: l.label }))}
+        renderTab={(it) => { const l = LAYERS.find((x) => x.id === it.id)!; const [ico, ...rest] = l.label.split(' ');
+          return <><b><span aria-hidden="true">{ico}</span> {rest.join(' ')}</b><span className="small muted">{l.hint}</span></>; }} />
 
+      <TabPanel prefix="layer" value={layer}>
       <Section icon="🎯" title="By the end of this lesson you will be able to:" tone="goals">
         <ul className="ticks">{lesson.goals.map((g, i) => <li key={i}><Md text={g} /></li>)}</ul>
       </Section>
@@ -78,7 +77,7 @@ export function LessonView({ topic, lesson, onPass }: { topic: Topic; lesson: Le
         )}
         <Section icon="🧮" title={`Worked example: ${lesson.example.title}`} tone="example">
           <ol className="steps">{lesson.example.steps.map((s, i) => <li key={i}><Md text={s} /></li>)}</ol>
-          <div className="result">✅ <Md text={lesson.example.result} /></div>
+          <div className="result"><span aria-hidden="true">✅ </span><Md text={lesson.example.result} /></div>
         </Section>
         <div className="card next-card">Want the full explanation with diagrams and more examples? <button className="btn primary" onClick={() => { setLayer('chapter'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>📖 Read the full chapter</button></div>
       </div>}
@@ -106,6 +105,7 @@ export function LessonView({ topic, lesson, onPass }: { topic: Topic; lesson: Le
           </Section>
         )}
       </div>}
+      </TabPanel>
 
       <div className="reading">
         <Section icon="📌" title="Key takeaways" tone="takeaways"><ul className="ticks">{lesson.takeaways.map((t, i) => <li key={i}><Md text={t} /></li>)}</ul></Section>

@@ -8,19 +8,20 @@
   ],
   "why": "Bagging turns unstable models (deep trees) into stable, accurate ones. It is the first half of the random forest recipe.",
   "explain": [
-    "Francis Galton's ox-weighing contest: individual guesses were all over the place, but the **average** of about 800 guesses was within 1% of the true weight. Averaging cancels independent errors.",
+    "Francis Galton's ox-weighing contest: individual guesses were all over the place, but the **middle of the crowd's** roughly 800 guesses landed within 1% of the true weight. Combining many guesses cancels independent errors.",
     "**Bagging** applies this to models: draw many **bootstrap samples** (same size, with replacement), train one model on each, and **average** their predictions (or take a majority vote).",
     "It helps most with **high-variance** models like deep decision trees. It does little for stable models like linear regression.",
-    "Each bootstrap sample leaves out about 37% of the rows. Those **out-of-bag (OOB)** rows act as a free validation set."
+    "Each bootstrap sample leaves out about 37% of the rows (36.8% for large data). Those **out-of-bag (OOB)** rows act as a free validation set."
   ],
   "example": {
-    "title": "Ten deep trees vs one",
+    "title": "A bootstrap sample by hand",
     "steps": [
-      "One deep tree: test accuracy 78% (it varies a lot with the sample)",
-      "Bag of 100 deep trees: test accuracy 86%",
-      "OOB estimate: 85.5%, close to the test score with no separate validation set needed"
+      "Five weekly sales figures (units): A = 10, B = 12, C = 14, D = 30, E = 16",
+      "Draw 5 rows with replacement, say B, D, D, A, E → sample {12, 30, 30, 10, 16}: D counts twice, C is missing",
+      "C is out-of-bag: the model trained on this sample can be tested on C",
+      "Chance a given row is left out: (4/5)⁵ ≈ 0.33 for n = 5; (0.999)¹⁰⁰⁰ ≈ 0.368 for n = 1,000"
     ],
-    "result": "Same base model, much better generalisation, purely from averaging."
+    "result": "Each bootstrap sample is a slightly distorted copy of the data, so each model trained on one is a little different. Averaging those models cancels their individual errors."
   },
   "mistakes": [
     "Bagging low-variance models and expecting big gains.",
@@ -64,5 +65,9 @@
       "why": "(1 − 1/n)^n → e⁻¹ ≈ 0.37."
     }
   ],
-  "chapterMinutes": 17
+  "chapterMinutes": 17,
+  "formula": {
+    "tex": "P(\\text{row never picked}) = \\left(1 - \\frac{1}{n}\\right)^{n} \\approx e^{-1} \\approx 0.368",
+    "plain": "For a reasonably large dataset, about 36.8% of rows are left out of each bootstrap sample, and about 63.2% appear at least once."
+  }
 }

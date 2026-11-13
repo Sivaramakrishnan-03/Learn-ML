@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C } from '../viz/kit';
-import { Pt, polyFit, mse, mean, sampleCurve, clipped } from './_workflow-helpers';
+import { mean, sampleCurve } from '../viz/math';
+import { Pt, polyFit, mse, clipped } from './_workflow-helpers';
 
 /* ---------- pure helpers ---------- */
 const LO = 10, HI = 100;

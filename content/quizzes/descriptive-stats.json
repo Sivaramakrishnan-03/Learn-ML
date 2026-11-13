@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Which pair of summaries is **robust to outliers**, so a single extreme value barely moves them?",
+      "options": [
+        "Median and interquartile range (IQR)",
+        "Mean and standard deviation",
+        "Mean and range",
+        "Maximum and standard deviation"
+      ],
+      "answer": 0,
+      "why": "The median depends only on the middle of the sorted data and the IQR only on the middle 50%, so one extreme value cannot drag them far. The mean and SD use every value's size, which is why one 95-minute shift lifted the downtime SD from 5.9 to 24.1 minutes.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Courier A's delays (days late) are 4, 6, 8, 10, 12. What is the **sample** standard deviation?",
+      "options": [
+        "2.83 days",
+        "3.16 days",
+        "10 days",
+        "4 days"
+      ],
+      "answer": 1,
+      "why": "Deviations from the mean of 8 are −4, −2, 0, 2, 4; squared they sum to 40. A sample SD divides by n − 1: √(40 / 4) = √10 ≈ 3.16. 2.83 is what you get dividing by n (NumPy's default without `ddof=1`), and 10 is the variance, not the SD.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Ten shifts of downtime give Q1 = 17.25 and Q3 = 26.5 minutes. Using the 1.5 × IQR rule, above what value is a shift flagged as an outlier?",
+      "options": [
+        "39.875 minutes",
+        "35.75 minutes",
+        "26.5 minutes",
+        "40.375 minutes"
+      ],
+      "answer": 3,
+      "why": "IQR = 26.5 − 17.25 = 9.25. Upper fence = Q3 + 1.5 × IQR = 26.5 + 13.875 = 40.375. 35.75 adds only one IQR; adding 1.5 × IQR to the median instead of Q3 is another common slip. The 95-minute shift is far above the fence.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A downtime dataset has mean 28.1 minutes and median 21 minutes. What does this gap most likely tell you?",
+      "options": [
+        "The data are left-skewed: a few unusually short shifts pull the mean up",
+        "The mean must have been calculated wrongly, because mean and median should match",
+        "The data are right-skewed: a few long shifts pull the mean above the typical value",
+        "The data are symmetric, since both values are in the 20s"
+      ],
+      "answer": 2,
+      "why": "When the mean sits well above the median, a long right tail (here one 95-minute shift) is pulling the mean up while the median stays with the typical shift. Mean and median only coincide for symmetric data, so the gap is information, not an error.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "pandas `Series.std()` and NumPy `np.std()` give slightly different answers on the same 20 numbers. Why?",
+      "options": [
+        "pandas sorts the data first and NumPy does not",
+        "One of them is reporting the variance instead of the SD",
+        "NumPy removes outliers automatically",
+        "pandas divides by n − 1 by default; NumPy divides by n unless you pass `ddof=1`"
+      ],
+      "answer": 3,
+      "why": "The defaults differ: pandas gives the sample SD (n − 1) and NumPy the population SD (n). Pass `ddof=1` to NumPy to match. Neither removes outliers or sorts the data, and both return an SD, not a variance.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A ride-hailing app wants a service target that reflects riders' bad experiences, given that wait times are right-skewed. Which summary should the target be set on?",
+      "options": [
+        "A high percentile such as P90 (90% of riders wait less than this)",
+        "The mode of wait times",
+        "The mean wait time",
+        "The minimum wait time"
+      ],
+      "answer": 0,
+      "why": "With right-skewed waits the mean can look modest while one rider in ten waits 15 to 20 minutes. P90 or P95 describes the tail customers remember, which is why operations teams set service levels on percentiles. The mode and minimum say nothing about the bad days.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Removing the 95-minute shift cuts the downtime SD from 24.1 to 5.9 minutes. A colleague proposes deleting it as \"noise\". What is the best response?",
+      "options": [
+        "Agree: outliers always distort statistics and should be removed",
+        "Investigate it first: report the robust summaries, but find out what broke on that shift, because it may be the most important row",
+        "Agree, but replace it with the mean so the sample size stays at 10",
+        "Keep it but report only the mean, because the mean uses all the data"
+      ],
+      "answer": 1,
+      "why": "An outlier is a flag for a closer look, not an automatic deletion. Report the median and IQR so the typical shift is described honestly, then find the cause of the 95-minute shift. Imputing the mean hides a real event, and reporting only the mean gives the most distorted summary.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "In an interview you are asked: \"When would you report the median rather than the mean?\" Which answer is strongest?",
+      "options": [
+        "Never; the mean is always more accurate because it uses every value",
+        "Only when the sample size is below 30",
+        "When the data are skewed or have outliers (pay, prices, delivery times); if mean and median differ a lot, report both and treat the gap as a finding",
+        "Only for categorical data"
+      ],
+      "answer": 2,
+      "why": "The median is the honest typical value for skewed data, and a big mean–median gap signals skew worth reporting. Using every value is exactly what makes the mean fragile. Sample size does not decide the choice, and categorical data have a mode, not a median.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

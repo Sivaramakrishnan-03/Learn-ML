@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In stacking, what does the **meta-model** use as its inputs?",
+      "options": [
+        "The base models' predictions (made out-of-fold), optionally plus the original features",
+        "Only the original features, after the base models have selected them",
+        "The residuals of the single best base model",
+        "Bootstrap samples of the training rows"
+      ],
+      "answer": 0,
+      "why": "The meta-model learns how to combine the base models, so its columns are their predictions; with `passthrough=True` it also sees the original features. Fitting residuals of one model describes boosting, and bootstrap samples describe bagging.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What is the main difference between **stacking** and **blending**?",
+      "options": [
+        "Blending needs the base models to be identical",
+        "Blending uses a meta-model; stacking uses a simple average",
+        "Stacking only works for regression and blending only for classification",
+        "Stacking builds out-of-fold predictions for every training row with cross-validation; blending fits the meta-model on one held-out set"
+      ],
+      "answer": 3,
+      "why": "Both learn a combination, but stacking uses k-fold OOF predictions so every row helps train the meta-model, while blending is simpler and uses fewer rows. A simple average is a fixed combination, not stacking.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "You stack 4 base models with 10-fold out-of-fold predictions, refit each base model on all data and fit one meta-model. How many training runs is that in total?",
+      "options": [
+        "4",
+        "40",
+        "44",
+        "45"
+      ],
+      "answer": 3,
+      "why": "OOF fits: 4 × 10 = 40; final refits: 4; meta-model: 1; total 45. Stopping at 40 or 44 forgets the refits or the meta-model. This is why stacking costs roughly k + 1 times the base training effort.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A stacked regressor has intercept 2, weight 0.6 on the forest and 0.4 on the boosted model. For a store the forest predicts 70 and boosting predicts 82 (₹ lakh). What is the stacked prediction?",
+      "options": [
+        "74.8",
+        "76.0",
+        "76.8",
+        "78.0"
+      ],
+      "answer": 2,
+      "why": "2 + 0.6 × 70 + 0.4 × 82 = 2 + 42 + 32.8 = 76.8. The tempting 76.0 is the simple average, which is only the special case of equal weights and no intercept; 74.8 drops the intercept.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A non-negative linear meta-model learns weights of about 0.48 for the forest, 0.52 for boosting and 0 for the linear model. What is the best reading?",
+      "options": [
+        "The linear model is useless and should never be used on its own",
+        "The meta-model is overfitting and the weights should be ignored",
+        "Given the forest and boosting, the linear model adds no extra useful information, so the stack switches it off",
+        "The forest and boosting must make the same mistakes"
+      ],
+      "answer": 2,
+      "why": "Weights describe each model's contribution **given the others**. Here forest and boosting err in opposite directions, so an even split cancels much of their error and the weaker linear model brings nothing new. Opposite errors are the reverse of making the same mistakes.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A demand-forecasting stack is built with ordinary shuffled 5-fold OOF predictions on monthly data. It looks excellent in validation but disappoints in production. What is the most likely cause?",
+      "options": [
+        "Shuffled k-fold lets base models train on future months when predicting past ones, so the OOF predictions are leaky; use time-series splits",
+        "Five folds is too few; use twenty",
+        "The meta-model was too simple",
+        "The base models were too diverse"
+      ],
+      "answer": 0,
+      "why": "For time-ordered data, OOF predictions must always be made forward in time, otherwise the meta-model learns from predictions that saw the future. More folds do not fix leakage, and diverse base models and simple meta-models are what you want.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Your stack reaches AUC 0.871 and the best single model, LightGBM, 0.86. Would you ship the stack?\" Which answer is best?",
+      "options": [
+        "Always ship the stack, because a higher score is always better",
+        "Never ship stacks; they always overfit",
+        "Ship the stack but drop the meta-model to save cost",
+        "Confirm the gain on a true test set, then weigh about 1 point of AUC against running and monitoring several models; often the single model wins in production"
+      ],
+      "answer": 3,
+      "why": "Stacking gains are usually small (0.5–2%), while a stack means several models to retrain, monitor and explain. Whether the gain pays for itself is a business judgement worth making explicitly. Stacks do not always overfit if built with OOF predictions.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"Why is the meta-model usually a simple linear or logistic regression rather than a boosted model?\"",
+      "options": [
+        "Its inputs are a few highly correlated columns (every base model predicts the same target), so a flexible meta-model overfits them; a linear one gives stable, readable weights",
+        "Linear models train faster, and speed is the only concern",
+        "scikit-learn does not allow tree models as meta-models",
+        "Boosted meta-models cannot use probabilities as inputs"
+      ],
+      "answer": 0,
+      "why": "The meta-model's job is just to learn how much to trust each base model, which a linear combination does well. A deep tree or boosted model on a handful of correlated predictions easily fits noise. scikit-learn does accept any estimator as `final_estimator`.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

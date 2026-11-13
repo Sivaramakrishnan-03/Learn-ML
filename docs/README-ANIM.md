@@ -11,6 +11,8 @@ Every topic gets two interactive tabs, **🎬 Animate** and **🕹 Playground**,
 ## Your output
 One file per topic: **`src/anim/<topic-id>.tsx`** with `export default anim` where `const anim: TopicAnim = { Animate, Playground, howto }`. The file name must equal the topic id. **Do not edit any other file**; other builders work in parallel. You may create a helper file `src/anim/_<group>-helpers.ts` if several of your topics share logic.
 
+**Maths: use `src/viz/math.ts`, do not re-implement it.** It has one tested implementation (tests in `tests/viz-math.test.ts`) of: mean / variance / sd (with `ddof`), quantiles, median, correlation, error metrics; the normal, t, χ² and F distributions (`*Pdf`, `*Cdf`, `*Sf`, `*Inv`, `*Crit`), binomial and Poisson pmfs; `solve`, `lstsq` (with ridge), QR least squares, `polyFit`, ridge / lasso, 2×2 eigen-decompositions and 2-D covariance; `histogram` (counts or densities); and seeded generators (`normalSample`, `permutation`, `shuffleInPlace`, `bootstrap`, `sampleCurve`, `poissonDraw`, `drawDiscrete`). Group helper files should only hold topic-specific code (datasets, algorithms being taught, renderers, formatting).
+
 ## Animate tab (narrated, step-by-step)
 - Precompute a list of **frames** with pure functions (`useMemo`), then render frame `p.i` from `useStepPlayer(frames.length, ms)` and show `<PlayerControls p={p} />`.
 - **8–30 frames.** Each frame changes one thing the learner can see (a point moves, a bar grows, a region shades, a number updates).

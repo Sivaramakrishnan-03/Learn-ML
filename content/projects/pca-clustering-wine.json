@@ -1,0 +1,97 @@
+{
+  "id": "pca-clustering-wine",
+  "title": "PCA and clustering on wine chemistry: fewer lab tests, same groups",
+  "track": "unsupervised",
+  "level": 2,
+  "hours": 3,
+  "summary": "Derive PCA from scratch with an eigen-decomposition, read loadings and a biplot, cluster wines with k-means and Ward linkage in raw and PCA space, and test whether a cheaper subset of lab measurements still recovers the cultivar groups.",
+  "business": "A wine importer in Nashik receives lots from three grape cultivars, but labels are sometimes missing or wrong on arrival. Each lot goes through **13 lab measurements costing about ₹600 each (₹7,800 per lot)**. The quality manager asks: **can chemistry alone sort lots into their cultivar groups without labels, and could we drop most of the tests and still sort them reliably?** Halving the lab bill across 2,000 lots a year is worth about ₹78 lakh.",
+  "topics": [
+    "pca",
+    "eigen",
+    "scaling",
+    "kmeans",
+    "hierarchical",
+    "matrix-ops",
+    "tsne-umap"
+  ],
+  "dataset": {
+    "name": "Wine recognition data (`sklearn.datasets.load_wine`)",
+    "how": "Ships with scikit-learn: 178 wines, 13 chemical measurements (alcohol, malic acid, flavanoids, colour intensity, proline, …) and the true cultivar (0, 1, 2). The cultivar is used only to evaluate the unsupervised results, never to fit them."
+  },
+  "steps": [
+    {
+      "title": "Load and inspect the measurements",
+      "detail": "Look at the scale of each column: proline is in the hundreds to over a thousand, hue is around 1. Any distance-based method or PCA on raw values would effectively only see proline. Note the cultivar counts too: the groups are not equal in size.",
+      "code": "import numpy as np\nimport pandas as pd\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom sklearn.datasets import load_wine\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.decomposition import PCA\nfrom sklearn.cluster import KMeans\nfrom sklearn.metrics import adjusted_rand_score, silhouette_score\nfrom sklearn.manifold import TSNE\nfrom scipy.cluster.hierarchy import linkage, fcluster, dendrogram\n\npd.set_option(\"display.width\", 160)\ndata = load_wine(as_frame=True)\nX, y = data.data, data.target\nprint(X.describe().T[[\"mean\", \"std\", \"min\", \"max\"]].round(2))\nprint(\"Cultivar counts:\", y.value_counts().sort_index().to_dict())"
+    },
+    {
+      "title": "PCA from scratch with an eigen-decomposition",
+      "detail": "Standardise the columns, compute the 13×13 covariance matrix and its eigenvectors: each eigenvector is a principal direction, and its eigenvalue is the variance along it. Sort by eigenvalue, project the data onto the top vectors, and confirm you get the same explained variance as `sklearn.decomposition.PCA` (component signs may flip, which is harmless).",
+      "code": "Z = StandardScaler().fit_transform(X)\nC = np.cov(Z, rowvar=False)\nvals, vecs = np.linalg.eigh(C)\norder = np.argsort(vals)[::-1]\nvals, vecs = vals[order], vecs[:, order]\nscores_manual = Z @ vecs[:, :2]\npca = PCA().fit(Z)\nprint(\"Eigenvalue share :\", np.round(vals / vals.sum(), 3)[:5])\nprint(\"sklearn PCA share:\", np.round(pca.explained_variance_ratio_, 3)[:5])\nprint(\"PC1 matches up to sign:\", np.allclose(np.abs(scores_manual[:, 0]), np.abs(pca.transform(Z)[:, 0])))"
+    },
+    {
+      "title": "How many components? Scree and cumulative variance",
+      "detail": "Plot each component's share of variance and the cumulative share. Common rules: keep enough components for about 80–90% of variance, or stop at the 'elbow', or keep eigenvalues above 1 (Kaiser rule, on standardised data). They rarely agree exactly; what matters is whether the downstream task (here, clustering) works.",
+      "code": "cum = np.cumsum(pca.explained_variance_ratio_)\nfig, ax = plt.subplots(figsize=(6, 4))\nax.bar(range(1, 14), pca.explained_variance_ratio_, label=\"per component\")\nax.plot(range(1, 14), cum, \"o-\", color=\"k\", label=\"cumulative\"); ax.axhline(0.9, ls=\"--\", color=\"grey\")\nax.set_xlabel(\"component\"); ax.legend(); ax.set_title(\"Scree plot\")\nplt.savefig(\"wine_scree.png\", dpi=100); plt.close()\nprint(\"Components for 80% / 90%:\", int(np.searchsorted(cum, 0.8) + 1), \"/\", int(np.searchsorted(cum, 0.9) + 1),\n      \"| Kaiser (eigenvalue > 1):\", int((pca.explained_variance_ > 1).sum()))"
+    },
+    {
+      "title": "Interpret loadings with a biplot",
+      "detail": "Loadings are the weights of each original measurement in a component. A large positive or negative loading means the measurement drives that axis. Draw the wines on PC1–PC2 coloured by true cultivar (for interpretation only) with arrows for the strongest loadings, and describe each axis in words (for example, PC1 ≈ 'phenolic richness': flavanoids, total phenols, OD280).",
+      "code": "load = pd.DataFrame(pca.components_[:2].T, index=X.columns, columns=[\"PC1\", \"PC2\"])\nprint(load.round(2).sort_values(\"PC1\"))\nS = pca.transform(Z)[:, :2]\nfig, ax = plt.subplots(figsize=(7, 6))\nsc = ax.scatter(S[:, 0], S[:, 1], c=y, cmap=\"viridis\", s=18)\nfor feat in load.abs().sum(axis=1).sort_values(ascending=False).index[:6]:\n    ax.arrow(0, 0, 3 * load.loc[feat, \"PC1\"], 3 * load.loc[feat, \"PC2\"], color=\"red\", head_width=0.08)\n    ax.text(3.3 * load.loc[feat, \"PC1\"], 3.3 * load.loc[feat, \"PC2\"], feat, fontsize=8)\nax.set_xlabel(\"PC1\"); ax.set_ylabel(\"PC2\"); ax.set_title(\"Biplot (colour = true cultivar)\")\nplt.savefig(\"wine_biplot.png\", dpi=100); plt.close()"
+    },
+    {
+      "title": "Cluster with k-means: raw scaled features vs PCA space",
+      "detail": "Run k-means with k = 3 on (a) all 13 standardised features and (b) the first few principal components. Compare silhouette scores (cluster quality without labels) and the adjusted Rand index against the true cultivar (how well clusters match reality). Also show what happens if you forget to scale: ARI collapses because proline dominates, yet the silhouette looks *better*, because separating wines on one big-number column is geometrically easy. A good silhouette is not proof of meaningful clusters, and silhouettes computed in different feature spaces are not comparable.",
+      "code": "res = {}\nfor name, data_ in {\"raw (unscaled)\": X.values, \"scaled 13 features\": Z, \"PCA 2 comps\": pca.transform(Z)[:, :2],\n                    \"PCA 5 comps\": pca.transform(Z)[:, :5]}.items():\n    lab = KMeans(3, n_init=20, random_state=0).fit_predict(data_)\n    res[name] = {\"silhouette\": silhouette_score(data_, lab), \"ARI_vs_cultivar\": adjusted_rand_score(y, lab)}\nprint(pd.DataFrame(res).T.round(3))"
+    },
+    {
+      "title": "Hierarchical clustering with Ward linkage",
+      "detail": "Ward linkage merges, at each step, the two clusters whose union increases within-cluster variance the least. The dendrogram shows the full merge history, so you can see whether three groups is a natural cut (a big jump in merge height) and whether one cultivar splits into sub-styles. Cut the tree into 3 clusters and compare with k-means.",
+      "code": "Lk = linkage(Z, method=\"ward\")\nfig, ax = plt.subplots(figsize=(10, 4))\ndendrogram(Lk, no_labels=True, color_threshold=Lk[-3, 2], ax=ax); ax.set_title(\"Ward dendrogram (standardised features)\")\nplt.savefig(\"wine_dendrogram.png\", dpi=100); plt.close()\nward = fcluster(Lk, 3, criterion=\"maxclust\")\nkm = KMeans(3, n_init=20, random_state=0).fit_predict(Z)\nprint(\"Last merge heights:\", np.round(Lk[-4:, 2], 1))\nprint(\"ARI Ward vs cultivar:\", round(adjusted_rand_score(y, ward), 3), \"| Ward vs k-means:\", round(adjusted_rand_score(km, ward), 3))\nprint(pd.crosstab(y, ward, rownames=[\"cultivar\"], colnames=[\"ward cluster\"]))"
+    },
+    {
+      "title": "Fewer lab tests: does a cheap subset still work?",
+      "detail": "Rank measurements by their absolute loadings on the first two components, keep the top m, re-standardise and re-cluster. Plot ARI against the number of tests kept and pick the smallest m that keeps ARI within about 0.05 of the full set. Translate into ₹ saved per lot and per year (2,000 lots). Be honest about the limitation: you used the full data to choose the subset, so validate the choice on new lots before changing the lab process.",
+      "code": "rank = (load.abs() * pca.explained_variance_ratio_[:2]).sum(axis=1).sort_values(ascending=False).index\nfull_ari = adjusted_rand_score(y, km)\nrows = []\nfor m in range(2, 14):\n    Zm = StandardScaler().fit_transform(X[rank[:m]])\n    lab = KMeans(3, n_init=20, random_state=0).fit_predict(Zm)\n    rows.append({\"tests\": m, \"ARI\": adjusted_rand_score(y, lab), \"cost_per_lot\": 600 * m})\nsub = pd.DataFrame(rows)\nbest_m = int(sub.loc[sub[\"ARI\"] >= full_ari - 0.05, \"tests\"].min())\nprint(sub.round(3).to_string(index=False))\nprint(f\"Keep {best_m} tests: {list(rank[:best_m])}\")\nprint(f\"Saving ₹{600 * (13 - best_m):,} per lot ≈ ₹{600 * (13 - best_m) * 2000 / 1e5:.0f} lakh per year\")"
+    },
+    {
+      "title": "A non-linear view with t-SNE",
+      "detail": "t-SNE places points so that close neighbours in 13-D stay close in 2-D. It is excellent for *seeing* groups but distorts global distances and cluster sizes, and its picture changes with perplexity, so never cluster on t-SNE coordinates or read distances between groups from it. Use it here only to sanity-check that three groups are visible.",
+      "code": "emb = TSNE(n_components=2, perplexity=30, random_state=0, init=\"pca\").fit_transform(Z)\nplt.figure(figsize=(6, 5)); plt.scatter(emb[:, 0], emb[:, 1], c=km, cmap=\"viridis\", s=18)\nplt.title(\"t-SNE (colour = k-means cluster)\"); plt.savefig(\"wine_tsne.png\", dpi=100); plt.close()\nprint(\"t-SNE done; points:\", emb.shape[0])"
+    }
+  ],
+  "deliverables": [
+    "A short derivation note and code showing your eigen-decomposition PCA matches scikit-learn.",
+    "A scree plot and a biplot with a one-sentence interpretation of PC1 and PC2.",
+    "A comparison table of clustering setups (unscaled, scaled, PCA-2, PCA-5, Ward) with silhouette and ARI.",
+    "A recommendation for a reduced lab panel: which tests, expected sorting quality, ₹ saving per year and the validation you would run first."
+  ],
+  "rubric": [
+    {
+      "criterion": "Linear algebra",
+      "good": "Covariance, eigenvectors and projection implemented correctly; explains eigenvalue = variance and sign ambiguity."
+    },
+    {
+      "criterion": "Scaling",
+      "good": "Demonstrates the effect of not scaling and explains why proline would dominate."
+    },
+    {
+      "criterion": "Component choice",
+      "good": "Uses scree/cumulative variance and the downstream clustering result rather than a single rule."
+    },
+    {
+      "criterion": "Clustering evaluation",
+      "good": "Separates label-free quality (silhouette) from agreement with truth (ARI); compares two algorithms."
+    },
+    {
+      "criterion": "Business recommendation",
+      "good": "Reduced-test panel justified with an ARI-vs-tests curve, ₹ savings and an honest note on selection bias."
+    }
+  ],
+  "extensions": [
+    "Repeat the reduced-panel selection inside a bootstrap loop to see how stable the chosen tests are.",
+    "Do the same analysis on `load_digits` (64 pixel features): how many components keep 90% of variance, and how well does k-means with k = 10 recover the digits?",
+    "Train a supervised classifier (logistic regression) on the reduced panel using the labelled lots and compare its accuracy with the clustering ARI: when is labelling worth the effort?"
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "id": "demand-forecasting",
+  "title": "Festive-season demand forecast with rolling backtests",
+  "track": "timeseries",
+  "level": 3,
+  "hours": 6,
+  "summary": "Forecast monthly sales of a packaged-snacks SKU: decompose the series, build naive and seasonal-naive baselines, fit Holt-Winters and SARIMA (with a Diwali regressor), compare them honestly with rolling-origin backtests and MASE, and turn the forecast interval into a stock plan.",
+  "business": "An FMCG distributor in western India supplies a namkeen brand to 1,800 kirana stores. Demand has a yearly cycle, a big spike in the **Diwali month (October or November, depending on the year)** and a COVID dip in 2020. Over-ordering ties up working capital and risks expiry; under-ordering in the festive month loses about ₹35 of margin per case. The supply-chain head asks: **how many cases should we plan for each of the next six months, and is a statistical model actually better than 'same month last year'?**",
+  "topics": [
+    "ts-components",
+    "exp-smoothing",
+    "arima",
+    "ts-validation",
+    "regression-metrics"
+  ],
+  "dataset": {
+    "name": "Synthetic monthly SKU sales, Jan 2017 – Dec 2024 (96 months)",
+    "how": "Generated in step 1 with `numpy.random.default_rng(21)`: level × trend × monthly seasonality × Diwali uplift (real Diwali months for each year) × COVID dip (Apr–Jun 2020) × noise, in cases per month."
+  },
+  "steps": [
+    {
+      "title": "Generate the sales history",
+      "detail": "We build the series multiplicatively: a growing level, a seasonal pattern (summer lull, winter and wedding-season highs), a +35% uplift in the actual Diwali month of each year, and a sharp lockdown dip in April–June 2020. The Diwali month moves between October and November, which is exactly what a fixed 12-month seasonal pattern cannot capture.",
+      "code": "import numpy as np\nimport pandas as pd\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom statsmodels.tsa.seasonal import STL\nfrom statsmodels.tsa.holtwinters import ExponentialSmoothing\nfrom statsmodels.tsa.statespace.sarimax import SARIMAX\nfrom statsmodels.tsa.stattools import adfuller\n\nrng = np.random.default_rng(21)\nidx = pd.date_range(\"2017-01-01\", \"2024-12-01\", freq=\"MS\")\ndiwali = {2017: 10, 2018: 11, 2019: 10, 2020: 11, 2021: 11, 2022: 10, 2023: 11, 2024: 10, 2025: 10}\nseason = np.array([1.00, 0.95, 0.98, 0.90, 0.85, 0.82, 0.88, 0.93, 1.02, 1.08, 1.10, 1.12])\nt = np.arange(len(idx))\nfestival = np.array([1 if diwali[d.year] == d.month else 0 for d in idx])\ncovid = np.where((idx >= \"2020-04-01\") & (idx <= \"2020-06-01\"), 0.55, 1.0)\ncases = 12000 * (1 + 0.006 * t) * season[idx.month - 1] * (1 + 0.35 * festival) * covid * rng.normal(1, 0.04, len(idx))\ny = pd.Series(np.round(cases), index=idx, name=\"cases\")\nfest = pd.Series(festival, index=idx, name=\"diwali\")\nprint(y.tail(14))"
+    },
+    {
+      "title": "Look at it: plot and decompose",
+      "detail": "Plot the raw series, then use **STL** (seasonal-trend decomposition with LOESS) on the log series so multiplicative seasonality becomes additive. Read the three parts: is the trend steady, is the seasonal shape stable, and what is left in the remainder? The Diwali spikes and the 2020 dip should stand out in the remainder, telling you they are not explained by regular seasonality.",
+      "code": "res = STL(np.log(y), period=12, robust=True).fit()\nfig, ax = plt.subplots(4, 1, figsize=(10, 8), sharex=True)\nax[0].plot(y); ax[0].set_title(\"Cases per month\")\nax[1].plot(np.exp(res.trend)); ax[1].set_title(\"Trend\")\nax[2].plot(res.seasonal); ax[2].set_title(\"Seasonal (log)\")\nax[3].plot(res.resid); ax[3].set_title(\"Remainder (log)\")\nplt.tight_layout(); plt.savefig(\"demand_stl.png\", dpi=100); plt.close()\nprint(\"Largest remainders:\\n\", res.resid.abs().sort_values(ascending=False).head(6).round(3))"
+    },
+    {
+      "title": "Baselines and a simple hold-out",
+      "detail": "Every forecast must beat two baselines: **naive** (next month = this month) and **seasonal naive** (next month = same month last year). Hold out the last 12 months, forecast them, and compute MAE and MAPE. Then define **MASE**: MAE divided by the in-sample MAE of the seasonal-naive method. MASE < 1 means you beat 'same month last year'.",
+      "code": "train, test = y[:-12], y[-12:]\ndef mase(actual, pred, history, m=12):\n    scale = np.mean(np.abs(history.values[m:] - history.values[:-m]))\n    return np.mean(np.abs(actual.values - pred)) / scale\ndef report(name, pred, actual=test, hist=train):\n    pred = np.asarray(pred)\n    return {\"model\": name, \"MAE\": np.mean(np.abs(actual.values - pred)),\n            \"MAPE_%\": 100 * np.mean(np.abs(actual.values - pred) / actual.values), \"MASE\": mase(actual, pred, hist)}\nrows = [report(\"naive\", np.repeat(train.iloc[-1], 12)), report(\"seasonal naive\", train.iloc[-12:].values)]\nprint(pd.DataFrame(rows).round(3))"
+    },
+    {
+      "title": "Holt-Winters exponential smoothing",
+      "detail": "Holt-Winters keeps three smoothed components (level, trend, season) and updates them every month. Use an additive **damped** trend (growth that flattens rather than shooting off) and **multiplicative** seasonality (the festive bump grows with the level). Inspect the fitted smoothing parameters: α near 1 means the level chases every recent month; values near 0 mean the model trusts the long-run pattern; γ near 0 means a stable seasonal shape. Small values are expected here (a steady pattern plus noise), but note the price: a fixed seasonal shape cannot know whether Diwali falls in October or November.",
+      "code": "hw = ExponentialSmoothing(train, trend=\"add\", damped_trend=True, seasonal=\"mul\", seasonal_periods=12, initialization_method=\"heuristic\").fit(optimized=True)\nrows.append(report(\"Holt-Winters\", hw.forecast(12)))\nprint({k: round(float(v), 3) for k, v in hw.params.items() if k in (\"smoothing_level\", \"smoothing_trend\", \"smoothing_seasonal\", \"damping_trend\")})\nprint(pd.DataFrame(rows).round(3))"
+    },
+    {
+      "title": "SARIMA, with and without a Diwali regressor",
+      "detail": "Check stationarity with the ADF test: the raw log series has a trend, but after a seasonal difference (lag 12) and a first difference it should be stationary, which is why the model below uses d = 1 and D = 1. Fit SARIMA(1,1,1)(0,1,1)₁₂ on log sales, then add the Diwali dummy as an **exogenous regressor**: this lets the model put the spike in the right month each year instead of smearing it over October and November.",
+      "code": "ly = np.log(train)\nprint(\"ADF p (log):\", round(adfuller(ly)[1], 3), \"| after seasonal+first difference:\", round(adfuller(ly.diff(12).diff().dropna())[1], 4))\nsar = SARIMAX(ly, order=(1, 1, 1), seasonal_order=(0, 1, 1, 12)).fit(disp=False)\nrows.append(report(\"SARIMA\", np.exp(sar.forecast(12))))\nsarx = SARIMAX(ly, exog=fest[:-12], order=(1, 1, 1), seasonal_order=(0, 1, 1, 12)).fit(disp=False)\nrows.append(report(\"SARIMA + Diwali\", np.exp(sarx.forecast(12, exog=fest[-12:]))))\nprint(f\"Diwali coefficient: {sarx.params['diwali']:.3f} (≈ +{100 * (np.exp(sarx.params['diwali']) - 1):.0f}%)\")\nprint(pd.DataFrame(rows).round(3))"
+    },
+    {
+      "title": "Rolling-origin backtest",
+      "detail": "One 12-month hold-out is a single draw and can flatter or punish a model by luck. A **rolling-origin backtest** re-fits each model at several forecast origins (here every 3 months over the last 2 years) and forecasts 3 months ahead each time, mimicking how you would actually use it. Average MAE and MASE across all origins and compare against seasonal naive; also look at errors in Diwali months specifically.",
+      "code": "results = []\norigins = range(len(y) - 24, len(y) - 2, 3)\nfor o in origins:\n    hist, fut = y[:o], y[o:o + 3]\n    fc = {\"seasonal naive\": hist.iloc[-12:].values[:len(fut)],\n          \"Holt-Winters\": ExponentialSmoothing(hist, trend=\"add\", damped_trend=True, seasonal=\"mul\", seasonal_periods=12, initialization_method=\"heuristic\").fit().forecast(len(fut)).values,\n          \"SARIMA + Diwali\": np.exp(SARIMAX(np.log(hist), exog=fest[:o], order=(1, 1, 1), seasonal_order=(0, 1, 1, 12)).fit(disp=False)\n                                    .forecast(len(fut), exog=fest[o:o + len(fut)])).values}\n    for name, p in fc.items():\n        for h, (date, a) in enumerate(fut.items()):\n            results.append({\"origin\": hist.index[-1], \"model\": name, \"h\": h + 1, \"date\": date, \"actual\": a, \"pred\": p[h], \"diwali\": fest[date]})\nbt = pd.DataFrame(results)\nbt[\"abs_err\"] = (bt[\"actual\"] - bt[\"pred\"]).abs()\nscale = np.mean(np.abs(y.values[12:-24] - y.values[:-36]))\nsummary = bt.groupby(\"model\").agg(MAE=(\"abs_err\", \"mean\"), forecasts=(\"abs_err\", \"size\"))\nsummary[\"MASE\"] = summary[\"MAE\"] / scale\nsummary[\"MAE_diwali_months\"] = bt[bt[\"diwali\"] == 1].groupby(\"model\")[\"abs_err\"].mean()\nprint(summary.round(2))"
+    },
+    {
+      "title": "Final forecast with intervals and a stock plan",
+      "detail": "Refit the best model on all 96 months and forecast January–June 2025 with an 80% prediction interval (back-transformed from the log scale). Because under-stocking costs more than over-stocking for this SKU, plan stock somewhere between the point forecast and the upper bound (here the upper 80% bound in the festive and winter months, the point forecast otherwise) and show the extra cases as safety stock.",
+      "code": "future_idx = pd.date_range(\"2025-01-01\", periods=6, freq=\"MS\")\nfest_future = pd.Series([1 if diwali[d.year] == d.month else 0 for d in future_idx], index=future_idx)\nfinal = SARIMAX(np.log(y), exog=fest, order=(1, 1, 1), seasonal_order=(0, 1, 1, 12)).fit(disp=False)\nfc = final.get_forecast(6, exog=fest_future)\nci = np.exp(fc.conf_int(alpha=0.2))\nplan = pd.DataFrame({\"forecast\": np.exp(fc.predicted_mean).values, \"low_80\": ci.iloc[:, 0].values, \"high_80\": ci.iloc[:, 1].values}, index=future_idx)\nplan[\"plan_cases\"] = np.where(plan.index.month.isin([1, 10, 11, 12]), plan[\"high_80\"], plan[\"forecast\"])\nplan[\"safety_stock\"] = plan[\"plan_cases\"] - plan[\"forecast\"]\nprint(plan.round(0))\nax = y[\"2022\":].plot(label=\"actual\", figsize=(10, 4)); plan[\"forecast\"].plot(ax=ax, label=\"forecast\")\nax.fill_between(plan.index, plan[\"low_80\"], plan[\"high_80\"], alpha=0.3, label=\"80% interval\"); ax.legend(); ax.set_ylabel(\"cases\")\nplt.savefig(\"demand_forecast.png\", dpi=100); plt.close()"
+    }
+  ],
+  "deliverables": [
+    "An STL decomposition chart with a short note on trend, seasonality, Diwali spikes and the 2020 dip.",
+    "A hold-out table and a rolling-backtest table (MAE, MASE, Diwali-month MAE) for seasonal naive, Holt-Winters and SARIMA + Diwali.",
+    "A six-month forecast chart with 80% intervals and a stock-plan table in cases, with the safety-stock rule explained.",
+    "A one-paragraph answer to 'is the model better than same-month-last-year?', quoting MASE."
+  ],
+  "rubric": [
+    {
+      "criterion": "Exploration",
+      "good": "Decomposition used to identify trend, seasonal shape, moving holiday and structural break before modelling."
+    },
+    {
+      "criterion": "Baselines",
+      "good": "Naive and seasonal naive computed; MASE defined against seasonal naive and interpreted."
+    },
+    {
+      "criterion": "Modelling choices",
+      "good": "Damped trend and multiplicative seasonality justified; differencing backed by ADF; Diwali regressor explained."
+    },
+    {
+      "criterion": "Validation",
+      "good": "Rolling-origin backtest with re-fitting at each origin; no future data used in any fit."
+    },
+    {
+      "criterion": "Decision output",
+      "good": "Forecast intervals converted into a stock plan with an asymmetric-cost rationale."
+    }
+  ],
+  "extensions": [
+    "Add a COVID dummy (Apr–Jun 2020) as a second regressor and check whether the 2021 forecasts in the backtest improve.",
+    "Forecast at weekly granularity with a Diwali-week regressor and compare the aggregated monthly accuracy.",
+    "Choose the stock quantile from costs: with ₹35 lost per short case and ₹8 holding cost per excess case, the optimal service level is 35 / (35 + 8) ≈ 81%; compute it from the forecast distribution."
+  ]
+}

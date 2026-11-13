@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, FnLine, Dots, Seg, Label, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
+import { mean, sd, histogram, normPdf } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 type Shape = 'skewed' | 'uniform' | 'bimodal';
@@ -12,14 +13,9 @@ const SHAPES: Record<Shape, { label: string; draw: (r: () => number) => number }
   bimodal: { label: 'Two humps', draw: (r) => (r() < 0.5 ? 12 : 45) + (r() + r() + r() - 1.5) * 8 },
 };
 function population(shape: Shape, n = 20000, seed = 1) { const r = rng(seed); return Array.from({ length: n }, () => SHAPES[shape].draw(r)); }
-const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
-const sd = (a: number[]) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / a.length); };
-function hist(values: number[], lo: number, hi: number, bins: number) {
-  const w = (hi - lo) / bins, c = Array(bins).fill(0);
-  values.forEach((v) => { const i = Math.floor((v - lo) / w); if (i >= 0 && i < bins) c[i]++; });
-  return c.map((k, i) => ({ x: lo + (i + 0.5) * w, y: k / (values.length * w) })); // density, so it can share an axis with the normal curve
-}
-const normal = (m: number, s: number) => (x: number) => Math.exp(-((x - m) ** 2) / (2 * s * s)) / (s * Math.sqrt(2 * Math.PI));
+/** Density histogram (area 1), so it can share an axis with the normal curve. */
+const hist = (values: number[], lo: number, hi: number, bins: number) => histogram(values, lo, hi, bins, { density: true, closed: false });
+const normal = (m: number, s: number) => (x: number) => normPdf(x, m, s);
 function drawSamples(pop: number[], n: number, k: number, seed: number) {
   const r = rng(seed);
   return Array.from({ length: k }, () => Array.from({ length: n }, () => pop[Math.floor(r() * pop.length)]));

@@ -3,7 +3,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, FnLine, Dots, Seg, Arrow, Label, Bars, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C, Scales } from '../viz/kit';
-import { V2, contours, segPath, polyPath, equalH, f2, clamp } from './_math-helpers';
+import { V2, clamp } from '../viz/math';
+import { contours, segPath, polyPath, equalH, f2 } from './_math-helpers';
 
 /* ---------- pure helpers ---------- */
 const L1 = (w: number) => (w - 3) ** 2;

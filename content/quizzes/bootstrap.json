@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why must bootstrap resampling be done **with replacement**?",
+      "options": [
+        "To make the resample bigger than the original",
+        "Because sampling without replacement is too slow",
+        "Without replacement you would get exactly the same observations every time, just reordered, so the statistic would never vary",
+        "To remove outliers from the data"
+      ],
+      "answer": 2,
+      "why": "Replacement is what creates variety between resamples: some rows appear twice, others not at all. Without it a same-size resample is just a shuffle and tells you nothing about uncertainty. The resample is the same size as the original, not bigger.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Does the bootstrap give you more information than your original sample?",
+      "options": [
+        "Yes, 10,000 resamples is like having 10,000 times more data",
+        "No; it creates no new information, it only uses your existing data to estimate how much a statistic would vary across samples",
+        "Yes, but only for medians",
+        "No, and it cannot estimate uncertainty either"
+      ],
+      "answer": 1,
+      "why": "The bootstrap reuses the sample as a stand-in for the population. Its job is to estimate sampling variability, not to add data. If the sample is small or unrepresentative, resampling it many times does not fix that.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "You resample 200 test predictions with replacement. About how many **distinct** original rows will a typical resample contain?",
+      "options": [
+        "200",
+        "About 127",
+        "100",
+        "About 73"
+      ],
+      "answer": 1,
+      "why": "The chance a given row appears at least once is 1 − (1 − 1/200)²⁰⁰ ≈ 0.633, so about 127 distinct rows; the other 37% are \"out of bag\". 200 forgets that duplicates push some rows out; 73 is the out-of-bag count.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "You draw 10,000 bootstrap medians and sort them. Which values form the 95% percentile interval?",
+      "options": [
+        "The 500th and 9,500th values",
+        "The 25th and 975th values",
+        "The 250th and 9,750th values",
+        "The minimum and maximum values"
+      ],
+      "answer": 2,
+      "why": "A 95% percentile interval uses the 2.5th and 97.5th percentiles: 2.5% of 10,000 = 250 and 97.5% = 9,750. The 500th and 9,500th give a 90% interval; the minimum and maximum give an interval far too wide and unstable.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A bootstrap 95% interval for the median delivery time is 29 to 39.5 minutes. Which reading is correct?",
+      "options": [
+        "95% of deliveries take between 29 and 39.5 minutes",
+        "The median of our sample is definitely between 29 and 39.5",
+        "There is exactly a 95% chance the true median is 34",
+        "It is a range of plausible values for the true median delivery time, from a method that captures it about 95% of the time"
+      ],
+      "answer": 3,
+      "why": "Like any confidence interval, it is about the population **median**, not individual deliveries, which ranged from 22 to 75 minutes. The sample median is known exactly (34), so there is nothing uncertain about it. The interval describes uncertainty in the true median.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You sampled 40 stores and recorded about 500 transactions in each. To bootstrap the average transaction value, what should you resample?",
+      "options": [
+        "Stores (whole clusters of transactions), because stores were the independently sampled unit",
+        "Individual transactions, because there are more of them",
+        "Days of the week",
+        "It does not matter; the interval is the same"
+      ],
+      "answer": 0,
+      "why": "Always resample the unit that was independently sampled. Transactions in the same store are related, so resampling them individually pretends you have 20,000 independent observations and gives an interval that is far too narrow.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Daily sales form a time series with strong day-to-day dependence. Why is the ordinary bootstrap a problem, and what is the fix?",
+      "options": [
+        "Resampling single days breaks the dependence between neighbouring days and understates uncertainty; use a block bootstrap that resamples runs of consecutive days",
+        "There is no problem; the bootstrap works on any data",
+        "Use sampling without replacement",
+        "Increase the number of resamples to 1 million"
+      ],
+      "answer": 0,
+      "why": "The ordinary bootstrap assumes independent observations. A block bootstrap keeps short runs intact so the dependence is preserved. More resamples only reduce simulation noise; they do not fix a wrong resampling scheme.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "In an interview: \"Model A scores 86% accuracy (95% CI 81% to 90.5%) and model B 88% on the same 200 test customers. Which is better?\"",
+      "options": [
+        "Model B, because 88% is higher",
+        "Model A, because its interval is known",
+        "They are proven equal because the intervals overlap",
+        "We cannot tell yet: the 2-point gap is well within the uncertainty; bootstrap the **difference** in accuracy with paired resamples of the same customers (or use more test data)"
+      ],
+      "answer": 3,
+      "why": "Because both models were scored on the same customers, the right analysis resamples customers and recomputes both accuracies each time, giving an interval for the difference. Overlapping intervals neither prove equality nor rule out a difference.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

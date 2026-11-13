@@ -2,14 +2,14 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Region, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { mean, pearson, spearman, ols, sum } from './_stats2-helpers';
+import { mean, corr, spearman, olsLine, sum, sd } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 type Pt = { x: number; y: number };
 const AD_X = [1, 2, 3, 4, 5], AD_Y = [10, 14, 13, 18, 20]; // g-stats2: ad spend vs sales (₹ lakh)
-const rOf = (p: Pt[]) => pearson(p.map((q) => q.x), p.map((q) => q.y));
+const rOf = (p: Pt[]) => corr(p.map((q) => q.x), p.map((q) => q.y));
 /** Standardised z-scores of a vector. */
-function zs(a: number[]) { const m = mean(a), s = Math.sqrt(sum(a.map((v) => (v - m) ** 2)) / a.length) || 1; return a.map((v) => (v - m) / s); }
+function zs(a: number[]) { const m = mean(a), s = sd(a) || 1; return a.map((v) => (v - m) / s); }
 /** Two orthonormal noise vectors (sample correlation exactly 0), so any target r can be hit exactly. */
 function baseNoise(n: number, seed: number) {
   const r = rng(seed); const a = zs(Array.from({ length: n }, () => gauss(r))); let b = Array.from({ length: n }, () => gauss(r));
@@ -47,7 +47,7 @@ function confounded(seed = 21) {
     return { T, ice: 10 + 2.2 * T + 5 * gauss(r), drown: Math.max(0, 0.6 * T - 8 + 1.6 * gauss(r)) };
   });
 }
-const residuals = (y: number[], x: number[]) => { const { a, b } = ols(x, y); return y.map((v, i) => v - a - b * x[i]); };
+const residuals = (y: number[], x: number[]) => { const { a, b } = olsLine(x, y); return y.map((v, i) => v - a - b * x[i]); };
 
 /* ---------- Animate ---------- */
 type Stage = 'ad' | 'means' | 'rects' | 'r' | 'm1' | 'm2' | 'm3' | 'm4' | 'q1' | 'q2' | 'q3' | 'q4' | 'c1' | 'c2' | 'c3';
@@ -61,23 +61,23 @@ function Animate() {
   const quad = useMemo(() => quartet(0.8), []);
   const conf = useMemo(() => confounded(), []);
   const adPts = AD_X.map((x, i) => ({ x, y: AD_Y[i] }));
-  const adR = rOf(adPts), adFit = ols(AD_X, AD_Y);
+  const adR = rOf(adPts), adFit = olsLine(AD_X, AD_Y);
   const part = st in MORPH ? 'morph' : /^q\d$/.test(st) ? 'quartet' : /^c\d$/.test(st) ? 'conf' : 'ad';
 
   let pts: Pt[] = adPts, x: [number, number] = [0, 6], y: [number, number] = [6, 24], xl = 'ad spend (₹ lakh)', yl = 'sales (₹ lakh)';
   let colorFn: (i: number) => string = () => C.blue, r = adR, fit: { a: number; b: number } | null = null;
-  if (part === 'morph') { pts = cloud(60, MORPH[st], 3, 8, 8, 2.2, 2.2); x = [0, 16]; y = [0, 16]; xl = 'x'; yl = 'y'; r = MORPH[st]; fit = ols(pts.map((q) => q.x), pts.map((q) => q.y)); }
-  if (part === 'quartet') { const k = +st[1] - 1; pts = quad[k]; x = [0, 16]; y = [0, 16]; xl = 'x'; yl = 'y'; r = rOf(pts); fit = ols(pts.map((q) => q.x), pts.map((q) => q.y)); }
+  if (part === 'morph') { pts = cloud(60, MORPH[st], 3, 8, 8, 2.2, 2.2); x = [0, 16]; y = [0, 16]; xl = 'x'; yl = 'y'; r = MORPH[st]; fit = olsLine(pts.map((q) => q.x), pts.map((q) => q.y)); }
+  if (part === 'quartet') { const k = +st[1] - 1; pts = quad[k]; x = [0, 16]; y = [0, 16]; xl = 'x'; yl = 'y'; r = rOf(pts); fit = olsLine(pts.map((q) => q.x), pts.map((q) => q.y)); }
   const T = conf.map((c) => c.T), ice = conf.map((c) => c.ice), drown = conf.map((c) => c.drown);
   const band = (t: number) => (t < 23 ? 0 : t < 29 ? 1 : 2);
-  const confR = pearson(ice, drown), partialR = pearson(residuals(ice, T), residuals(drown, T));
-  const bandR = [0, 1, 2].map((b) => { const idx = conf.map((c, i) => (band(c.T) === b ? i : -1)).filter((i) => i >= 0); return idx.length > 2 ? pearson(idx.map((i) => ice[i]), idx.map((i) => drown[i])) : 0; });
+  const confR = corr(ice, drown), partialR = corr(residuals(ice, T), residuals(drown, T));
+  const bandR = [0, 1, 2].map((b) => { const idx = conf.map((c, i) => (band(c.T) === b ? i : -1)).filter((i) => i >= 0); return idx.length > 2 ? corr(idx.map((i) => ice[i]), idx.map((i) => drown[i])) : 0; });
   if (part === 'conf') {
     pts = conf.map((c) => ({ x: c.ice, y: c.drown })); x = [35, 105];
-    if (st === 'c3') { const ri = residuals(ice, T), rd = residuals(drown, T), mi = mean(ice), md = mean(drown); pts = conf.map((_, i) => ({ x: mi + ri[i], y: md + rd[i] })); fit = ols(pts.map((q) => q.x), pts.map((q) => q.y)); } y = [-1, 22]; xl = 'ice-cream sales (₹ thousand / month)'; yl = 'drownings per month'; r = confR;
+    if (st === 'c3') { const ri = residuals(ice, T), rd = residuals(drown, T), mi = mean(ice), md = mean(drown); pts = conf.map((_, i) => ({ x: mi + ri[i], y: md + rd[i] })); fit = olsLine(pts.map((q) => q.x), pts.map((q) => q.y)); } y = [-1, 22]; xl = 'ice-cream sales (₹ thousand / month)'; yl = 'drownings per month'; r = confR;
     if (st !== 'c1') colorFn = (i) => SEASON[band(conf[i].T)];
     if (st === 'c3') { xl = 'ice-cream sales not explained by temperature'; yl = 'drownings not explained by temperature'; }
-    if (st === 'c1') fit = ols(ice, drown);
+    if (st === 'c1') fit = olsLine(ice, drown);
   }
   if (st === 'r') fit = adFit;
   const mx = mean(pts.map((q) => q.x)), my = mean(pts.map((q) => q.y));
@@ -113,7 +113,7 @@ function Animate() {
             {fit && <FnLine s={s} f={(v) => fit!.a + fit!.b * v} color={C.yellow} width={2} />}
             {st === 'c2' && [0, 1, 2].map((b) => {
               const idx = conf.map((c, i) => (band(c.T) === b ? i : -1)).filter((i) => i >= 0); if (idx.length < 3) return null;
-              const xs = idx.map((i) => ice[i]), f = ols(xs, idx.map((i) => drown[i]));
+              const xs = idx.map((i) => ice[i]), f = olsLine(xs, idx.map((i) => drown[i]));
               return <FnLine key={'bf' + b} s={s} f={(v) => f.a + f.b * v} from={Math.min(...xs)} to={Math.max(...xs)} color={SEASON[b]} width={2.5} dash="5 3" />;
             })}
             <Dots s={s} pts={pts} r={part === 'ad' ? 8 : 6} color={colorFn} />
@@ -148,8 +148,8 @@ function Playground() {
   const base = useMemo(() => cloud(n, target, seed), [n, target, seed]);
   const pts = [...base, ...extra];
   const xs = pts.map((q) => q.x), ys = pts.map((q) => q.y);
-  const r = pearson(xs, ys), rho = spearman(xs, ys), f = ols(xs, ys), mx = mean(xs), my = mean(ys);
-  const rBase = pearson(base.map((q) => q.x), base.map((q) => q.y));
+  const r = corr(xs, ys), rho = spearman(xs, ys), f = olsLine(xs, ys), mx = mean(xs), my = mean(ys);
+  const rBase = corr(base.map((q) => q.x), base.map((q) => q.y));
   return (
     <Layout
       main={<Plot x={[0, 100]} y={[0, 100]} height={440} xLabel="x (click to add a point)" yLabel="y" onClick={(q) => setExtra([...extra, q])}>

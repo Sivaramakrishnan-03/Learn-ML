@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why is ordinary least squares a poor choice for predicting complaints per branch per month?",
+      "options": [
+        "Because a straight line can predict negative counts, and it assumes equal spread when count spread grows with the average",
+        "Because least squares cannot use more than one feature",
+        "Because counts are categories, so they need logistic regression",
+        "Because least squares always predicts whole numbers"
+      ],
+      "answer": 0,
+      "why": "Counts are never negative and their variance grows with their size; OLS ignores both. Counts are ordered numbers, not yes/no categories, so logistic regression is the wrong family. OLS predictions are not whole numbers either, which is one more mismatch, not a strength.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A help desk receives on average **2 calls per minute**, following a Poisson pattern. What is the probability of a minute with **no calls**?",
+      "options": [
+        "0, because the average is 2",
+        "About 0.135",
+        "About 0.271",
+        "0.5"
+      ],
+      "answer": 1,
+      "why": "P(0) = λ⁰ e^(−λ) / 0! = e^(−2) ≈ 0.135, so about one minute in seven is empty. 0.271 is P(1) = 2e^(−2). An average of 2 does not rule out quiet minutes: the Poisson distribution spreads around its mean.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "In a footfall model, the coefficient on **heavy_rain (0/1)** is **−0.223**. How should you read it?",
+      "options": [
+        "Rain removes 0.223 visitors per hour",
+        "Rain explains 22.3% of the variation in footfall",
+        "Rain multiplies expected footfall by e^(−0.223) ≈ 0.80, i.e. about 20% fewer visitors, holding other features fixed",
+        "Rain lowers footfall by 0.223%"
+      ],
+      "answer": 2,
+      "why": "Poisson coefficients live on the log scale, so the effect is the rate ratio e^b, a multiplier on the expected count. Reading the coefficient additively (\"0.223 fewer visitors\") is the classic mistake the chapter warns about: 0.4 means × 1.49, not +0.4 events.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "The insurer's model is **log(expected claims per policy-year) = −2.3 + 0.4 × young_driver + 0.1 × (km per year ÷ 10,000)**. What is the expected claim count for a young driver doing **30,000 km** a year, over a full year?",
+      "options": [
+        "About 0.10",
+        "About 0.20",
+        "About 0.18",
+        "−1.6"
+      ],
+      "answer": 1,
+      "why": "Score = −2.3 + 0.4 + 0.1 × 3 = −1.6, so the expected count is e^(−1.6) ≈ 0.20 (equivalently 0.100 × 1.49 × e^0.3 ≈ 0.20). −1.6 forgets to exponentiate the score, 0.18 is the chapter's 20,000 km driver, and 0.10 is only the base rate.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Branch C has **24 claims over 300 policy-years**; branch D has **40 claims over 800 policy-years**. Which statement is right?",
+      "options": [
+        "D is riskier because it has more claims",
+        "They are equally risky because both have tens of claims",
+        "C is riskier: 0.08 claims per policy-year against D's 0.05",
+        "You cannot compare them without a negative binomial model"
+      ],
+      "answer": 2,
+      "why": "24 / 300 = 0.08 and 40 / 800 = 0.05. More exposure naturally produces more claims, which is why Poisson regression uses an exposure offset so the features explain the **rate** per policy-year, not the raw count. Comparing raw counts across windows of different size misleads.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A Poisson model of complaints per branch shows a Pearson chi-square / residual degrees of freedom of about **4**. What follows?",
+      "options": [
+        "The model fits perfectly; values above 1 are good",
+        "The coefficients are all four times too large and must be divided by 4",
+        "There are too many zeros, so the only fix is to drop the zero rows",
+        "The data are over-dispersed: standard errors are too small by about √4 = 2, so effects look more significant than they are; consider negative binomial regression"
+      ],
+      "answer": 3,
+      "why": "Poisson assumes variance = mean; a ratio well above 1 means extra variation. Coefficients stay roughly right, but the standard errors shrink by about √ratio, producing overconfident conclusions. Negative binomial or quasi-Poisson models fix this. Excess zeros are a separate issue handled by zero-inflated or hurdle models, never by deleting data.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "A plant fits **log(expected defects) = b₀ + b₁ × night**. Day shifts average **3.0** defects and night shifts **4.2**. What is b₁?",
+      "options": [
+        "1.2",
+        "1.4",
+        "About 1.099",
+        "About 0.336"
+      ],
+      "answer": 3,
+      "why": "With a single 0/1 feature the Poisson fit matches each group's average, so the rate ratio e^b₁ = 4.2 / 3.0 = 1.4 and b₁ = ln 1.4 ≈ 0.336. 1.4 is the rate ratio itself, not the coefficient; 1.2 is the raw difference in averages (an additive reading); 1.099 is ln 3.0, which is b₀.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview question: \"Why use an **offset** of log(exposure) instead of just adding log(exposure) as an ordinary feature?\"",
+      "options": [
+        "An offset fixes the coefficient at 1, forcing expected claims to be exactly proportional to exposure, so the features explain the rate per unit of exposure",
+        "There is no difference; an offset is just another name for a feature",
+        "Offsets make the model fit faster but give the same coefficients",
+        "Offsets are only needed when the data are over-dispersed"
+      ],
+      "answer": 0,
+      "why": "log μ = log(exposure) + b₀ + … means μ = exposure × rate: twice the policy-years, twice the expected claims. As a free feature, the model could estimate any coefficient on log(exposure) and blur the line between \"more exposure\" and \"higher risk\". Offsets are about unequal observation windows, not over-dispersion.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

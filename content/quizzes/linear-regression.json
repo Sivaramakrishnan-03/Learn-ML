@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why does least squares **square** each residual instead of simply adding the residuals up?",
+      "options": [
+        "Without squaring, positive and negative gaps cancel, so a terrible line could score zero; squaring also punishes big misses more",
+        "Squaring makes the arithmetic faster for the computer",
+        "Squaring turns the residuals into percentages so they can be compared",
+        "Squaring removes the effect of outliers"
+      ],
+      "answer": 0,
+      "why": "Raw residuals cancel: a line 10 above one point and 10 below another would total zero. Squaring makes every gap count and weights a 4-unit miss four times a 2-unit miss. The tempting idea that squaring tames outliers is backwards: squaring gives far-away points **more** pull, not less.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "The Hosur plant's cost line is **cost = 17.1 + 5.3 × output** (cost in ₹ lakh, output in thousand units). What does the 17.1 mean?",
+      "options": [
+        "The cost of each extra thousand units",
+        "About ₹17 lakh a month of fixed cost incurred even at zero output",
+        "The share of cost variation the line explains",
+        "A meaningless number that only positions the line"
+      ],
+      "answer": 1,
+      "why": "The intercept is the predicted cost when output is zero, which here is a real quantity: rent, salaries and standing charges. The 5.3 is the slope (variable cost). It is tempting to dismiss every intercept as meaningless, as in the flat-price example, but whether it means something depends on whether x = 0 is a sensible situation.",
+      "level": 1,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Using the Hosur line **cost = 17.1 + 5.3 × output**, what is the forecast monthly cost for 4,500 units?",
+      "options": [
+        "₹23.85 lakh",
+        "₹255.6 lakh",
+        "₹43.00 lakh",
+        "₹40.95 lakh"
+      ],
+      "answer": 3,
+      "why": "Output is measured in thousands, so x = 4.5: 17.1 + 5.3 × 4.5 = 17.1 + 23.85 = ₹40.95 lakh. ₹23.85 lakh forgets the fixed cost, ₹255.6 lakh plugs in 45 instead of 4.5 (a units slip), and ₹43 lakh is just the observed cost at 5,000 units.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "The best line through the five Chennai flats is **price = 9 + 4.3 × area** (area in hundreds of sq ft). The couple's 1,100 sq ft flat is listed at ₹62 lakh. What is its residual, and what does it say?",
+      "options": [
+        "−5.7: the line over-predicts, so the flat is cheap",
+        "+5.7: the line is wrong and should be refitted through this flat",
+        "+5.7: the asking price is about ₹5.7 lakh above what the line predicts",
+        "+0.57: the flat is almost exactly fairly priced"
+      ],
+      "answer": 2,
+      "why": "Predicted price = 9 + 4.3 × 11 = ₹56.3 lakh, and residual = actual − predicted = 62 − 56.3 = +5.7. A positive residual means the line under-predicts, so the listing sits above the market line. Getting the sign backwards (predicted − actual) is the classic slip.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You fit a straight line of fuel use on speed and the residual plot goes positive, then negative, then positive again (a U-shape). What should you conclude?",
+      "options": [
+        "The errors are not normal, so only the p-values are affected",
+        "The relationship curves, so a straight line is the wrong model; try polynomial terms or trees",
+        "There is one outlier that should be deleted",
+        "The model is fine because the residuals still add up to zero"
+      ],
+      "answer": 1,
+      "why": "A systematic pattern in the residuals means the model is missing structure; a U-shape breaks the **L (linear)** assumption. Residuals of a least-squares line always sum to zero, so that fact tells you nothing about whether the shape is right.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A sixth sale is added to the five flats: 900 sq ft at ₹90 lakh (probably a typo for ₹40 lakh). Refitting gives slope ≈ 3.44 and intercept ≈ 24.5. Why did one point out of six move the slope so much?",
+      "options": [
+        "Because least squares gives every point exactly equal influence",
+        "Because the new point is outside the range of area, so it is an extrapolation",
+        "Because the errors are squared, so a far-away point's huge residual dominates the total and drags the line towards it",
+        "Because R² dropped, which automatically changes the slope"
+      ],
+      "answer": 2,
+      "why": "A residual of tens of lakh becomes hundreds once squared, so the fit tilts to shrink it, cutting the slope from 4.3 to about 3.44. The point is not an extrapolation: area 9 sits inside the 6–14 range. R² is a summary of the fit, not something that drives the coefficients.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "For the five flats, SSE = 6.40 and the total squared deviation from the mean price is 746. The chapter reports R² ≈ 0.991. Which statement about this number is correct?",
+      "options": [
+        "It is measured on the training flats, so it flatters the model; test-set RMSE and R² are the honest check",
+        "It proves the model will predict new flats to within 1%",
+        "It means area causes 99% of the price",
+        "It means 99% of the flats lie exactly on the line"
+      ],
+      "answer": 0,
+      "why": "R² = 1 − 6.40 / 746 ≈ 0.991 is the share of variation removed **on the data used to fit the line**, which always looks better than on unseen data. It says nothing about causation, and points can all miss the line slightly while R² stays high.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"Which of the LINE assumptions can you relax if you only care about point predictions, not confidence intervals?\"",
+      "options": [
+        "Linearity: the line works for any shape of data",
+        "Independence: correlated errors never matter",
+        "Equal spread: it is the only assumption that affects the slope",
+        "Normality of errors: it mainly matters for confidence intervals and p-values, much less for prediction"
+      ],
+      "answer": 3,
+      "why": "Normal residuals are needed for the textbook intervals and tests, but least squares still gives sensible predictions without them. Linearity cannot be relaxed: a curved relationship gives systematically wrong predictions. Independence and equal spread mainly affect how much you can trust the uncertainty estimates, not whether a line is the right shape.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

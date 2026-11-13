@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "You want to see the shape of a single numeric column, such as flat prices: where most values sit and whether there is a long tail. Which chart fits best?",
+      "options": [
+        "Pie chart",
+        "Line chart",
+        "Histogram",
+        "Scatter plot"
+      ],
+      "answer": 2,
+      "why": "A histogram cuts the range into equal-width bins and counts the values in each, showing the distribution's shape. A scatter plot needs two numeric variables, and a line chart implies an order such as time.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Order values are right-skewed: most orders are small, with a long tail of very large ones. How do the mean and median compare?",
+      "options": [
+        "The median is above the mean",
+        "The mean is above the median",
+        "They are always equal",
+        "The mean is below the median because large values are rare"
+      ],
+      "answer": 1,
+      "why": "The few very large values pull the mean up, while the median only cares about the middle value. Reasoning that rare large values \"do not count much\" is the trap; the mean is sensitive to every value's size.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Eight sorted values: 10, 12, 13, 14, 15, 16, 18, 40. Using NumPy's default quartiles, Q1 = 12.75 and Q3 = 16.5. Which values does a standard box plot draw as outlier dots?",
+      "options": [
+        "None",
+        "Only 40",
+        "10 and 40",
+        "18 and 40"
+      ],
+      "answer": 1,
+      "why": "IQR = 16.5 − 12.75 = 3.75. Fences: 12.75 − 1.5 × 3.75 = 7.125 and 16.5 + 1.5 × 3.75 = 22.125. Only 40 lies outside. 10 looks low but is above the lower fence; judging outliers by eye instead of by the 1.5 × IQR rule is the usual slip.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A box plot of order values shows the median line near the bottom of the box, a long upper whisker and many dots above it. What does this suggest?",
+      "options": [
+        "The data is symmetric with no unusual values",
+        "The box plot is broken; the median should be in the middle",
+        "The data is left-skewed, so the mean will sit below the median",
+        "The data is right-skewed with several unusually large orders, so the mean will sit above the median"
+      ],
+      "answer": 3,
+      "why": "A median close to Q1 with a long upper tail means values bunch at the low end and stretch upwards: right skew. The median does not have to be in the centre of the box, and that asymmetry is exactly what the plot is showing you.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Sixteen flat prices (₹ lakh): 28, 35, 42, 45, 48, 52, 55, 58, 61, 63, 67, 72, 78, 85, 96, 120. With bins of width 25 starting at 25, how many flats fall in the \"50 to under 75\" bin?",
+      "options": [
+        "7",
+        "6",
+        "5",
+        "8"
+      ],
+      "answer": 0,
+      "why": "52, 55, 58, 61, 63, 67 and 72 give **7**. 78 belongs to the next bin and 48 to the one before. 5 is the count for the 25 to under 50 bin. Changing bin edges changes the bars, which is why you try more than one setting.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A bar chart shows Branch A at 88% satisfaction and Branch B at 84%, with the y-axis running from 80% to 100%. B's bar looks half as tall as A's. What is the honest reading?",
+      "options": [
+        "B's satisfaction is half of A's",
+        "B is performing badly enough to need urgent action",
+        "The gap is 4 percentage points; the truncated axis exaggerates it, so bar charts should start at zero",
+        "Bar heights always represent ratios, so the chart is correct"
+      ],
+      "answer": 2,
+      "why": "Bars encode values by length, so starting the axis at 80% makes 8 versus 4 units of bar look like a 2 : 1 difference. Reading the bar heights as the ratio is exactly what a truncated axis tricks people into.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A histogram of 60 delivery times looks smooth with one peak at 5 bins, but jagged with several peaks at 50 bins. What is the best conclusion?",
+      "options": [
+        "The 50-bin version is right; more bins always show the truth",
+        "Histograms are unreliable, so use the mean instead",
+        "The data must contain several distinct groups",
+        "With only 60 values, many narrow bins mostly show noise; compare a few bin settings and trust features that persist"
+      ],
+      "answer": 3,
+      "why": "Too many bins for the sample size leave only one or two values per bin, so random gaps look like structure; too few hide detail. Assuming more bins means more truth is the tempting error. Replacing the chart with a single summary throws away the shape altogether.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Why look at charts before building a model when you can just compute summary statistics?\" Which answer is best?",
+      "options": [
+        "Very different datasets can share the same mean, variance and correlation (Anscombe's quartet); plots reveal curves, outliers, typos and groups that summaries hide",
+        "Charts are mainly for presenting results to stakeholders",
+        "Summary statistics are usually computed incorrectly",
+        "Models cannot be trained without a histogram"
+      ],
+      "answer": 0,
+      "why": "Anscombe's four datasets share x mean 9, y mean 7.50 and the same correlation and fitted line, yet look completely different. EDA is fast private looking to catch problems such as a ₹960 lakh typo, not presentation polish, which is the common misreading.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

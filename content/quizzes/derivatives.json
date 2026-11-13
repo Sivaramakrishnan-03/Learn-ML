@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A model's error is very high, but the derivative of the error at the current weight is almost 0. What does that tell you?",
+      "options": [
+        "The error curve is nearly flat here, for example a plateau, so the slope gives little guidance even though the error is high",
+        "The model has reached its best possible weight",
+        "The error must be about to fall to zero",
+        "The derivative has been computed incorrectly, because high error always means a steep slope"
+      ],
+      "answer": 0,
+      "why": "A derivative measures slope, not height. A flat stretch can sit at a high error. Treating \"slope near 0\" as \"we are at the minimum\" is the classic confusion between a function's value and its slope.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Using the power rule, what is the derivative of f(x) = x³ at x = 2?",
+      "options": [
+        "8",
+        "12",
+        "6",
+        "4"
+      ],
+      "answer": 1,
+      "why": "Bring the power down and reduce it by one: f′(x) = 3x², so f′(2) = 3 × 4 = **12**. 8 is the value f(2), not the slope; 6 forgets to square x; 4 uses the x² rule (2x) by mistake.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "A chai stall sells 1,200 − 20p cups a day at price ₹p, and each cup costs ₹10. Profit is π(p) = (p − 10)(1,200 − 20p). At what price is the derivative zero?",
+      "options": [
+        "₹30",
+        "₹10",
+        "₹60",
+        "₹35"
+      ],
+      "answer": 3,
+      "why": "Expand: π(p) = −20p² + 1,400p − 12,000, so π′(p) = −40p + 1,400. Setting it to zero gives p = **₹35** (daily profit 25 × 500 = ₹12,500). ₹30 is the answer for the chapter's original demand of 1,000 − 20p; ₹60 is where demand hits zero, which earns nothing.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "For f(x) = x² at x = 5, the chord slopes with nudges h = 1, 0.1 and 0.01 come out as 11, 10.1 and 10.01. What is f′(5)?",
+      "options": [
+        "11, the first chord slope",
+        "10.01, because the smallest nudge is exact",
+        "10, the value the chord slopes are heading towards",
+        "25, the value of the function"
+      ],
+      "answer": 2,
+      "why": "The pattern is 10 + h, so as h shrinks the chord slope approaches **10** (and the power rule confirms 2 × 5 = 10). Any fixed h, however small, still measures an average over a short stretch, which is why 10.01 is close but not the derivative.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You find a point where the derivative of the loss is exactly 0. What can you conclude?",
+      "options": [
+        "It is definitely the minimum",
+        "The curve is flat there; it could be a minimum, a maximum or a saddle",
+        "It is definitely the maximum",
+        "The loss is zero at that point"
+      ],
+      "answer": 1,
+      "why": "A zero derivative only says \"flat here\". For a bowl such as (w − 3)² the flat point is the minimum, but on other curves it can be a hilltop or a flat ledge. Assuming zero slope means minimum is the common slip, and zero slope says nothing about the loss being zero.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "For one positive example, log-loss is L(p) = −ln p, where p is the predicted probability. What is dL/dp at p = 0.5?",
+      "options": [
+        "−0.693",
+        "2",
+        "−2",
+        "0.5"
+      ],
+      "answer": 2,
+      "why": "The derivative of ln p is 1/p, so dL/dp = −1/p = −1/0.5 = **−2**. The negative sign says raising p lowers the loss. +2 drops the minus sign; −0.693 is ln 0.5, the value of the log rather than its slope.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "The tangent to f(x) = x² at x = 3 is y = 6x − 9. Using the tangent, what is the best estimate of f(3.2), and how close is it?",
+      "options": [
+        "10.2, just below the true value 10.24",
+        "9, because the tangent touches the curve at (3, 9)",
+        "19.2, by multiplying the slope by 3.2",
+        "10.24 exactly, because the tangent equals the curve"
+      ],
+      "answer": 0,
+      "why": "6 × 3.2 − 9 = **10.2**, very close to the true 3.2² = 10.24. The tangent is the best straight-line approximation near the point, not an exact copy of the curve, so the small gap grows as you move further away. 19.2 forgets the −9 intercept.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Why do derivatives matter for training a machine learning model?\" Which answer is best?",
+      "options": [
+        "They compute the model's accuracy on the test set",
+        "They are only needed for neural networks, not for linear models",
+        "They guarantee the model finds the global minimum",
+        "The derivative of the loss with respect to a weight tells you which way to nudge that weight, and roughly how much the loss will change, so you can improve it step by step"
+      ],
+      "answer": 3,
+      "why": "The sign gives the direction (positive slope: decrease the weight) and the size gives the strength of the effect, which is exactly what gradient descent uses. Derivatives give no guarantee of a global minimum on non-bowl-shaped losses, and linear and logistic regression use them too.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

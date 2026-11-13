@@ -2,7 +2,7 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, FnLine, Seg, Label, Region, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
-import { lgamma, sum } from './_stats2-helpers';
+import { lgamma, sum, poissonPmf } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 const SEQ = [1, 1, 0, 1, 1, 1, 0, 1, 0, 1]; // 7 conversions in 10 visitors (g-stats2)
@@ -14,7 +14,6 @@ const binLL = (k: number, n: number) => (p: number) => xlogy(k, p) + xlogy(n - k
 const binRel = (k: number, n: number) => { const best = n ? binLL(k, n)(k / n) : 0; return (p: number) => Math.exp(binLL(k, n)(p) - best); };
 /** Poisson log-likelihood including the −Σ log x! constant. */
 const poisLL = (xs: number[]) => { const S = sum(xs), c = sum(xs.map((x) => lgamma(x + 1))); return (l: number) => S * Math.log(l) - xs.length * l - c; };
-const poisPmf = (k: number, l: number) => Math.exp(k * Math.log(l) - l - lgamma(k + 1));
 /** Likelihood interval: parameter values whose log-likelihood is within 1.92 of the maximum (≈ 95%). */
 function llInterval(ll: (t: number) => number, best: number, lo: number, hi: number) {
   const top = ll(best), cut = top - 1.92;
@@ -44,7 +43,7 @@ function Animate() {
     log: <>In practice we maximise the <b>log-likelihood</b> ℓ(p) = 7 log p + 3 log(1 − p): sums are easier than products, and the peak is in the same place. At the top the slope is zero: 7/p − 3/(1 − p) = 0 gives <b>p̂ = 0.7</b>, the sample proportion.</>,
     more: <>Same rate, ten times the data: 70 conversions in 100 visitors (yellow) vs 7 in 10 (grey). Same peak, much <b>sharper hill</b>: far fewer values of p are plausible. The hill's width is the estimate's uncertainty.</>,
     pois: <>A different model, same idea. A help desk logs calls per hour: 2, 3, 1, 4, 0, 2. For a Poisson rate λ, ℓ(λ) = 12 log λ − 6λ − log 576. The hill peaks at <b>λ = 12 ÷ 6 = 2 calls per hour</b> (the MLE): ℓ(1.5) = −10.49, ℓ(2) = −10.04, ℓ(2.5) = −10.36, ℓ(3) = −11.17.</>,
-    poisFit: <>With the MLE λ = 2 the fitted Poisson model (yellow) predicts how many of the 6 hours should have 0, 1, 2, … calls; the blue bars are what happened. Now the model can answer staffing questions, e.g. P(5 or more calls in an hour) = <b>{(100 * (1 - [0, 1, 2, 3, 4].reduce((a, j) => a + poisPmf(j, 2), 0))).toFixed(1)}%</b>.</>,
+    poisFit: <>With the MLE λ = 2 the fitted Poisson model (yellow) predicts how many of the 6 hours should have 0, 1, 2, … calls; the blue bars are what happened. Now the model can answer staffing questions, e.g. P(5 or more calls in an hour) = <b>{(100 * (1 - [0, 1, 2, 3, 4].reduce((a, j) => a + poissonPmf(j, 2), 0))).toFixed(1)}%</b>.</>,
   };
   const poisFreq = [0, 1, 2, 3, 4, 5].map((j) => CALLS.filter((x) => x === j).length);
   return (
@@ -108,8 +107,8 @@ function Animate() {
             <Plot x={[-0.6, 6.6]} y={[0, 2.6]} height={470} xLabel="calls in an hour" yLabel="number of hours (out of 6)" xTicks={7}>
               {(s) => <>
                 <Bars s={s} data={poisFreq.map((y, x) => ({ x, y }))} width={0.55} color={C.blue} />
-                <Dots s={s} pts={[0, 1, 2, 3, 4, 5, 6].map((x) => ({ x, y: 6 * poisPmf(x, 2) }))} r={7} color={C.yellow} animate={false} />
-                {[0, 1, 2, 3, 4, 5, 6].map((x) => <Label key={x} s={s} x={x + 0.12} y={6 * poisPmf(x, 2) + 0.1} size={11} color={C.yellow}>{(6 * poisPmf(x, 2)).toFixed(2)}</Label>)}
+                <Dots s={s} pts={[0, 1, 2, 3, 4, 5, 6].map((x) => ({ x, y: 6 * poissonPmf(x, 2) }))} r={7} color={C.yellow} animate={false} />
+                {[0, 1, 2, 3, 4, 5, 6].map((x) => <Label key={x} s={s} x={x + 0.12} y={6 * poissonPmf(x, 2) + 0.1} size={11} color={C.yellow}>{(6 * poissonPmf(x, 2)).toFixed(2)}</Label>)}
               </>}
             </Plot>
           )}
@@ -156,7 +155,7 @@ function Playground() {
   const diff = top - ll(g);
   const maxCount = isB ? 1 : Math.max(...data, 6);
   const freq = isB ? [n - S, S] : Array.from({ length: maxCount + 1 }, (_, j) => data.filter((x) => x === j).length);
-  const pred = (theta: number) => (isB ? [n * (1 - theta), n * theta] : freq.map((_, j) => n * poisPmf(j, theta)));
+  const pred = (theta: number) => (isB ? [n * (1 - theta), n * theta] : freq.map((_, j) => n * poissonPmf(j, theta)));
   const yMax = Math.max(...freq, ...pred(g), ...pred(best)) * 1.15 + 0.5;
   return (
     <Layout

@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Region, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, MatrixView, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { lstsq, sigmoid, solve, clamp } from './_regression-helpers';
+import { lstsq, sigmoid, solve, clamp } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 // Loan applicants: debt-to-income ratio (DTI, %) and whether they defaulted (1) or repaid (0).

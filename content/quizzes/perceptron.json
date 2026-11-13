@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "During training, the perceptron classifies an example **correctly**. What happens to its weights and bias?",
+      "options": [
+        "They grow slightly to reinforce the correct answer",
+        "They shrink slightly to avoid overfitting",
+        "Only the bias changes",
+        "Nothing: the error t − o is 0, so the update adds 0"
+      ],
+      "answer": 3,
+      "why": "The update is wⱼ ← wⱼ + η(t − o)xⱼ and b ← b + η(t − o). When the output matches the target, t − o = 0 and nothing moves: the perceptron learns only from mistakes. Reinforcing correct answers is how logistic regression behaves (it updates by how wrong every prediction is), not the perceptron.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A perceptron has weights **w = (0.5, −1)** and bias **b = 0.2**. What does it output for the input **x = (2, 1)**?",
+      "options": [
+        "0, because one weight is negative",
+        "0.2",
+        "0, because z = −0.8",
+        "1, because z = 0.5 × 2 − 1 × 1 + 0.2 = 0.2 > 0"
+      ],
+      "answer": 3,
+      "why": "z = 1.0 − 1.0 + 0.2 = 0.2, which is above zero, so the step activation outputs 1. 0.2 is the score, not the output: the step turns it into 0 or 1. −0.8 comes from subtracting the bias instead of adding it.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "In the loan-screening neuron, **w₂ = −2.0** on x₂ = existing EMIs as a share of income. How should you read it?",
+      "options": [
+        "Applicants with EMIs are always declined",
+        "EMI share is twice as important as income in every case",
+        "More existing debt pushes towards decline: each extra 0.1 of EMI share lowers the score z by 0.2",
+        "The model will approve with probability 2%"
+      ],
+      "answer": 2,
+      "why": "A negative weight pushes the score down as its input rises: 0.1 × (−2.0) = −0.2. Whether an applicant is declined depends on the whole sum, including income and the bias. Comparing raw weights across features only works if the inputs are on the same scale, and the perceptron gives no probabilities at all.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A perceptron with w = [0.5, 0.5], b = 0 and learning rate η = 1 wrongly outputs 0 for the input **x = (0, 1)** whose target is 1. What are the new weights and bias?",
+      "options": [
+        "w = [0.5, 1.5], b = 1",
+        "w = [1.5, 1.5], b = 1",
+        "w = [0.5, 1.5], b = 0",
+        "w = [−0.5, −0.5], b = −1"
+      ],
+      "answer": 0,
+      "why": "Error = 1 − 0 = +1. w₁ ← 0.5 + 1 × 1 × 0 = 0.5 (input 0, so no change); w₂ ← 0.5 + 1 × 1 × 1 = 1.5; b ← 0 + 1 × 1 = 1. Raising both weights credits an input that played no part in the decision. The bias always updates by η × error, and subtracting is the rule for a false yes, not a false no.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "The loan neuron has been updated once to w = [0.9, −1.96], b = −0.4. Applicant B (income 1.0, EMI share 0.4) should be approved (target 1), so η = 0.1 is applied again. What is B's new score z?",
+      "options": [
+        "About −0.068",
+        "About −0.284",
+        "About +0.132",
+        "About −0.500"
+      ],
+      "answer": 0,
+      "why": "Error = +1. w₁ = 0.9 + 0.1 × 1.0 = 1.0; w₂ = −1.96 + 0.1 × 0.4 = −1.92; b = −0.4 + 0.1 = −0.3. z = 1.0 − 1.92 × 0.4 − 0.3 = 1.0 − 0.768 − 0.3 = −0.068. Still declined, but closer to the line again. −0.284 is the score after the first update, and −0.500 the score before any update.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "You train a perceptron on noisy customer data where a few churners and stayers overlap. After 1,000 epochs it is still making mistakes and the weights keep changing. What is going on?",
+      "options": [
+        "The learning rate is too small; raise it and it will converge",
+        "The data is not linearly separable, so the perceptron never settles and keeps flipping; shuffle and use the averaged perceptron, or switch to logistic regression, which settles at a best compromise",
+        "The perceptron has found the perfect line but needs more epochs to confirm it",
+        "The bias should be fixed at zero"
+      ],
+      "answer": 1,
+      "why": "The convergence theorem guarantees a solution only for separable data. With overlap, every epoch contains a mistake that triggers an update. The learning rate only scales the steps; it cannot create a separating line that does not exist. Logistic regression minimises a smooth loss and always has a best answer.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Why do modern neural networks replace the perceptron's hard **step** activation with smooth functions such as sigmoid or ReLU?",
+      "options": [
+        "Because steps are slower to compute",
+        "Because a step is flat everywhere except a jump, so it gives no useful gradient; smooth activations let backpropagation tell each hidden weight which way to move",
+        "Because smooth activations make the network linear",
+        "Because steps can only output negative numbers"
+      ],
+      "answer": 1,
+      "why": "Training hidden layers needs to know how a small change in a weight changes the error. The step's slope is zero almost everywhere (and undefined at the jump), so there is nothing to follow. Smooth or piecewise-linear activations provide that slope. Non-linear activations are exactly what keep a stacked network from collapsing into a linear one.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"Both a perceptron and logistic regression draw a straight decision line. Why is logistic regression used far more in practice?\"",
+      "options": [
+        "Because logistic regression can draw curved boundaries",
+        "Because the perceptron needs a GPU",
+        "Because logistic regression gives probabilities, updates on every example by how wrong it is, and always settles at a best compromise on overlapping data, while the perceptron gives only 0/1 and never settles if the data is not separable",
+        "Because logistic regression needs no feature scaling"
+      ],
+      "answer": 2,
+      "why": "The sigmoid makes logistic regression the smooth, probabilistic cousin of the perceptron, which matters for expected-loss and pricing decisions. Both boundaries are straight; curves need extra features or layers. Scaling helps both, especially when regularisation is used.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

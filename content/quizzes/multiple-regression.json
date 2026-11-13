@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Regressing price on bedrooms alone gives about ₹12.6 lakh per extra bedroom. Why is that number misleading as \"the value of a bedroom\"?",
+      "options": [
+        "Because bedrooms is a whole number, so regression cannot use it",
+        "Because the sample of eight flats is too small to estimate any coefficient",
+        "Because flats with more bedrooms are also bigger, so the ₹12.6 lakh mixes the bedroom effect with the size effect",
+        "Because bedroom coefficients are always negative once you add more features"
+      ],
+      "answer": 2,
+      "why": "Bedrooms and area travel together (correlation 0.94 in the chapter's flats), so a one-feature model credits bedrooms with the value of the extra space. Once area is in the model the bedroom coefficient falls to about ₹1.6 lakh. Small samples are a concern, but they are not why this particular number is inflated.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "In **price = 5.5 + 3.97 × area − 0.51 × age + 7.72 × near_metro**, what does the 7.72 tell you?",
+      "options": [
+        "Flats near the metro cost ₹7.72 lakh more on average than flats far from it, whatever their size and age",
+        "A flat near the metro is predicted to cost about ₹7.7 lakh more than an otherwise identical flat (same area and age) far from it",
+        "Being near the metro explains 7.72% of the variation in price",
+        "The metro is the most important feature because 7.72 is the largest coefficient"
+      ],
+      "answer": 1,
+      "why": "A dummy variable's coefficient is the difference between the two groups **holding the other features fixed**. The raw average gap between metro and non-metro flats would also include any differences in their size and age. A bigger coefficient does not mean a more important feature: a 0/1 flag and area per 100 sq ft are in different units.",
+      "level": 1,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Using **price = 5.5 + 3.97 × area − 0.51 × age + 7.72 × near_metro** (₹ lakh, area in hundreds of sq ft), what is the predicted price of a 1,200 sq ft flat that is 5 years old and **not** near the metro?",
+      "options": [
+        "About ₹45.1 lakh",
+        "About ₹50.6 lakh",
+        "About ₹55.7 lakh",
+        "About ₹58.3 lakh"
+      ],
+      "answer": 1,
+      "why": "5.5 + 3.97 × 12 − 0.51 × 5 + 7.72 × 0 = 5.5 + 47.64 − 2.55 = 50.59. ₹45.1 lakh forgets the intercept, ₹55.7 lakh adds the age term instead of subtracting it, and ₹58.3 lakh wrongly includes the metro premium for a flat that is not near the metro.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Predicting feature j from all the other features gives R² = 0.90. What is its **VIF**, and is it a concern?",
+      "options": [
+        "0.90: no concern, it is below 1",
+        "1.11: no concern",
+        "90: the feature must be dropped",
+        "10: a warning sign of serious multicollinearity"
+      ],
+      "answer": 3,
+      "why": "VIF = 1 / (1 − R²) = 1 / 0.10 = 10, right at the top of the usual 5–10 warning band. 1.11 comes from computing 1 / 0.90, which uses the explained share instead of the unexplained share. The VIF is a warning, not an automatic rule to drop a feature.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A model with 50 rows and 4 features has R² = 0.75. What is its **adjusted R²**?",
+      "options": [
+        "About 0.728",
+        "About 0.750",
+        "About 0.772",
+        "About 0.690"
+      ],
+      "answer": 0,
+      "why": "Adjusted R² = 1 − (1 − R²)(n − 1)/(n − p − 1) = 1 − 0.25 × 49 / 45 ≈ 1 − 0.272 = 0.728. It is always a little below plain R² when p ≥ 1, because it inflates the unexplained share for every feature used; a value above 0.75 would mean the penalty was applied in the wrong direction.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "With area, bedrooms, age and metro in the model, the bedroom coefficient is about ₹1.6 lakh and the VIFs are area ≈ 13.6 and bedrooms ≈ 16.2. What is the sensible reading?",
+      "options": [
+        "A bedroom is worth exactly ₹1.6 lakh, so the builder should add one",
+        "The model is useless for prediction and must be thrown away",
+        "The ₹1.6 lakh is unreliable because area and bedrooms are highly collinear; keep area and drop bedrooms, or use ridge regression",
+        "Age and metro must be removed because their VIFs are too low"
+      ],
+      "answer": 2,
+      "why": "VIFs above 10 mean the model cannot separate area from bedrooms, so the individual coefficient could swing a lot if a couple of flats changed. Predictions can still be fine; it is the per-feature reading that cannot be trusted. Low VIFs (age ≈ 1.75, metro ≈ 1.35) are good news, not a problem.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A colleague ranks features by raw coefficient size: \"near_metro (7.72) matters about twice as much as area (3.97)\". What is wrong with this?",
+      "options": [
+        "Nothing: larger coefficients always mean more important features",
+        "Coefficients can only be compared after squaring them",
+        "Area should be ranked first simply because it is listed first in the model",
+        "The coefficients are in different units (a 0/1 flag versus per 100 sq ft), so you must standardise the features before comparing sizes"
+      ],
+      "answer": 3,
+      "why": "A coefficient's size depends on the feature's units: measure area per sq ft instead of per 100 sq ft and its coefficient shrinks a hundredfold while its importance is unchanged. Standardising each feature (standard deviations from its average) puts them on a common scale before ranking.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"Your features are strongly collinear. Should you worry?\" Which answer is best?",
+      "options": [
+        "It depends on the goal: the combined effect and predictions are often fine, but individual coefficients become unstable, so it matters when you need to explain or act on them",
+        "Always: collinearity makes predictions badly wrong, so you must drop features",
+        "Never: least squares handles it automatically",
+        "Only if R² is below 0.5"
+      ],
+      "answer": 0,
+      "why": "Collinearity inflates the uncertainty of individual coefficients (they can even flip sign), but the model can still predict well because the shared effect is estimated well. The fix (drop or combine features, or use ridge / lasso) is needed when the coefficients themselves drive decisions. R² does not tell you whether collinearity is present.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A model says the probability a machine fails this month is 0.25. What does that mean?",
+      "options": [
+        "The machine will be broken for a quarter of the month",
+        "In the long run, about one month in four like this one would see a failure",
+        "The machine will definitely fail within four months",
+        "The model is 25% sure it is correct"
+      ],
+      "answer": 1,
+      "why": "A probability measures how often an event happens in the long run: 0.25 is about one time in four. Reading it as \"definitely within four months\" turns a chance into a schedule; each month is still uncertain.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Roll one fair die. What is P(even number or a number greater than 4)?",
+      "options": [
+        "5/6",
+        "1/2",
+        "1/6",
+        "2/3"
+      ],
+      "answer": 3,
+      "why": "P(even) = 3/6, P(greater than 4) = 2/6, and the overlap {6} = 1/6. Addition rule: 3/6 + 2/6 − 1/6 = 4/6 = **2/3** (the outcomes 2, 4, 5, 6). 5/6 forgets to subtract the overlap, so 6 is counted twice.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "2% of patients have a condition. A test detects 95% of true cases but also flags 10% of healthy patients. A patient tests positive. What is the probability they have the condition?",
+      "options": [
+        "About 95%",
+        "About 90%",
+        "About 16%",
+        "About 2%"
+      ],
+      "answer": 2,
+      "why": "Imagine 10,000 patients: 200 ill, 190 flagged; 9,800 healthy, 980 flagged. P(ill | positive) = 190 / 1,170 ≈ **16%**. Answering 95% confuses P(positive | ill) with P(ill | positive), the base-rate fallacy; 2% ignores the evidence altogether.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Of 1,000 baskets, 500 contain coffee, 200 contain milk and 100 contain both. What does this tell you about coffee and milk?",
+      "options": [
+        "They look independent: P(milk | coffee) = 0.2, the same as P(milk) overall, so the lift is 1",
+        "They are strongly associated, because 100 baskets have both",
+        "Coffee buyers are half as likely to buy milk",
+        "Milk causes people to buy coffee"
+      ],
+      "answer": 0,
+      "why": "P(milk | coffee) = 100 / 500 = 0.2 and P(milk) = 0.2, so lift = 1.0; equivalently P(both) = 0.1 = 0.5 × 0.2. A large count of joint baskets is the tempting signal, but it is exactly what chance alone predicts here. Association, even when present, would not show causation.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A factory has three independent machines, each with a 10% chance of failing this month. What is the probability that at least one fails?",
+      "options": [
+        "0.271",
+        "0.30",
+        "0.001",
+        "0.729"
+      ],
+      "answer": 0,
+      "why": "Use the complement: P(none fail) = 0.9³ = 0.729, so P(at least one) = 1 − 0.729 = **0.271**. Adding 0.1 three times (0.30) double-counts the months where two machines fail; 0.729 is the chance none fail.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Sending a coupon costs ₹50. 25% of customers redeem it and spend an extra ₹400, on which the margin is 30%. What is the expected net value per customer?",
+      "options": [
+        "+₹50",
+        "+₹100",
+        "−₹20",
+        "−₹50"
+      ],
+      "answer": 2,
+      "why": "Expected extra margin = 0.25 × ₹400 × 0.30 = ₹30; minus the ₹50 cost gives **−₹20**. Using spend instead of margin gives 0.25 × 400 − 50 = +₹50, which makes a loss-making campaign look profitable.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Two temperature alarms on the same machine each trigger on 5% of days. An engineer estimates P(both) = 0.05 × 0.05 = 0.0025, but the logs show both trigger on 4% of days. How should you read this?",
+      "options": [
+        "The logs must be wrong, because the multiplication rule is exact",
+        "Both alarms should be removed because they disagree",
+        "The alarms are independent but unreliable",
+        "The alarms are not independent: given one triggers, the other does 0.04 / 0.05 = 80% of the time, probably because they respond to the same cause"
+      ],
+      "answer": 3,
+      "why": "Multiplying probabilities is only valid for independent events. P(B | A) = 0.04 / 0.05 = 0.8, far above 0.05, so knowing one alarm fired changes the chance of the other. Trusting the multiplication over the data is the classic mistake.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Your fraud model catches 90% of fraud. A stakeholder says that means 90% of flagged transactions are fraud. What do you tell them?\" Which answer is best?",
+      "options": [
+        "They are right; the two numbers are the same",
+        "That confuses P(flagged | fraud) with P(fraud | flagged); when fraud is rare, most flags can be false alarms, so you need the base rate and the false-alarm rate to work out the second",
+        "The second number is always higher than the first",
+        "Only the 90% matters for decisions"
+      ],
+      "answer": 1,
+      "why": "With 1% fraud and 5% of legitimate transactions flagged, only about 15% of flags are fraud even with 90% detection. Swapping the order of a conditional probability is the base-rate fallacy; the share of flags that are genuine (precision) is what the operations team actually experiences.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A is a (4 × 3) matrix and B is a (3 × 2) matrix. What is the shape of A @ B?",
+      "options": [
+        "(3, 3)",
+        "It cannot be computed",
+        "(2, 4)",
+        "(4, 2)"
+      ],
+      "answer": 3,
+      "why": "The inner dimensions (3 and 3) match, so the product exists and takes the outer dimensions: (4, 2). (3, 3) keeps the inner numbers, which is backwards; the inner ones are \"used up\" by the dot products.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "You order 2 dosas, 3 coffees and 1 vada. Prices are dosa ₹80, coffee ₹40, vada ₹30. What is the bill, i.e. the dot product of [2, 3, 1] and [80, 40, 30]?",
+      "options": [
+        "₹150",
+        "₹900",
+        "₹310",
+        "[160, 120, 30]"
+      ],
+      "answer": 2,
+      "why": "Multiply matching positions and add: 2 × 80 + 3 × 40 + 1 × 30 = 160 + 120 + 30 = **₹310**. [160, 120, 30] is the element-wise product (`*`), which forgets the final sum; ₹150 just adds the prices.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "What happens when you multiply a matrix A by the identity matrix I of the right size?",
+      "options": [
+        "Every entry becomes 1",
+        "You get A back unchanged",
+        "You get the transpose of A",
+        "You get the inverse of A"
+      ],
+      "answer": 1,
+      "why": "The identity has 1s on the diagonal and 0s elsewhere, so it plays the role of the number 1: AI = A. Confusing it with \"all ones\" is common, but a matrix of all ones would mix the columns together.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What is the cosine similarity between [3, 4] and [4, 3]?",
+      "options": [
+        "24",
+        "0.96",
+        "0.48",
+        "1, because they contain the same numbers"
+      ],
+      "answer": 1,
+      "why": "Dot product = 12 + 12 = 24; both lengths are 5, so cosine = 24 / (5 × 5) = **0.96**: nearly the same direction. 24 forgets to divide by the lengths, and 1 ignores that the order of entries changes the direction.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A scoring model uses w = [0.5 per ₹ lakh income, 0.01 per credit point]. Applicant 3 is [20, 800] and scores 18. What does this score break down into?",
+      "options": [
+        "18 is the average of income and credit score",
+        "0.5 from income and 0.01 from credit score",
+        "20 from income and 800 from credit score",
+        "10 from income and 8 from credit score, so income contributes slightly more"
+      ],
+      "answer": 3,
+      "why": "Each term of the dot product is one feature's contribution: 0.5 × 20 = 10 and 0.01 × 800 = 8, total 18. Reading the weights alone (0.5 vs 0.01) as importance is the trap; contribution depends on weight times value.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "For two square matrices A and B of the same size, which statement is true in general?",
+      "options": [
+        "AB and BA can be different matrices",
+        "AB always equals BA, just like 3 × 5 = 5 × 3",
+        "AB is the same as multiplying A and B entry by entry",
+        "AB is only defined when A equals B"
+      ],
+      "answer": 0,
+      "why": "Matrix multiplication is not commutative: walking rows of A down columns of B generally gives a different result from the reverse. Carrying over the rule from ordinary numbers is the misconception; with non-square shapes BA often is not even allowed.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A café remembers two bills: 3 coffees + 1 cake = ₹350, and 1 coffee + 2 cakes = ₹400. Using A = [[3, 1], [1, 2]] and the 2 × 2 inverse, what are the prices?",
+      "options": [
+        "Coffee ₹60, cake ₹170",
+        "Coffee ₹100, cake ₹150",
+        "Coffee ₹70, cake ₹140",
+        "Coffee ₹170, cake ₹60"
+      ],
+      "answer": 0,
+      "why": "ad − bc = 3 × 2 − 1 × 1 = 5, so A⁻¹ = (1/5)[[2, −1], [−1, 3]]. Coffee = (2 × 350 − 400)/5 = 60; cake = (−350 + 3 × 400)/5 = 170. Check: 180 + 170 = 350 and 60 + 340 = 400. Swapping the two answers is the usual slip from mixing up the order of the unknowns.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"The normal equation is β = (XᵀX)⁻¹Xᵀy. Why doesn't scikit-learn just compute that inverse?\" Which answer is best?",
+      "options": [
+        "Because inverses only exist for 2 × 2 matrices",
+        "Because the normal equation gives the wrong answer for linear regression",
+        "Because computing the inverse is slow and numerically fragile, and fails outright when features are perfectly collinear; a least-squares solver gets the same weights more stably",
+        "Because XᵀX is never square"
+      ],
+      "answer": 2,
+      "why": "The formula is correct, but a literal inverse amplifies rounding errors, and if one feature is a combination of others XᵀX squashes a direction to zero and has no inverse. Saying the formula is \"wrong\" is the trap; it is the implementation, not the maths, that libraries avoid. XᵀX is always square (features × features).",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

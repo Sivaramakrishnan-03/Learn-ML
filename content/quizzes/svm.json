@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Several straight lines separate the training data perfectly. Why does an SVM prefer the one with the **widest street**?",
+      "options": [
+        "Because a line with room on both sides is more forgiving: a new case slightly different from the training points is less likely to land on the wrong side",
+        "Because it has the highest training accuracy",
+        "Because the widest street uses every training point equally",
+        "Because a wider street makes training faster"
+      ],
+      "answer": 0,
+      "why": "All the separating lines score 100% on training data, so training accuracy cannot choose between them. A line that grazes training points leaves no slack for new cases; a wide margin does. The widest street is in fact determined only by the few support vectors, not by every point.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A linear SVM has **w = (1, 1)** and **b = −6**, so its kerbs are f(x) = ±1. Where does a new point at **(3, 3.5)** fall?",
+      "options": [
+        "Class −1, outside the street",
+        "Class +1, comfortably outside the street (f = 2)",
+        "Class +1, but inside the street (f = 0.5)",
+        "Exactly on the boundary, so no prediction is possible"
+      ],
+      "answer": 2,
+      "why": "f = 3 + 3.5 − 6 = 0.5. It is positive, so predict +1, but it is below +1, so the point sits between the boundary and the +1 kerb, a borderline case. f = 2 would be the point (4, 4) from the chapter.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "A trained linear SVM has weights **w = (3, 4)**. How wide is its street (margin)?",
+      "options": [
+        "0.4",
+        "0.2",
+        "About 0.29",
+        "10"
+      ],
+      "answer": 0,
+      "why": "‖w‖ = √(3² + 4²) = 5, so the margin width = 2 / ‖w‖ = 2 / 5 = 0.4. 0.2 is 1 / ‖w‖, the distance from the centre line to one kerb only. 0.29 uses 2 / (3 + 4), adding the weights instead of taking the length. Larger weights mean a narrower street, not a wider one.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A soft-margin SVM gives three applicants y·f(x) values of **1.5**, **0.8** and **−1.0**. What is their total hinge loss?",
+      "options": [
+        "1.7",
+        "2.2",
+        "0.2",
+        "2.7"
+      ],
+      "answer": 1,
+      "why": "Hinge loss = max(0, 1 − y·f(x)): 1.5 → 0 (safely outside the street), 0.8 → 0.2 (correct side but inside the street), −1.0 → 2.0 (wrong side). Total = 2.2. 1.7 forgets the max(0, …) and lets the safe point subtract 0.5; 2.7 wrongly charges the safe point |1 − 1.5| = 0.5; 0.2 ignores the misclassified point altogether. Well-classified points cost nothing.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "On the breast-cancer data, a scaled linear SVM gives: C = 0.1 → 97.4% cross-validated accuracy with 60 support vectors; C = 100 → 96.0% with 31 support vectors and 99.6% training accuracy. Which C would you deploy?",
+      "options": [
+        "C = 100, because its training accuracy is highest",
+        "C = 100, because fewer support vectors always means a better model",
+        "Either: the 1.4-point difference shows C does not matter",
+        "C = 0.1, because held-out accuracy is what matters; C = 100 narrows the street around individual points and overfits"
+      ],
+      "answer": 3,
+      "why": "Large C makes violations expensive, so the street shrinks to fit training points (99.6%) while held-out accuracy drops. Fewer support vectors here is a symptom of that narrow street, not a sign of quality. C was chosen by cross-validation, which is exactly the right way to tune it.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "`decision_function` returns **+2.0** for one applicant and **+0.5** for another. Which reading is correct?",
+      "options": [
+        "The first applicant has a 2.0 probability of class +1",
+        "The first is four times as likely to be +1 as the second",
+        "The second applicant is predicted −1 because 0.5 < 1",
+        "Both are predicted +1; the first is further from the boundary (outside the street) while the second is inside it, but neither number is a probability"
+      ],
+      "answer": 3,
+      "why": "The SVM score is a signed distance from the boundary in units of half the street width. Its sign gives the class (both positive, so both +1). Turning scores into probabilities needs calibration (`probability=True` or `CalibratedClassifierCV`). A score below 1 means inside the street, not the other class.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "At C = 0.001 on the breast-cancer data, 252 of the 569 training points are support vectors. What does such a large share signal?",
+      "options": [
+        "The model is extremely confident, since many points support it",
+        "The features were scaled correctly",
+        "The street is very wide and many points sit inside it: the classes overlap heavily near the boundary or C is too small",
+        "The SVM has switched to a kernel automatically"
+      ],
+      "answer": 2,
+      "why": "Support vectors are the points on or inside the margin. With a tiny C, violations are cheap, so the street widens and swallows many points; accuracy fell to 93.7%. A rising share of support vectors is a warning sign, not a mark of confidence.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"When would you choose a linear SVM over logistic regression, and vice versa?\"",
+      "options": [
+        "Always SVM, because maximising the margin always gives higher accuracy",
+        "They often reach similar accuracy; choose logistic regression when you need calibrated probabilities, odds-ratio explanations or millions of rows, and try a linear SVM when there are many features and modest data, such as text",
+        "Always logistic regression, because SVMs cannot handle more than two features",
+        "SVM for regression problems and logistic regression for classification"
+      ],
+      "answer": 1,
+      "why": "Both draw a straight boundary; they differ in loss (hinge versus log-loss) and in what you get back. Logistic regression uses every point and gives probabilities; the SVM depends only on support vectors and gives distances. Neither dominates, so the choice follows the business need. SVMs handle thousands of features well, which is why they suit text.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

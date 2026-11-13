@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "The word \"hello\" appears in 40% of spam emails and 42% of normal emails. How much should it change the spam probability of an email that contains it?",
+      "options": [
+        "A lot, because 40% of spam contains it",
+        "It should make the email more likely to be normal by about 42%",
+        "Almost not at all, because it is nearly equally common in both classes",
+        "It should be ignored only if the prior is 0.5"
+      ],
+      "answer": 2,
+      "why": "Evidence moves a belief only when it is much more common under one class than the other; the strength of a clue is the **ratio** of its likelihoods (0.40 / 0.42 ≈ 0.95, close to 1). A high share in spam means nothing if normal mail has the same share. The prior does not change whether a clue is informative.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A plant wants to classify bearings as healthy or worn from vibration (mm/s) and temperature (°C). Which Naive Bayes variant fits these features?",
+      "options": [
+        "Multinomial Naive Bayes",
+        "Bernoulli Naive Bayes",
+        "Gaussian Naive Bayes",
+        "Complement Naive Bayes"
+      ],
+      "answer": 2,
+      "why": "Gaussian Naive Bayes models each continuous feature with a bell curve inside each class. Multinomial and Complement are for word counts, and Bernoulli is for present/absent flags. The Bayes logic is identical across variants; only the likelihood formula changes.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Priors: P(spam) = 0.4, P(normal) = 0.6. Likelihoods: P(winner | spam) = 0.12, P(winner | normal) = 0.005, P(invoice | spam) = 0.03, P(invoice | normal) = 0.09. An email contains both \"winner\" and \"invoice\". What is P(spam | email)?",
+      "options": [
+        "About 0.29",
+        "About 0.84",
+        "About 0.71",
+        "About 0.96"
+      ],
+      "answer": 1,
+      "why": "Spam score = 0.4 × 0.12 × 0.03 = 0.00144. Normal score = 0.6 × 0.005 × 0.09 = 0.00027. P(spam) = 0.00144 / (0.00144 + 0.00027) ≈ 0.84. Forgetting to normalise leaves tiny scores that are not probabilities, and dropping the \"invoice\" evidence would overstate spam (about 0.94 from \"winner\" alone).",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Billing tickets contain 50 words in total and the vocabulary has V = 20 distinct words. The word \"cancel\" never appeared in billing tickets. With Laplace smoothing, what is P(cancel | billing)?",
+      "options": [
+        "0",
+        "1/50 = 0.02",
+        "1/20 = 0.05",
+        "1/70 ≈ 0.0143"
+      ],
+      "answer": 3,
+      "why": "Laplace smoothing: (count + 1) / (total words + V) = (0 + 1) / (50 + 20) = 1/70. Without smoothing the likelihood would be 0 and would veto billing however strong the other words were. 1/50 adds 1 to the top but forgets to add V to the bottom, so the probabilities would no longer add up to 1.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Gaussian Naive Bayes gives a bearing (3.0 mm/s, 68 °C) a worn probability of about **0.45**, up from a 10% base rate. What is the sensible reading?",
+      "options": [
+        "Predict healthy and ignore it, because 0.45 is below 0.5",
+        "The model is broken, because two warning signs should give a probability above 0.5",
+        "Treat 0.45 as an exact failure rate for pricing warranties",
+        "The two clues together raised the risk more than fourfold; with a cheap inspection and an expensive failure, pull it for inspection, while remembering Naive Bayes probabilities can be miscalibrated"
+      ],
+      "answer": 3,
+      "why": "A 0.5 cut-off is only right when both mistakes cost the same; here a missed worn bearing is much costlier than an inspection. The jump from 10% to 20% (vibration) to 45% (plus temperature) is the useful signal. Naive Bayes is good for deciding but not for quoting exact odds, so pricing on the raw 0.45 would be unwise.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "An engineer adds a second feature that is a near-copy of \"free\" (say, \"FREE\" in capitals, with the same likelihoods 0.30 and 0.02). An email with \"free\" alone scored P(spam) ≈ 0.91; with both features it now scores about 0.99. What happened?",
+      "options": [
+        "The model found genuinely new evidence, so 0.99 is more accurate",
+        "The same clue was counted twice because Naive Bayes treats features as independent given the class, pushing the probability towards 1",
+        "Laplace smoothing inflated the spam score",
+        "The prior was updated from 0.4 to 0.99"
+      ],
+      "answer": 1,
+      "why": "Spam 0.4 × 0.30 × 0.30 versus normal 0.6 × 0.02 × 0.02 gives about 0.993: the correlated copy multiplies in the same evidence again. This is why Naive Bayes outputs are overconfident and why near-duplicate features should be removed. The prior is fixed from the class shares; it is not changed by the email.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "The independence assumption is almost always false (\"credit\" and \"card\" co-occur). Why does Naive Bayes still classify well?",
+      "options": [
+        "Because classification only needs the right winner: double-counting tends to inflate the winning class in the same direction, so the ranking survives even though the probabilities become too extreme",
+        "Because Laplace smoothing removes the correlations between words",
+        "Because Naive Bayes secretly models word pairs",
+        "Because the prior cancels out the double-counting"
+      ],
+      "answer": 0,
+      "why": "The assumption damages the probabilities (pushed towards 0 or 1), not usually the ranking of classes. Use it for deciding, and calibrate with `CalibratedClassifierCV` or use logistic regression when you need trustworthy percentages. Smoothing only stops zero counts; it does nothing about correlations.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"Why do real Naive Bayes implementations add log-probabilities instead of multiplying probabilities?\"",
+      "options": [
+        "Multiplying hundreds of small likelihoods gives numbers like 10⁻³⁰⁰ that the computer rounds to zero; adding logs avoids this underflow and picks the same winner",
+        "Logs make the independence assumption true",
+        "Logs turn Naive Bayes into logistic regression",
+        "Logs are needed to apply Laplace smoothing"
+      ],
+      "answer": 0,
+      "why": "log(a × b) = log a + log b, and the log is increasing, so the class with the biggest product also has the biggest sum of logs. Sums of moderately negative numbers are safe in floating point where products of tiny numbers are not. Logs change nothing about the model's assumptions or smoothing.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

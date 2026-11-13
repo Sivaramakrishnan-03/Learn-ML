@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, FnLine, Seg, Label, Bars, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C } from '../viz/kit';
-import { credit, diagonal, ring, boundary, Field, Boundary, ClassDots, CLS, CP, G, cellCentres, mean } from './_ensembles-helpers';
+import { mean } from '../viz/math';
+import { credit, diagonal, ring, boundary, Field, Boundary, ClassDots, CLS, CP, G, cellCentres } from './_ensembles-helpers';
 
 /* ---------- pure helpers ---------- */
 interface Stump { f: number; t: number; pol: number; eps: number; alpha: number } // h(x) = pol if x_f > t else −pol

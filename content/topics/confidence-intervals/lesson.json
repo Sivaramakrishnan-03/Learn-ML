@@ -9,7 +9,7 @@
   "why": "A point estimate without uncertainty is half an answer. \"Conversion rose 2%\" is very different from \"2% ± 3%\".",
   "explain": [
     "A **confidence interval** gives a range of plausible values for an unknown quantity, such as the true average delivery time.",
-    "Recipe for a mean: estimate ± (critical value × standard error). For 95% with a decent sample size the critical value is about **1.96** (≈ 2).",
+    "Recipe for a mean: estimate ± (critical value × standard error). The critical value comes from the t-distribution with n − 1 degrees of freedom: 2.776 for n = 5, 1.984 for n = 100, approaching **1.96** (≈ 2) for large samples.",
     "Correct interpretation: if we repeated the sampling many times, **95% of the intervals built this way would contain the true value**. Think of a fishing net: 95% of the nets we throw catch the fish.",
     "Wider intervals come from more variability or smaller samples. More data narrows them."
   ],
@@ -18,13 +18,14 @@
     "plain": "Sample mean plus or minus about two standard errors."
   },
   "example": {
-    "title": "Average delivery time",
+    "title": "Average delivery time (large sample)",
     "steps": [
       "n = 100 deliveries, mean 52 min, SD 10 min",
-      "SE = 10 / √100 = 1 min",
-      "95% CI = 52 ± 1.96 × 1 = 50.0 to 54.0 min"
+      "SE = 10 / √100 = 1.0 min",
+      "t critical value (99 degrees of freedom) = 1.984, close to 1.96 → margin = 1.98 min",
+      "95% CI = 52 ± 1.98 = 50.02 to 53.98 min (90%: 50.34–53.66; 99%: 49.37–54.63)"
     ],
-    "result": "We can promise \"about 52 minutes, plausibly between 50 and 54\". To halve the width to ±1 minute, deliver 4× the sample (400)."
+    "result": "\"About 52 minutes, 95% CI roughly 50 to 54.\" More confidence costs width; to halve the width you need 4× the sample (400 deliveries)."
   },
   "mistakes": [
     "Saying \"there is a 95% probability the true mean is in this interval\" (a common but technically wrong reading of a frequentist CI).",
@@ -36,7 +37,7 @@
     "Always report uncertainty with an estimate"
   ],
   "practice": {
-    "code": "import numpy as np\nfrom scipy import stats\nx = np.random.default_rng(3).normal(52, 10, 100)\nprint(stats.t.interval(0.95, len(x) - 1, loc=x.mean(), scale=stats.sem(x)))"
+    "code": "from scipy import stats\nmean, sd, n = 52, 10, 100\nse = sd / n**0.5\nfor conf in [0.90, 0.95, 0.99]:\n    lo, hi = stats.t.interval(conf, n - 1, loc=mean, scale=se)\n    print(conf, round(lo, 2), round(hi, 2))   # 0.95 → 50.02 53.98"
   },
   "check": [
     {

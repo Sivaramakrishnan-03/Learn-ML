@@ -217,7 +217,7 @@ export const linearRegression: ModelContent = {
       </div>
       <div>
         <h3>✅ Use it when</h3>
-        <ul><li>The relationship looks roughly straight.</li><li>You need to explain the answer ("each extra 100 sq ft adds ₹4 lakh").</li><li>You want a baseline before trying anything fancy.</li></ul>
+        <ul><li>The relationship looks roughly straight.</li><li>You need to explain the answer ("each extra 100 sq ft adds about ₹4.3 lakh").</li><li>You want a baseline before trying anything fancy.</li></ul>
         <h3>⛔ Avoid / be careful when</h3>
         <ul><li>The relationship is curved (try polynomial features or trees).</li><li>There are big outliers. Squared error lets one point drag the whole line (try it in the Playground).</li><li>You extrapolate far beyond the data: the ruler doesn't know the market stops at some point.</li></ul>
         <h3>🧠 One-line intuition</h3>
@@ -232,7 +232,7 @@ export const linearRegression: ModelContent = {
     { name: 'Clean', icon: '🧹', detail: <><p>One sale is 400 sq ft for ₹96 lakh, almost certainly a data-entry error (or a penthouse with the wrong area). Plotting first catches it, and we remove it.</p><p className="muted small">Lesson: squared error punishes big misses heavily, so a single outlier can tilt the whole line.</p></> },
     { name: 'Features', icon: '🧩', detail: <p>One feature: <b>area</b>. In multiple regression we'd add floor, age, distance to the metro, and so on. No scaling is needed for OLS, but gradient descent converges much faster with scaled features.</p> },
     { name: 'Split', icon: '✂️', detail: <p>Random 70/30 split → <b>{pl.train.length}</b> training sales, <b>{pl.test.length}</b> held-out test sales. The model never sees the test set during training.</p> },
-    { name: 'Train', icon: '🏋️', detail: <><p>Ordinary least squares on the training set:</p><Tex block>{`\\hat{y} = ${pl.fit.m.toFixed(3)}\\,x + ${pl.fit.b.toFixed(3)}`}</Tex><p>In business terms, every extra 200 sq ft adds about <b>₹{(pl.fit.m * 10).toFixed(1)} lakh</b>.</p></> },
+    { name: 'Train', icon: '🏋️', detail: <><p>Ordinary least squares on the training set:</p><Tex block>{`\\hat{y} = ${pl.fit.m.toFixed(3)}\\,x + ${pl.fit.b.toFixed(3)}`}</Tex><p>In business terms, every extra 100 sq ft adds about <b>₹{(pl.fit.m * 5).toFixed(1)} lakh</b>.</p></> },
     { name: 'Evaluate', icon: '📏', detail: <><p>On the unseen test flats:</p><p className="mono">R² = {pl.r2t.toFixed(3)} · RMSE = ₹{(pl.rmse * 10).toFixed(1)} lakh</p><p className="small muted">RMSE in rupees is what the client cares about: "my estimate is usually within about ₹{(pl.rmse * 10).toFixed(0)} lakh."</p></> },
     { name: 'Deploy', icon: '🚀', detail: <><p>Wrap the formula in an API or a spreadsheet cell. Try it:</p><DeployWidget m={pl.fit.m} b={pl.fit.b} /><p className="small muted" style={{ marginTop: 10 }}>Monitor it: when the market shifts, residuals drift. Retrain on fresh sales every quarter.</p></> },
   ],

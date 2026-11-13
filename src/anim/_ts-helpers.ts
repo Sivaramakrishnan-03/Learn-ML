@@ -1,13 +1,9 @@
 // Shared pure helpers for the TIME SERIES animations (ts-components, exp-smoothing, arima, ts-validation).
 // No JSX here (the registry treats every .tsx in src/anim as a topic). All randomness goes through the seeded rng.
-import { rng, gauss } from '../lib/datasets';
+// Generic maths (sum, mean, sd, …) lives in src/viz/math.ts.
+import { rng, gauss, sum, mean } from '../viz/math';
 
 export type Pt = { x: number; y: number };
-export const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
-export const mean = (a: number[]) => (a.length ? sum(a) / a.length : 0);
-export const sd = (a: number[]) => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(sum(a.map((v) => (v - m) ** 2)) / (a.length - 1)); };
-export const variance = (a: number[]) => sd(a) ** 2;
-export const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** Month index t (0 = Jan 2022) → "Oct 23" style label. */
 export const monthLabel = (t: number) => `${MONTHS[((Math.round(t) % 12) + 12) % 12]} ${String(22 + Math.floor(Math.round(t) / 12)).padStart(2, '0')}`;
@@ -108,6 +104,7 @@ export function holtWinters(y: number[], alpha: number, beta: number, gamma: num
   return { f, fut: Array.from({ length: H }, (_, h) => l + (h + 1) * b + s[(n + h) % m]) };
 }
 
+/* forecast-error metrics on error vectors that may contain NaN gaps (periods without a forecast) */
 export const rmse = (e: number[]) => { const v = e.filter(isFinite); return v.length ? Math.sqrt(mean(v.map((x) => x * x))) : 0; };
 export const mae = (e: number[]) => { const v = e.filter(isFinite); return v.length ? mean(v.map(Math.abs)) : 0; };
 export const wape = (act: number[], fc: number[]) => 100 * sum(act.map((a, i) => Math.abs(a - fc[i]))) / Math.max(1e-9, sum(act.map(Math.abs)));

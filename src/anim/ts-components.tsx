@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, Region, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, C, Scales } from '../viz/kit';
-import { monthlySeries, decompose, acf, pathD, mean, sd, variance, MONTHS, Pt } from './_ts-helpers';
+import { mean, sdS, variance } from '../viz/math';
+import { monthlySeries, decompose, acf, pathD, MONTHS, Pt } from './_ts-helpers';
 
 /* ---------- pure helpers ---------- */
 const N = 60;
@@ -54,7 +55,7 @@ function Animate() {
   const winVals = winIdx >= 0 ? Array.from({ length: 13 }, (_, j) => sim.y[wt - 6 + j]) : [];
   const trendMA = dec.trend;
   const fitted = sim.y.map((_, t) => trendMA[t] + dec.season[t]);
-  const remSd = sd(dec.rem.filter(isFinite));
+  const remSd = sdS(dec.rem.filter(isFinite));
   const octEst = dec.seasIdx[9];
   const validTrend = trendMA.map((v, t) => ({ v, t })).filter((d) => isFinite(d.v));
   const slopeEst = (validTrend[validTrend.length - 1].v - validTrend[0].v) / (validTrend[validTrend.length - 1].t - validTrend[0].t);
@@ -180,8 +181,8 @@ function Playground() {
   const rem = dec.rem.filter(isFinite);
   const tr = dec.trend.filter(isFinite);
   const se = dec.season.filter((_, t) => isFinite(dec.trend[t]));
-  const fT = Math.max(0, 1 - variance(rem) / Math.max(1e-9, variance(tr.map((v, i) => v + rem[i]))));
-  const fS = Math.max(0, 1 - variance(rem) / Math.max(1e-9, variance(se.map((v, i) => v + rem[i]))));
+  const fT = Math.max(0, 1 - variance(rem, 1) / Math.max(1e-9, variance(tr.map((v, i) => v + rem[i]), 1)));
+  const fS = Math.max(0, 1 - variance(rem, 1) / Math.max(1e-9, variance(se.map((v, i) => v + rem[i]), 1)));
   const lo = Math.min(...sim.y) - 10, hi = Math.max(...sim.y) + 10;
   const yAbs = Math.max(10, ...dec.seasIdx.map(Math.abs), ...sim.season.slice(0, 12).map(Math.abs)) * 1.2;
   return (
@@ -215,7 +216,7 @@ function Playground() {
           ['trend strength', fT.toFixed(2), C.yellow],
           ['season strength', fS.toFixed(2), C.purple],
           ['ACF lag 12', r[11].toFixed(2), C.gold],
-          ['remainder SD', sd(rem).toFixed(1), C.red],
+          ['remainder SD', sdS(rem).toFixed(1), C.red],
           ['mean of remainder', mean(rem).toFixed(2), C.red],
         ]} />
         <Legend items={[['observed', C.blue], ['true trend', C.green], ['moving-average trend', C.yellow]]} />

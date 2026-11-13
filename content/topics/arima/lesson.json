@@ -14,18 +14,18 @@
     "**SARIMA** adds seasonal terms; **SARIMAX** adds external regressors such as price or holidays. Choose orders with ACF/PACF plots or automatically by AIC (auto-ARIMA), then check that the residuals look like white noise."
   ],
   "formula": {
-    "tex": "y'_t = c + \\phi_1 y'_{t-1} + \\dots + \\phi_p y'_{t-p} + \\theta_1 \\varepsilon_{t-1} + \\dots + \\varepsilon_t",
-    "plain": "The (differenced) value = constant + weighted past values + weighted past errors + new noise."
+    "tex": "y_t = c + \\phi_1 y_{t-1} + \\dots + \\phi_p y_{t-p} + \\varepsilon_t + \\theta_1 \\varepsilon_{t-1} + \\dots + \\theta_q \\varepsilon_{t-q}",
+    "plain": "Today = constant + weighted past values (AR) + today's shock + weighted past shocks (MA). ARIMA applies this to the series after differencing it d times. For AR(1), the long-run mean is c / (1 − φ)."
   },
   "example": {
-    "title": "AR(1) forecast of daily electricity load deviation",
+    "title": "AR(1) forecast of daily demand",
     "steps": [
-      "Model: y_t = 0.7 × y_{t−1} + noise (y = deviation from normal, in MW)",
-      "Today the deviation is +100 MW",
-      "Tomorrow's forecast: 0.7 × 100 = +70 MW; the day after: 0.7 × 70 = +49 MW",
-      "The forecast decays back to normal (0)"
+      "Daily peak demand (hundreds of MW): y_t = 20 + 0.6 × y_{t−1} + shock. Today's peak was 70",
+      "Long-run mean = 20 / (1 − 0.6) = 50",
+      "Tomorrow: 20 + 0.6 × 70 = 62 (future shocks average zero). Day 2: 57.2. Day 3: 54.32. Day 4: ≈ 52.59",
+      "Each day the gap to 50 shrinks by 40%: 20, 12, 7.2, 4.32, 2.59"
     ],
-    "result": "AR models capture persistence: shocks fade gradually, at a rate set by φ."
+    "result": "The forecast eases from 70 back towards 50 over about a week, at a rate set by φ. Buy extra capacity for the next two or three days, not for the whole month."
   },
   "mistakes": [
     "Fitting without making the series stationary.",
@@ -46,7 +46,7 @@
     "Strong external drivers without SARIMAX"
   ],
   "practice": {
-    "code": "import numpy as np\nfrom statsmodels.tsa.arima.model import ARIMA\nrng = np.random.default_rng(0); y = np.zeros(300)\nfor t in range(1, 300): y[t] = 0.7 * y[t - 1] + rng.normal()\nm = ARIMA(y, order=(1, 0, 0)).fit()\nprint(m.params.round(2)); print(m.forecast(3).round(2))",
+    "code": "import numpy as np\nfrom statsmodels.tsa.arima.model import ARIMA\nrng = np.random.default_rng(0); y = np.full(300, 50.0)\nfor t in range(1, 300): y[t] = 20 + 0.6 * y[t - 1] + rng.normal(0, 3)\nm = ARIMA(y, order=(1, 0, 0)).fit()\nprint(m.params.round(2))      # const ≈ 50 (the long-run mean, not c), ar.L1 ≈ 0.6\nprint(m.forecast(3).round(1))  # eases back towards 50 from the last value",
     "note": "Uses statsmodels: run locally if needed."
   },
   "check": [
@@ -62,7 +62,7 @@
       "why": "The \"I\" (integrated) part."
     },
     {
-      "q": "AR(1) with φ = 0.5; today = 10. Forecast two steps ahead?",
+      "q": "AR(1) with φ = 0.5 and no constant (mean 0); today = 10. Forecast two steps ahead?",
       "options": [
         "5",
         "2.5",

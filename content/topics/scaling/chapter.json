@@ -176,11 +176,11 @@
         {
           "example": {
             "title": "Scaling changes who your nearest neighbour is",
-            "setup": "Target customer A: age 25, income ₹6 lakh. Candidates: B (60, ₹6.5 lakh) and C (27, ₹12 lakh). Suppose the training standard deviations are 12 years for age and ₹3 lakh for income.",
+            "setup": "Target customer A: age 25, income ₹6 lakh. Candidates: B (60, ₹6.5 lakh) and C (27, ₹12 lakh). In the 30-customer training set (the one in the animation) the standard deviations are about 12.8 years for age and ₹3.97 lakh for income.",
             "steps": [
               "Unscaled distance A–B = √(35² + 50,000²) ≈ 50,000. Unscaled A–C = √(2² + 6,00,000²) ≈ 6,00,000. B looks twelve times closer.",
-              "Scaled differences A–B: age 35 / 12 ≈ 2.92, income 0.5 / 3 ≈ 0.17. Distance ≈ √(2.92² + 0.17²) ≈ 2.92.",
-              "Scaled differences A–C: age 2 / 12 ≈ 0.17, income 6 / 3 = 2.0. Distance ≈ √(0.17² + 2.0²) ≈ 2.01.",
+              "Scaled differences A–B: age 35 / 12.8 ≈ 2.73, income 0.5 / 3.97 ≈ 0.13. Distance ≈ √(2.73² + 0.13²) ≈ 2.74.",
+              "Scaled differences A–C: age 2 / 12.8 ≈ 0.16, income 6 / 3.97 ≈ 1.51. Distance ≈ √(0.16² + 1.51²) ≈ 1.52.",
               "After scaling, C is the nearer neighbour."
             ],
             "result": "A k-nearest-neighbours recommender or a k-means segmentation would give opposite answers depending on whether the data was scaled. Unscaled, age was effectively ignored."

@@ -74,17 +74,17 @@ export function CodeLab({ snippets, rows = 18 }: { snippets: Snippet[]; rows?: n
     <div>
       <div className="row" style={{ marginBottom: 10 }}>
         {snippets.map((s, i) => (
-          <button key={i} className={`btn ${i === sel ? 'primary' : ''}`} onClick={() => setSel(i)}>{s.title}</button>
+          <button key={i} type="button" aria-pressed={i === sel} className={`btn ${i === sel ? 'primary' : ''}`} onClick={() => setSel(i)}>{s.title}</button>
         ))}
         <span className="spacer" />
         <button className="btn" onClick={copy}>{copied ? '✓ Copied' : '📋 Copy'}</button>
         <button className="btn" onClick={() => setCode((c) => c.map((v, i) => (i === sel ? snippets[i].code : v)))}>Reset code</button>
         <button className="btn ok" onClick={run} disabled={busy}>{busy ? 'Running…' : '▶ Run'}</button>
       </div>
-      <textarea className="code" spellCheck={false} value={code[sel]} style={{ minHeight: rows * 19 }}
+      <textarea className="code" spellCheck={false} value={code[sel]} style={{ minHeight: rows * 19 }} aria-label={`Python code: ${snippets[sel].title}`}
         onChange={(e) => setCode((c) => c.map((v, i) => (i === sel ? e.target.value : v)))} />
-      <div className="small muted" style={{ margin: '8px 0 4px' }}>Output</div>
-      <div className="out mono">{out}</div>
+      <div className="small muted" style={{ margin: '8px 0 4px' }} id="codelab-out-label">Output</div>
+      <div className="out mono" role="log" aria-live="polite" aria-labelledby="codelab-out-label" tabIndex={0}>{out}</div>
       {offline && <div className="callout warn" style={{ marginTop: 10 }}>
         <b>Python can't run in the browser on this network.</b> This usually means a firewall blocks <code className="inline">cdn.jsdelivr.net</code> or you are offline. You can still:
         <ol style={{ margin: '6px 0 0' }}>

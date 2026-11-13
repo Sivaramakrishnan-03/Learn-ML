@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Arrow, Seg, Label, FnLine, Dots, MatrixView, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C, Scales } from '../viz/kit';
-import { M2, V2, mv, norm, blendI, eig2, equalH, polyPath, f2 } from './_math-helpers';
+import { M2, V2, mv, norm, eig2 } from '../viz/math';
+import { blendI, equalH, polyPath, f2 } from './_math-helpers';
 
 /* ---------- pure helpers ---------- */
 const A: M2 = [[2, 1], [1, 2]];

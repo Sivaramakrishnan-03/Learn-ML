@@ -18,14 +18,15 @@
     "plain": "Probability of A given B = probability of both, divided by probability of B."
   },
   "example": {
-    "title": "Is a promotion worth it?",
+    "title": "Two dice: sums, \"and\" and \"or\"",
     "steps": [
-      "A coupon costs ₹50 to send",
-      "20% of customers redeem it and spend an extra ₹400",
-      "80% ignore it (extra spend ₹0)",
-      "Expected extra spend = 0.2 × 400 + 0.8 × 0 = ₹80"
+      "Two fair dice give 6 × 6 = 36 equally likely outcomes",
+      "P(sum = 7): (1,6), (2,5), (3,4), (4,3), (5,2), (6,1) → 6/36 = 1/6 ≈ 0.167, the most likely sum",
+      "P(both show 6): independent, so 1/6 × 1/6 = 1/36 ≈ 0.028",
+      "P(at least one 6) = 1/6 + 1/6 − 1/36 = 11/36 ≈ 0.306 (add, then subtract the overlap)",
+      "Check with the complement: 1 − P(no 6) = 1 − 25/36 = 11/36"
     ],
-    "result": "Expected gain ₹80 vs cost ₹50: positive expected value of ₹30 per customer, so send it (if the 20% estimate is reliable)."
+    "result": "Two routes give the same 11/36. \"1 minus the chance of none\" is often the easiest way to answer \"at least one\" questions."
   },
   "mistakes": [
     "Confusing P(A | B) with P(B | A): P(positive test | disease) is not P(disease | positive test).",
@@ -61,7 +62,7 @@
     }
   ],
   "practice": {
-    "code": "import numpy as np\nrng = np.random.default_rng(1)\nrolls = rng.integers(1, 7, size=(100_000, 2))\nprint(np.mean((rolls == 6).all(axis=1)))   # ≈ 1/36 = 0.0278"
+    "code": "import numpy as np\nrng = np.random.default_rng(1)\nrolls = rng.integers(1, 7, size=(100_000, 2))\nprint(np.mean(rolls.sum(axis=1) == 7))     # ≈ 6/36  = 0.167\nprint(np.mean((rolls == 6).all(axis=1)))   # ≈ 1/36  = 0.028\nprint(np.mean((rolls == 6).any(axis=1)))   # ≈ 11/36 = 0.306"
   },
   "chapterMinutes": 15
 }

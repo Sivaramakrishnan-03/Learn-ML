@@ -1,6 +1,6 @@
 // Shared animation toolkit. Every topic animation is built from these pieces so all pages look and behave alike.
 // Rule of thumb: compute frames with pure functions, render them with these components, narrate every frame.
-import { ReactNode, useRef } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { scaleLinear, ScaleLinear } from 'd3';
 import { motion } from 'framer-motion';
 export { useStepPlayer, PlayerControls } from '../components/StepPlayer';
@@ -18,10 +18,14 @@ export const SERIES = [C.blue, C.red, C.green, C.gold, C.purple, C.teal, C.pink,
 export interface Scales { sx: ScaleLinear<number, number>; sy: ScaleLinear<number, number>; W: number; H: number; pad: { l: number; r: number; t: number; b: number } }
 
 /** A 2-D plotting area with grid, axes and labels. Children get the scales: `{(s) => <Dots s={s} … />}`. */
-export function Plot({ x, y, width = 760, height = 380, xLabel, yLabel, fx = fmt, fy = fmt, xTicks = 8, yTicks = 6, onClick, grid = true, children }: {
+export function Plot({ x, y, width = 760, height = 380, xLabel, yLabel, fx = fmt, fy = fmt, xTicks = 8, yTicks = 6, onClick, grid = true, title, ariaLabel, children }: {
   x: [number, number]; y: [number, number]; width?: number; height?: number; xLabel?: string; yLabel?: string;
   fx?: (v: number) => string; fy?: (v: number) => string; xTicks?: number; yTicks?: number; grid?: boolean;
   onClick?: (pt: { x: number; y: number }, e: React.MouseEvent) => void; children: (s: Scales) => ReactNode;
+  /** Short visible-to-assistive-tech title (rendered as an SVG <title>, also shown as a tooltip). */
+  title?: string;
+  /** Accessible name for screen readers. Defaults to `title`, else a name built from the axis labels. */
+  ariaLabel?: string;
 }) {
   const ref = useRef<SVGSVGElement>(null);
   const pad = { l: 52, r: 16, t: 14, b: 42 };
@@ -35,18 +39,30 @@ export function Plot({ x, y, width = 760, height = 380, xLabel, yLabel, fx = fmt
     const X = sx.invert(l.x), Y = sy.invert(l.y);
     if (X >= x[0] && X <= x[1] && Y >= Math.min(...y) && Y <= Math.max(...y)) onClick({ x: X, y: Y }, e);
   };
+  const name = ariaLabel ?? title ?? plotName(xLabel, yLabel, x, y);
   return (
-    <svg ref={ref} viewBox={`0 0 ${width} ${height}`} className="canvas viz" onClick={click} style={{ cursor: onClick ? 'crosshair' : 'default' }}>
+    <svg ref={ref} viewBox={`0 0 ${width} ${height}`} className="canvas viz" onClick={click} style={{ cursor: onClick ? 'crosshair' : 'default' }}
+      role="img" aria-label={name}>
+      {title && <title>{title}</title>}
       {grid && sx.ticks(xTicks).map((t) => <line key={'gx' + t} x1={sx(t)} x2={sx(t)} y1={pad.t} y2={height - pad.b} stroke={C.grid} />)}
       {grid && sy.ticks(yTicks).map((t) => <line key={'gy' + t} x1={pad.l} x2={width - pad.r} y1={sy(t)} y2={sy(t)} stroke={C.grid} />)}
-      {sx.ticks(xTicks).map((t) => <text key={'tx' + t} x={sx(t)} y={height - pad.b + 15} fill="#6b7486" fontSize={11} textAnchor="middle">{fx(t)}</text>)}
-      {sy.ticks(yTicks).map((t) => <text key={'ty' + t} x={pad.l - 7} y={sy(t) + 4} fill="#6b7486" fontSize={11} textAnchor="end">{fy(t)}</text>)}
+      {sx.ticks(xTicks).map((t) => <text key={'tx' + t} x={sx(t)} y={height - pad.b + 15} fill={C.muted} fontSize={11} textAnchor="middle">{fx(t)}</text>)}
+      {sy.ticks(yTicks).map((t) => <text key={'ty' + t} x={pad.l - 7} y={sy(t) + 4} fill={C.muted} fontSize={11} textAnchor="end">{fy(t)}</text>)}
       {xLabel && <text x={(width + pad.l) / 2} y={height - 6} fill={C.muted} fontSize={12} textAnchor="middle">{xLabel}</text>}
       {yLabel && <text x={13} y={(height - pad.b + pad.t) / 2} fill={C.muted} fontSize={12} textAnchor="middle" transform={`rotate(-90 13 ${(height - pad.b + pad.t) / 2})`}>{yLabel}</text>}
       <defs><clipPath id={id}><rect x={pad.l} y={pad.t} width={width - pad.l - pad.r} height={height - pad.t - pad.b} /></clipPath></defs>
       <g clipPath={`url(#${id})`}>{children({ sx, sy, W: width, H: height, pad })}</g>
     </svg>
   );
+}
+
+/** Default accessible name for a chart, e.g. "Chart of error rate against k (number of neighbours)". */
+export function plotName(xLabel?: string, yLabel?: string, x?: [number, number], y?: [number, number]) {
+  const clean = (l?: string) => l?.replace(/[→←↑↓]/g, '').replace(/\s+/g, ' ').trim();
+  const xl = clean(xLabel), yl = clean(yLabel);
+  if (xl && yl) return `Chart of ${yl} against ${xl}`;
+  if (xl || yl) return `Chart of ${xl || yl}`;
+  return x && y ? `Chart, x from ${fmt(x[0])} to ${fmt(x[1])}, y from ${fmt(Math.min(...y))} to ${fmt(Math.max(...y))}` : 'Chart';
 }
 
 export function fmt(v: number) {
@@ -141,8 +157,11 @@ export function MatrixView({ data, rowLabels, colLabels, highlight, cellColor, t
 }
 export const fmtNum = (v: number, d = 2) => (Number.isInteger(v) ? String(v) : v.toFixed(d));
 
-/** Narration under an animation. Say what is happening and what to notice. */
-export function Caption({ children }: { children: ReactNode }) { return <div className="caption">{children}</div>; }
+/** Narration under an animation. Say what is happening and what to notice.
+ *  Step players already announce the caption with each step; pass `live` for captions that change without a player (e.g. playground readouts). */
+export function Caption({ children, live = false }: { children: ReactNode; live?: boolean }) {
+  return <div className="caption" aria-live={live ? 'polite' : undefined}>{children}</div>;
+}
 
 /** Live numbers panel. */
 export function Readout({ items }: { items: [string, ReactNode, string?][] }) {
@@ -152,11 +171,11 @@ export function Readout({ items }: { items: [string, ReactNode, string?][] }) {
 export function Slider({ label, min, max, step = 1, value, onChange, format = (v: number) => String(v) }: {
   label: string; min: number; max: number; step?: number; value: number; onChange: (v: number) => void; format?: (v: number) => string;
 }) {
-  return <label className="slider"><span>{label}</span><input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} /><b>{format(value)}</b></label>;
+  return <label className="slider"><span>{label}</span><input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} aria-valuetext={format(value)} /><b aria-hidden="true">{format(value)}</b></label>;
 }
 
 export function Choice<T extends string | number>({ label, options, value, onChange }: { label?: string; options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
-  return <div className="row choice">{label && <span className="small muted">{label}</span>}{options.map((o) => <button key={String(o.value)} className={`btn ${o.value === value ? 'primary' : ''}`} onClick={() => onChange(o.value)}>{o.label}</button>)}</div>;
+  return <div className="row choice" role="group" aria-label={label}>{label && <span className="small muted" aria-hidden="true">{label}</span>}{options.map((o) => <button type="button" key={String(o.value)} className={`btn ${o.value === value ? 'primary' : ''}`} aria-pressed={o.value === value} onClick={() => onChange(o.value)}>{o.label}</button>)}</div>;
 }
 
 export function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
@@ -164,10 +183,30 @@ export function Toggle({ label, value, onChange }: { label: string; value: boole
 }
 
 export function Legend({ items }: { items: [string, string][] }) {
-  return <div className="legend">{items.map(([l, c]) => <span key={l}><span className="dot" style={{ background: c }} />{l}</span>)}</div>;
+  return <div className="legend">{items.map(([l, c]) => <span key={l}><span className="dot" aria-hidden="true" style={{ background: c }} />{l}</span>)}</div>;
 }
 
 /** Standard layout: visual on the left (wider), controls/readouts on the right. Stacks on small screens. */
 export function Layout({ main, side }: { main: ReactNode; side?: ReactNode }) {
-  return side ? <div className="viz-layout"><div>{main}</div><div className="viz-side">{side}</div></div> : <div>{main}</div>;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (ref.current) labelCharts(ref.current); });
+  return side
+    ? <div className="viz-layout" ref={ref}><div className="viz-main">{main}</div><div className="viz-side" role="group" aria-label="Controls and readouts">{side}</div></div>
+    : <div ref={ref}>{main}</div>;
+}
+
+/** Give hand-drawn chart SVGs (not built with Plot) an image role and a name, so screen readers don't read every tick label.
+ *  Also names bare sliders/selects that sit next to a text label instead of inside a <label> (prefer `Slider`). */
+export function labelCharts(root: HTMLElement) {
+  root.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input:not([aria-label]):not([aria-labelledby]), select:not([aria-label]):not([aria-labelledby])').forEach((el) => {
+    if (el.labels?.length || el.type === 'hidden') return;
+    let txt = '';
+    for (let n = el.previousSibling; n && !txt; n = n.previousSibling) if (n.nodeType === 3 || (n as HTMLElement).tagName === 'SPAN') txt = (n.textContent ?? '').trim();
+    if (txt) el.setAttribute('aria-label', txt);
+  });
+  root.querySelectorAll<SVGSVGElement>('svg.canvas:not([role])').forEach((svg) => {
+    const t = svg.querySelector(':scope > title')?.textContent?.trim();
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', t || 'Animated diagram; the caption describes what it shows');
+  });
 }

@@ -3,7 +3,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, MatrixView, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { alpha, boxStats, histCounts, mean, median, sd } from './_dataprep-helpers';
+import { boxStats, histogram, mean, median, sd } from '../viz/math';
+import { alpha } from './_dataprep-helpers';
 
 /* ---------- pure helpers ---------- */
 interface Row { id: string; age: number; income: number | null; city: string; imputed?: boolean; flag?: number }
@@ -130,8 +131,8 @@ function Playground() {
   const filled = fill === 'drop' ? known : truth.map((v, i) => (missing.has(i) ? fv : v));
   const lo = 0, hi = 40, bins = 20, w = (hi - lo) / bins;
   const cap = (a: number[]) => a.map((v) => Math.min(v, hi - 0.01));
-  const hObs = histCounts(cap(known), lo, hi, bins);
-  const hImp = histCounts(cap(fill === 'drop' ? [] : truth.filter((_, i) => missing.has(i)).map(() => fv)), lo, hi, bins);
+  const hObs = histogram(cap(known), lo, hi, bins);
+  const hImp = histogram(cap(fill === 'drop' ? [] : truth.filter((_, i) => missing.has(i)).map(() => fv)), lo, hi, bins);
   const hTot = hObs.map((d, i) => ({ x: d.x, y: d.y + hImp[i].y }));
   const yMax = Math.max(10, ...hTot.map((d) => d.y)) * 1.12;
   const tM = mean(truth), eM = mean(filled), tS = sd(truth, 1), eS = sd(filled, 1);

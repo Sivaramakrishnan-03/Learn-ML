@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A \"model\" that is just a lookup table scores 100% on the customers it was trained on. What does this tell you about its performance on new customers?",
+      "options": [
+        "It will also be close to 100%",
+        "It proves the features are well chosen",
+        "It will be exactly 50%",
+        "Almost nothing: it may simply have memorised the answers, so only data it has never seen can show how well it generalises"
+      ],
+      "answer": 3,
+      "why": "A flexible model can memorise its examples, so a training score measures recall, not generalisation. Assuming a perfect training score carries over to new data is the very trap that a held-out test set exists to catch.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A dataset has 25,000 rows, of which 4% are defaults. With a stratified 80/20 split, how many defaults are in the test set?",
+      "options": [
+        "1,000",
+        "800",
+        "200",
+        "40"
+      ],
+      "answer": 2,
+      "why": "The test set has 20% of 25,000 = 5,000 rows, and stratifying keeps the 4% rate: 0.04 × 5,000 = **200**. 1,000 is all the defaults in the whole dataset; 800 is how many land in the training set.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "A classifier is 90% accurate on 400 test rows. Using SE = √(p(1 − p) / n), what is the approximate 95% margin (1.96 × SE)?",
+      "options": [
+        "About ±0.2 points",
+        "About ±2.9 points",
+        "About ±9 points",
+        "About ±1.5 points"
+      ],
+      "answer": 1,
+      "why": "SE = √(0.9 × 0.1 / 400) = √0.000225 = 0.015, and 1.96 × 0.015 ≈ 0.029, so about **±2.9 percentage points**. ±1.5 points is one standard error, not the 95% margin; ±9 points forgets the square root.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "On the same 200 test rows, Model A scores 84% accuracy and Model B scores 86%. How should you read this?",
+      "options": [
+        "B is clearly better and should be deployed",
+        "The gap is well inside the roughly ±4.9-point uncertainty of a 200-row test set, so the scores cannot really separate the models",
+        "A is better because it is more conservative",
+        "The test set is too large to be useful"
+      ],
+      "answer": 1,
+      "why": "A test score is an estimate with uncertainty: at 85% on 200 rows, 1.96 × SE is about ±4.9 points. A 2-point gap is easily luck. Treating every difference in test scores as real is the misconception; use more test rows or cross-validation to separate them.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You compared three models on a validation set and picked the best one. What is the correct next step?",
+      "options": [
+        "Report the best validation score as the final result",
+        "Try more models on the test set until one beats the validation score",
+        "Retrain the chosen model on training plus validation data, then score it once on the untouched test set and report that",
+        "Discard the test set because validation was enough"
+      ],
+      "answer": 2,
+      "why": "Choosing among models is itself a kind of learning, so the winning validation score is slightly optimistic. Reporting it directly is the tempting shortcut; the honest number is a single score on data used neither for training nor for choosing.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A demand forecast scores an MAE of 50 units with a random split and 80 units when trained on earlier months and tested on later ones. Which number should you report, and why?",
+      "options": [
+        "80, because the time-based split copies reality: on the day the model is used, only the past is available",
+        "50, because it is the better score",
+        "The average, 65",
+        "Neither; time-series models cannot be evaluated"
+      ],
+      "answer": 0,
+      "why": "A random split lets the model learn from months after the one it predicts, so patterns such as a festive surge leak across the split. The worse, time-based number is the true one. Preferring the better-looking score is exactly how leakage goes unnoticed.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You expect about 80% accuracy and want the 95% margin (1.96 × SE) to be no more than ±2 percentage points. Roughly how many test rows do you need?",
+      "options": [
+        "About 1,540",
+        "About 800",
+        "About 400",
+        "About 16,000"
+      ],
+      "answer": 0,
+      "why": "Solve 1.96 × √(0.8 × 0.2 / n) ≤ 0.02: n ≥ 1.96² × 0.16 / 0.02² ≈ 1,537, so about **1,540** rows. About 400 forgets to square 1.96; 16,000 squares the margin as if it were 0.002 rather than 0.02 (wrong units).",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"Your model will score customers it has never seen, and each customer has many rows of history. How do you split?\" Which answer is best?",
+      "options": [
+        "A plain random split of rows, because shuffling removes all bias",
+        "Put the largest customers in the test set",
+        "Use the same customers in train and test but different columns",
+        "Split by customer (a group split), so every row of a test customer is unseen; the test set must look like tomorrow, which here means new customers"
+      ],
+      "answer": 3,
+      "why": "With a row-level random split, the same customer appears on both sides and the model is partly tested on people it already knows, which flatters the score. The guiding question is: what will be different on the day the model is used? Here, the customers.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

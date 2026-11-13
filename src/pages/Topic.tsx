@@ -1,5 +1,5 @@
 import { hasAnim, isAnimated, useTopicAnim } from '../anim/registry';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { TOPICS, TOPIC_BY_ID, TRACKS, linearOrder } from '../data/curriculum';
 import { GLOSSARY } from '../data/glossary';
@@ -17,6 +17,9 @@ import { ReportIssue } from '../components/ReportIssue';
 import { CheatSheet } from '../components/CheatSheet';
 import { LessonView } from '../components/LessonView';
 import { HowTo, GENERIC_HOWTO } from '../components/HowTo';
+import { TabList, TabPanel } from '../components/Tabs';
+import { labelCharts } from '../viz/kit';
+import { readable } from '../components/color';
 
 const TABS = ['Lesson', 'Animate', 'Playground', 'Pipeline', 'Math', 'Code', 'Quiz', 'Cheat sheet', 'Deep dive'] as const;
 type Tab = typeof TABS[number];
@@ -24,6 +27,8 @@ const LABEL: Record<Tab, string> = {
   Lesson: '📖 Lesson', Animate: '🎬 Animate', Playground: '🕹 Playground', Pipeline: '🔁 Pipeline', Math: '∑ Math',
   Code: '🐍 Code', Quiz: '✅ Quiz', 'Cheat sheet': '📄 Cheat sheet', 'Deep dive': '📘 Deep dive',
 };
+/** Tab label with its emoji hidden from screen readers. */
+const tabLabel = (x: Tab, extra = '') => { const [ico, ...rest] = LABEL[x].split(' '); return <><span aria-hidden="true">{ico}</span> {rest.join(' ')}{extra}</>; };
 const JOURNEY: { tab: Tab; text: string }[] = [
   { tab: 'Lesson', text: 'Read the lesson' }, { tab: 'Animate', text: 'Watch it work' },
   { tab: 'Playground', text: 'Try to break it' }, { tab: 'Quiz', text: 'Test yourself' },
@@ -36,6 +41,8 @@ export default function TopicPage() {
   const [tab, setTab] = useState<Tab>('Lesson');
   useEffect(() => { setTab('Lesson'); }, [id]);
   const ta = useTopicAnim(id);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (panel.current) labelCharts(panel.current); });
   if (!t) return <p>Unknown topic. <Link to="/tree">Back to the skill tree</Link></p>;
   const model = MODELS[id];
   const lesson = LESSONS[id];
@@ -53,16 +60,16 @@ export default function TopicPage() {
     <div key={id}>
       <div className="row" style={{ marginBottom: 6 }}>
         <span className="small muted">Step {idx + 1} of {order.length} in the linear track</span>
-        <span className="pill" style={{ borderColor: TRACKS[t.track].color, color: TRACKS[t.track].color }}>{TRACKS[t.track].title}</span>
+        <span className="pill track" style={{ borderColor: TRACKS[t.track].color, color: readable(TRACKS[t.track].color) }}>{TRACKS[t.track].title}</span>
         <span className="pill">{['', 'beginner', 'practitioner', 'advanced'][t.level]}</span>
         {lesson && <span className="pill">~{minutesOf(id)} min read</span>}
-        {isAnimated(id) && <span className="pill full">★ animated</span>}
+        {isAnimated(id) && <span className="pill full"><span aria-hidden="true">★ </span>animated</span>}
         <span className="spacer" />
-        <button className={`btn ${mark ? 'ok' : ''}`} onClick={() => progress.toggle(id)}>{mark ? '✓ Completed' : 'Mark complete'}</button>
+        <button type="button" className={`btn ${mark ? 'ok' : ''}`} aria-pressed={!!mark} onClick={() => progress.toggle(id)}>{mark ? '✓ Completed' : 'Mark complete'}</button>
       </div>
       <h1>{t.title}</h1>
       <p style={{ fontSize: '1.08rem', marginBottom: 10 }}>{t.blurb}</p>
-      <div className="caption" style={{ marginBottom: 12 }}>💡 <b>Analogy:</b> {t.analogy}</div>
+      <div className="caption" style={{ marginBottom: 12 }}><span aria-hidden="true">💡 </span><b>Analogy:</b> {t.analogy}</div>
 
       <details className="prereq-box">
         <summary>
@@ -82,21 +89,17 @@ export default function TopicPage() {
 
       <ErrorBoundary resetKey={id + tab}>
       {model ? <>
-        <div className="journey">
-          <span className="small muted">Suggested path:</span>
+        <nav className="journey" aria-label="Suggested path">
+          <span className="small muted" aria-hidden="true">Suggested path:</span>
           {JOURNEY.map((j, i) => (
-            <button key={j.tab} className={`journey-step ${tab === j.tab ? 'on' : ''}`} onClick={() => go(j.tab)}>
-              <span className="journey-n">{i + 1}</span>{j.text}
+            <button key={j.tab} type="button" className={`journey-step ${tab === j.tab ? 'on' : ''}`} aria-current={tab === j.tab ? 'step' : undefined} onClick={() => go(j.tab)}>
+              <span className="journey-n" aria-hidden="true">{i + 1}</span><span className="sr-only">Step {i + 1}: </span>{j.text}
             </button>
           ))}
-        </div>
-        <div className="tabs">
-          {TABS.filter((x) => (x !== 'Deep dive' || model.Guide) && (x !== 'Lesson' || lesson)).map((x) => (
-            <button key={x} className={`tab ${tab === x ? 'active' : ''}`} onClick={() => setTab(x)}>
-              {LABEL[x]}{x === 'Deep dive' ? ' · 20 chapters' : ''}
-            </button>
-          ))}
-        </div>
+        </nav>
+        <TabList label={`${t.title} sections`} prefix="topic" value={tab} onChange={setTab}
+          items={TABS.filter((x) => (x !== 'Deep dive' || model.Guide) && (x !== 'Lesson' || lesson)).map((x) => ({ id: x, label: tabLabel(x, x === 'Deep dive' ? ' · 20 chapters' : '') }))} />
+        <TabPanel prefix="topic" value={tab} heading={tab}><div ref={panel}>
         {tab === 'Lesson' && lesson && <>
           <LessonView topic={t} lesson={lesson} onPass={complete} />
           <div className="card next-card">
@@ -115,20 +118,19 @@ export default function TopicPage() {
           <div className="caption" style={{ marginBottom: 12 }}>📘 This is the <b>practitioner-level</b> guide: assumptions, diagnostics, inference, model selection and more. New to the topic? Start with the <button className="link-btn" onClick={() => go('Lesson')}>📖 Lesson</button> first.</div>
           <Suspense fallback={<p className="muted">Loading the guide…</p>}><model.Guide /></Suspense>
         </>}
+        </div></TabPanel>
       </> : hasAnim(id) ? <>
-        <div className="journey">
-          <span className="small muted">Suggested path:</span>
+        <nav className="journey" aria-label="Suggested path">
+          <span className="small muted" aria-hidden="true">Suggested path:</span>
           {JOURNEY.map((j, i) => (
-            <button key={j.tab} className={`journey-step ${tab === j.tab ? 'on' : ''}`} onClick={() => go(j.tab)}>
-              <span className="journey-n">{i + 1}</span>{j.text}
+            <button key={j.tab} type="button" className={`journey-step ${tab === j.tab ? 'on' : ''}`} aria-current={tab === j.tab ? 'step' : undefined} onClick={() => go(j.tab)}>
+              <span className="journey-n" aria-hidden="true">{i + 1}</span><span className="sr-only">Step {i + 1}: </span>{j.text}
             </button>
           ))}
-        </div>
-        <div className="tabs">
-          {(['Lesson', 'Animate', 'Playground', 'Quiz', 'Cheat sheet'] as Tab[]).map((x) => (
-            <button key={x} className={`tab ${tab === x ? 'active' : ''}`} onClick={() => setTab(x)}>{LABEL[x]}</button>
-          ))}
-        </div>
+        </nav>
+        <TabList label={`${t.title} sections`} prefix="topic" value={tab} onChange={setTab}
+          items={(['Lesson', 'Animate', 'Playground', 'Quiz', 'Cheat sheet'] as Tab[]).map((x) => ({ id: x, label: tabLabel(x) }))} />
+        <TabPanel prefix="topic" value={tab} heading={tab}><div ref={panel}>
         {tab === 'Lesson' && lesson && <>
           <LessonView topic={t} lesson={lesson} onPass={complete} />
           <div className="card next-card"><b>Next on this page →</b> <button className="btn primary" onClick={() => go('Animate')}>🎬 Watch it work</button></div>
@@ -141,13 +143,14 @@ export default function TopicPage() {
         )}
         {tab === 'Quiz' && lesson && <><HowTo spec={GENERIC_HOWTO.Quiz} /><TopicQuiz id={id} lesson={lesson} onPass={complete} /></>}
         {tab === 'Cheat sheet' && lesson && <><HowTo spec={GENERIC_HOWTO['Cheat sheet']} /><TopicCheatSheet topic={t} lesson={lesson} /></>}
+        </div></TabPanel>
       </> : lesson ? <>
         <LessonView topic={t} lesson={lesson} onPass={complete} />
       </> : null}
       </ErrorBoundary>
 
       {terms.length > 0 && <div style={{ marginTop: 22 }}>
-        <h3>📖 Key terms</h3>
+        <h2 className="h3"><span aria-hidden="true">📖 </span>Key terms</h2>
         <div className="grid g2">{terms.map((g) => <div key={g.term} className="small"><b>{g.term}</b>: {g.def}</div>)}</div>
       </div>}
 

@@ -18,13 +18,14 @@
     "plain": "Total error = being systematically wrong + being unstable + randomness you can never remove."
   },
   "example": {
-    "title": "Three trees on the same loan data",
+    "title": "Bias and variance with real numbers",
     "steps": [
-      "Depth 1: train 70%, test 69% → both low = high bias",
-      "Depth 4: train 86%, test 83% → good balance",
-      "Depth 15: train 100%, test 72% → big gap = high variance"
+      "True maintenance cost of one machine: ₹50 thousand. Three model types, each trained on five random samples, predict it (₹ thousand): A 40, 42, 41, 39, 43 · B 35, 65, 50, 58, 42 · C 47, 52, 49, 51, 46",
+      "A: average 41 → bias² = (41 − 50)² = 81; variance = 2; total = 83",
+      "B: average 50 → bias² = 0; variance = 115.6; total = 115.6",
+      "C: average 49 → bias² = 1; variance = 5.2; total = 6.2"
     ],
-    "result": "Depth 4 wins. The \"sweet spot\" is where test error is lowest, not where training error is lowest."
+    "result": "A is consistently wrong (high bias), B is right on average but wildly unstable (high variance), C has a little of each and by far the lowest total error. Being unbiased is not enough; stability matters just as much."
   },
   "mistakes": [
     "Celebrating training accuracy.",
@@ -37,7 +38,7 @@
     "Choose complexity by validation error"
   ],
   "practice": {
-    "code": "from sklearn.datasets import make_moons\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.model_selection import train_test_split\nX, y = make_moons(600, noise=0.35, random_state=0)\nX_tr, X_te, y_tr, y_te = train_test_split(X, y, random_state=0)\nfor d in [1, 3, 5, 10, None]:\n    m = DecisionTreeClassifier(max_depth=d, random_state=0).fit(X_tr, y_tr)\n    print(d, round(m.score(X_tr, y_tr), 3), round(m.score(X_te, y_te), 3))"
+    "code": "import numpy as np\npreds = {\"A\": [40, 42, 41, 39, 43], \"B\": [35, 65, 50, 58, 42], \"C\": [47, 52, 49, 51, 46]}\nfor name, p in preds.items():\n    p = np.array(p); bias2 = (p.mean() - 50)**2; var = p.var()\n    print(name, bias2, round(var, 1), round(bias2 + var, 1))  # A 81 2 83 · B 0 115.6 · C 1 5.2 6.2\n\n# The same trade-off with real models: tree depth vs train/test accuracy\nfrom sklearn.datasets import make_moons\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.model_selection import train_test_split\nX, y = make_moons(600, noise=0.35, random_state=0)\nX_tr, X_te, y_tr, y_te = train_test_split(X, y, random_state=0)\nfor d in [1, 3, 5, 10, None]:\n    m = DecisionTreeClassifier(max_depth=d, random_state=0).fit(X_tr, y_tr)\n    print(d, round(m.score(X_tr, y_tr), 3), round(m.score(X_te, y_te), 3))"
   },
   "check": [
     {

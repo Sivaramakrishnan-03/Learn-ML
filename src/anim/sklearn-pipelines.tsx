@@ -3,11 +3,10 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Arrow, Label, Seg, Caption, Readout, Slider, Layout, Legend, MatrixView, useStepPlayer, PlayerControls, rng, gauss, C, Scales } from '../viz/kit';
-import { mean, median, permutation } from './_workflow-helpers';
+import { mean, median, permutation, sd } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 const TRAIN = C.blue, VAL = C.purple, LEAK = C.red;
-const sdPop = (a: number[]) => { const m = mean(a); return Math.sqrt(mean(a.map((v) => (v - m) ** 2))); };
 
 /** "Feature selection on pure noise": n rows, p random columns, random 50/50 labels. Select the k columns most related to
  *  the label either on ALL rows (leaky) or inside each CV fold (pipeline), then 5-fold CV of a nearest-centroid classifier. */
@@ -48,11 +47,11 @@ const ROWS = [
 const trainInc = ROWS.filter((r) => r.set === 'train').map((r) => r.inc);
 const MED = median(trainInc.filter((v) => !isNaN(v)));               // 15
 const filledTrain = trainInc.map((v) => (isNaN(v) ? MED : v));       // 10 20 15 15
-const MU = mean(filledTrain), SD = sdPop(filledTrain);                // 15, 3.536
+const MU = mean(filledTrain), SD = sd(filledTrain);                // 15, 3.536
 const allKnown = ROWS.map((r) => r.inc).filter((v) => !isNaN(v));
 const MED_L = median(allKnown);                                        // 20 (leaky)
 const filledAll = ROWS.map((r) => (isNaN(r.inc) ? MED_L : r.inc));
-const MU_L = mean(filledAll), SD_L = sdPop(filledAll);                // 34.2, 26.4 (leaky)
+const MU_L = mean(filledAll), SD_L = sd(filledAll);                // 34.2, 26.2 (leaky)
 
 const STAGE_X = [1.1, 3.75, 6.35, 8.9];
 const BOX = [{ t: 'raw rows', x: 1.1 }, { t: 'SimpleImputer', x: 3.75 }, { t: 'StandardScaler', x: 6.35 }, { t: 'LogisticRegression', x: 8.9 }];
@@ -143,7 +142,7 @@ function Animate() {
             data={[0, 1, 2, 3].map((k) => {
               const tr = ROWS.filter((r, i) => r.set === 'train' && i !== k).map((r) => r.inc);
               const md = median(tr.filter((v) => !isNaN(v))), filled = tr.map((v) => (isNaN(v) ? md : v));
-              return [`${k + 1} (hold out ${ROWS[k].id})`, ROWS.filter((r, i) => r.set === 'train' && i !== k).map((r) => r.id).join(', '), md, mean(filled).toFixed(2), sdPop(filled).toFixed(2)];
+              return [`${k + 1} (hold out ${ROWS[k].id})`, ROWS.filter((r, i) => r.set === 'train' && i !== k).map((r) => r.id).join(', '), md, mean(filled).toFixed(2), sd(filled).toFixed(2)];
             })} />}
           {f.noise && <Plot x={[0, 3]} y={[0, 1]} height={250} xTicks={0} fx={() => ''} yLabel="5-fold CV accuracy" fy={(v) => (v * 100).toFixed(0) + '%'} yTicks={5}>
             {(s) => <>

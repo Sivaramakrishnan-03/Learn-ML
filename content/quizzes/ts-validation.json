@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A forecasting model uses a **centred** 7-day rolling mean of sales (3 days before, the day itself and 3 days after) as a feature. What is wrong?",
+      "options": [
+        "Nothing; rolling means are standard features",
+        "Centred windows are too short",
+        "Look-ahead leakage: the feature uses future sales that would not be known at forecast time, so backtest results will look better than reality",
+        "Rolling means are only allowed for monthly data"
+      ],
+      "answer": 2,
+      "why": "Ask of every input: would I have known this exact value when the forecast had to be made? A centred window peeks 3 days ahead. Use a trailing window that ends at the forecast origin.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A retailer needs forecasts **8 weeks ahead** to place orders. At what horizon should the model be tested?",
+      "options": [
+        "1 week ahead, because it is the most accurate",
+        "Any horizon; accuracy does not depend on it",
+        "8 weeks ahead, the horizon the business decision actually needs",
+        "On the training data, at no horizon"
+      ],
+      "answer": 2,
+      "why": "Errors usually grow with the horizon, so a model tested 1 week ahead will look far better than it performs at 8 weeks. Test at the horizon the decision uses.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Four SKUs have actuals 50, 200, 150, 100 and forecasts 60, 180, 165, 100. What is the WAPE?",
+      "options": [
+        "9.0%",
+        "10.0%",
+        "11.25%",
+        "1.0%"
+      ],
+      "answer": 0,
+      "why": "Absolute errors: 10, 20, 15, 0, total 45. WAPE = total absolute error / total actual = 45 / 500 = 9.0%. 10.0% is the MAPE (average of 20%, 10%, 10%, 0%); 11.25 is the MAE in units; 1.0% is the bias, where over- and under-forecasts cancel.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Forecast errors on four periods are 2, 2, 2 and 14 units. What are the MAE and RMSE?",
+      "options": [
+        "MAE 5.0, RMSE 7.2",
+        "MAE 5.0, RMSE 5.0",
+        "MAE 7.2, RMSE 5.0",
+        "MAE 5.0, RMSE 52.0"
+      ],
+      "answer": 0,
+      "why": "MAE = 20 / 4 = 5.0. RMSE = √((4 + 4 + 4 + 196) / 4) = √52 ≈ 7.2. RMSE squares errors before averaging, so the single large miss counts much more. 52 is the mean squared error before taking the square root.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A demand model has **MASE = 1.25** on the backtest. What does that mean?",
+      "options": [
+        "The model's errors are 25% smaller than a naive forecast's",
+        "The model's average error is 25% larger than a naive forecast's typical error on the history; the simple \"same as last time\" rule would do better",
+        "The model has 125% accuracy",
+        "The model is 1.25 units off on average"
+      ],
+      "answer": 1,
+      "why": "MASE divides the model's MAE by the naive forecast's MAE on the training data. Below 1 is better than naive; above 1 is worse. It is scale-free, so it is not in units.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A product range includes several slow sellers that sometimes sell zero units in a week. Why is MAPE a poor headline metric here?",
+      "options": [
+        "MAPE ignores large errors",
+        "MAPE cannot be computed for weekly data",
+        "MAPE is always lower than WAPE",
+        "MAPE divides by each actual, so small actuals produce huge percentages and zero actuals make it undefined; WAPE or MASE is more stable"
+      ],
+      "answer": 3,
+      "why": "One SKU with actual 10 and forecast 20 adds a 100% error that can dominate MAPE. WAPE weights by volume and MASE scales by a naive benchmark, so neither blows up. MAPE is often higher than WAPE for exactly this reason.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Last week's sales only become final each Wednesday, so forecasts made on Monday cannot use them. How should the backtest reflect this?",
+      "options": [
+        "Ignore it; the effect is small",
+        "Leave a gap between the training and test periods (for example the `gap` parameter in `TimeSeriesSplit`) so the model only sees data that would have been available",
+        "Shuffle the data so the delay averages out",
+        "Use random k-fold cross-validation"
+      ],
+      "answer": 1,
+      "why": "The backtest must mimic real information flow. A gap stops the model using data that would not yet be final, which is a subtle form of look-ahead leakage. Shuffling or random k-fold makes the leakage worse.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "In an interview: \"Your demand model scored 4% MAPE on a random 20% hold-out, but in production its error is about 15%. What probably went wrong?\"",
+      "options": [
+        "Production data is always noisier, so nothing went wrong",
+        "MAPE should have been replaced with RMSE",
+        "The model needs more parameters",
+        "The random split let the model train on future data and test on interleaved past points (plus likely leaky features), so the hold-out was not an honest forecast test; re-evaluate with a rolling-origin backtest at the business horizon and compare with a naive baseline"
+      ],
+      "answer": 3,
+      "why": "Random splits break time order: neighbouring days end up on both sides, so the model effectively interpolates. A rolling-origin backtest trains only on the past, tests on the future, and shows how the error varies across windows. Changing the metric does not fix a leaky design.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

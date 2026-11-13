@@ -14,14 +14,14 @@
     "Like a teacher who spends more time on the questions you got wrong. But if some \"wrong\" answers are really **label noise**, AdaBoost keeps chasing them and overfits."
   ],
   "example": {
-    "title": "Three rounds of boosting",
+    "title": "Two rounds of row re-weighting",
     "steps": [
-      "Round 1 stump: 30% error → weight α₁ = ½ ln(0.7/0.3) ≈ 0.42",
-      "Misclassified points get heavier weights",
-      "Round 2 stump focuses on them: 25% weighted error → α₂ ≈ 0.55",
-      "Final prediction = sign(0.42·h₁ + 0.55·h₂ + …)"
+      "Five transactions, each with weight 0.2. Stump 1 gets row 1 wrong → ε₁ = 0.2, α₁ = ½ ln(0.8 / 0.2) ≈ 0.693",
+      "Re-weight: row 1 → 0.2 × 2 = 0.4; rows 2–5 → 0.2 × 0.5 = 0.1 each. Rescale by the total 0.8: row 1 = 0.5, rows 2–5 = 0.125",
+      "Stump 2 gets rows 2 and 3 wrong → ε₂ = 0.25, α₂ = ½ ln 3 ≈ 0.549",
+      "Re-weight and rescale: row 1 ≈ 0.333, rows 2 and 3 = 0.25 each, rows 4 and 5 ≈ 0.083. Final model = sign(0.693·h₁ + 0.549·h₂ + …)"
     ],
-    "result": "Each new stump patches the previous mistakes; together they form a complex boundary."
+    "result": "After each round the rows just misclassified hold half the weight, so the next stump is pointed at the current weak spots."
   },
   "mistakes": [
     "Using it on noisy labels without regularisation (lower the learning rate, fewer rounds)."
@@ -64,5 +64,9 @@
       "why": "One-split trees are weak but fast."
     }
   ],
-  "chapterMinutes": 15
+  "chapterMinutes": 15,
+  "formula": {
+    "tex": "\\alpha_t = \\tfrac{1}{2} \\ln\\!\\left( \\frac{1 - \\varepsilon_t}{\\varepsilon_t} \\right), \\qquad w_i \\leftarrow w_i \\, e^{-\\alpha_t \\, y_i \\, h_t(x_i)}",
+    "plain": "A stump's say α grows with its odds of being right (ε is its weighted error). Rows it got wrong are multiplied by e^α, rows it got right by e^−α, then all weights are rescaled to sum to 1."
+  }
 }

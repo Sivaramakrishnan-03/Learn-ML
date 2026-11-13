@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, Caption, Readout, Choice, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C, Scales } from '../viz/kit';
-import { mean } from './_workflow-helpers';
+import { mean } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 type Row = { x: number; y: number; yhat: number };

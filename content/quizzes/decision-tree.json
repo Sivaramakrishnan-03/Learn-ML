@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Using the loan tree (root: \"income ≤ ₹13.5 lakh?\"; high-income side: \"credit score < 650?\" → Decline leaf with 1 repaid / 3 defaulted), what does it predict for an applicant earning **₹16 lakh** with a credit score of **620**?",
+      "options": [
+        "Approve, because income is above ₹13.5 lakh",
+        "Decline with 100% certainty, because the leaf is pure",
+        "Decline: predict default with an estimated probability of 3/4 = 75%",
+        "Approve with 15/16 ≈ 94% probability of repaying"
+      ],
+      "answer": 2,
+      "why": "₹16 lakh > 13.5, so go right; 620 < 650, so go left into the Decline leaf holding 1 repaid and 3 defaulted, giving default ≈ 75%. Stopping after the first question ignores the credit-score check, and 94% is the other leaf on that side (score ≥ 650). The leaf is not pure, so the probability is not 100%.",
+      "level": 1,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Why does a decision tree not need its features to be standardised, unlike k-NN or regularised regression?",
+      "options": [
+        "Because trees convert every feature to 0/1 before training",
+        "Because each split compares one feature with a threshold, so rescaling a feature just moves the threshold and gives the same split",
+        "Because trees only work with categorical features",
+        "Because Gini impurity divides by each feature's standard deviation"
+      ],
+      "answer": 1,
+      "why": "\"Income ≤ ₹13.5 lakh?\" and \"income ≤ 1,350 thousand?\" separate exactly the same applicants. No distances or penalties on coefficient size are involved, so units do not matter. Gini is computed from class shares in a node, not from feature values.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "At the 40-applicant root (20 repaid, 20 defaulted), a new candidate \"has a prior default?\" sends 10 applicants left (0 repaid, 10 defaulted) and 30 right (20 repaid, 10 defaulted). Its weighted Gini, and does it beat income (0.32)?",
+      "options": [
+        "About 0.333, so income (0.32) still wins",
+        "0.222, so it beats income",
+        "0.444, so income wins easily",
+        "0, because the left child is pure"
+      ],
+      "answer": 0,
+      "why": "Left Gini = 0 (pure). Right Gini = 1 − ((2/3)² + (1/3)²) ≈ 0.444. Weighted = (10/40) × 0 + (30/40) × 0.444 ≈ 0.333, slightly worse than income's 0.32. 0.444 forgets to weight by the 30/40 share, and 0 looks only at the pure child: a tiny pure child cannot make up for a big messy one.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A leaf holds 3 repaid and 1 defaulted applicant. What is its **entropy** in bits?",
+      "options": [
+        "About 0.375",
+        "1.0",
+        "About 0.811",
+        "0.25"
+      ],
+      "answer": 2,
+      "why": "H = −(0.75 log₂ 0.75 + 0.25 log₂ 0.25) ≈ 0.311 + 0.5 = 0.811 bits. 0.375 is the Gini impurity of the same leaf, a different measure on a different scale. 1.0 bit is the entropy of a 50/50 mix, the most impure two-class node.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Grown without limits, the tree adds a question just to isolate the one ₹22 lakh applicant who defaulted, creating a leaf of 1 person. How should you read that branch?",
+      "options": [
+        "As a real finding: very high earners are risky",
+        "As proof that Gini is the wrong impurity measure",
+        "As a sign that income should be standardised",
+        "As overfitting: a rule built on one unusual case that will not generalise; setting `min_samples_leaf` or `max_depth` (chosen by cross-validation) prevents it"
+      ],
+      "answer": 3,
+      "why": "A pure leaf of one person lowers training impurity but captures noise, the textbook case of memorising data. Requiring, say, 20 cases per leaf stops it. Switching to entropy would make the same choice, and scaling is irrelevant to trees.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A tree's impurity-based feature importance ranks **customer ID** as the second most important feature. What is the most likely explanation?",
+      "options": [
+        "Customer ID genuinely predicts default",
+        "Impurity-based importance favours features with many distinct values, which can always produce some split that looks good on training data; check with permutation importance instead",
+        "The tree must be too shallow",
+        "Gini importance is always correct, so the ID must encode signup date"
+      ],
+      "answer": 1,
+      "why": "A feature with a unique value per row offers countless thresholds, so the tree can carve out tiny pure groups and rack up impurity drops that are pure noise. Permutation importance measures how much held-out accuracy falls when a feature is shuffled, which exposes useless features like IDs.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "The true rule is diagonal: \"approve when income + score (both scaled) is high\". Why does a decision tree struggle to learn it cleanly?",
+      "options": [
+        "Because each split looks at one feature at a time, so the tree can only draw horizontal and vertical cuts and must approximate a diagonal with many small staircase steps",
+        "Because trees can only use one feature in the whole model",
+        "Because trees need the features to be independent",
+        "Because the diagonal rule has no impurity"
+      ],
+      "answer": 0,
+      "why": "Axis-aligned splits produce rectangular regions. A diagonal boundary needs many steps, which means a deep tree that is prone to overfitting. Logistic regression or an SVM draws that line directly. Trees can use many features, just one per question.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"Why are single decision trees called unstable, and what is the usual fix?\"",
+      "options": [
+        "Because their predictions change every time you call `predict`; fix it with a random seed",
+        "Because they need feature scaling; fix it with `StandardScaler`",
+        "Because Gini is unstable; fix it by switching to entropy",
+        "Because changing a handful of training rows can change the root question and reshape the whole tree, as the greedy splits cascade; ensembles such as random forests and gradient boosting average many trees to fix it"
+      ],
+      "answer": 3,
+      "why": "Growing is greedy: a different first split sends cases down different branches, so every later choice changes too. A trained tree's predictions are deterministic; the instability is across retrains. Combining many trees (bagging, boosting) smooths this out and usually improves accuracy, at some cost to readability.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

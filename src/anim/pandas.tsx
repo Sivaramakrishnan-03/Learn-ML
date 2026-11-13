@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Seg, Label, MatrixView, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C } from '../viz/kit';
-import { alpha, mean, sum } from './_dataprep-helpers';
+import { mean, sum } from '../viz/math';
+import { alpha } from './_dataprep-helpers';
 
 /* ---------- pure helpers ---------- */
 interface Order { id: number; city: string; product: string; units: number; price: number }

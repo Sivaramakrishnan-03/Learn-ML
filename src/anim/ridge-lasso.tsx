@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, Scales, C, SERIES } from '../viz/kit';
-import { standardize, ridgeFit, lassoFit, mean, rmse, corr } from './_regression-helpers';
+import { standardize, ridgeFit, lassoFit, mean, rmse, corr } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 // Simulated Chennai flats. Seven candidate features; price really depends on four of them. Carpet area is ~98% the same as built-up area.
@@ -48,7 +48,7 @@ function twoFeature() {
   const ols = ridgeFit(Z, y, 0);
   return { Z, y, S, ols, rho: corr(Z[0], Z[1]) };
 }
-/** Points on the loss contour ½(β−β̂)ᵀS(β−β̂) = c (an ellipse). */
+/** Points on the loss contour ½(b−b̂)ᵀS(b−b̂) = c (an ellipse). */
 function ellipse(S: number[][], c0: number[], level: number, n = 90) {
   const a = S[0][0], b = S[0][1], d = S[1][1], tr = a + d, det = a * d - b * b, h = Math.sqrt(Math.max(0, tr * tr / 4 - det));
   const l1 = tr / 2 + h, l2 = tr / 2 - h;
@@ -88,7 +88,7 @@ function Geometry({ geo, m, beta, show }: { geo: ReturnType<typeof twoFeature>; 
     ? Array.from({ length: 73 }, (_, i) => ({ x: r2 * Math.cos((i * Math.PI) / 36), y: r2 * Math.sin((i * Math.PI) / 36) }))
     : [{ x: r1, y: 0 }, { x: 0, y: r1 }, { x: -r1, y: 0 }, { x: 0, y: -r1 }];
   return (
-    <Plot x={D} y={D} width={380} height={372} xLabel="β₁ (area)" yLabel="β₂ (bedrooms)" xTicks={5} yTicks={5}>
+    <Plot x={D} y={D} width={380} height={372} xLabel="b₁ (area)" yLabel="b₂ (bedrooms)" xTicks={5} yTicks={5}>
       {(s) => <>
         <Seg s={s} x1={D[0]} x2={D[1]} y1={0} y2={0} color={C.grey} width={1} />
         <Seg s={s} x1={0} x2={0} y1={D[0]} y2={D[1]} color={C.grey} width={1} />
@@ -96,9 +96,9 @@ function Geometry({ geo, m, beta, show }: { geo: ReturnType<typeof twoFeature>; 
         {show && <path d={poly(s, region)} fill={C.teal} fillOpacity={0.25} stroke={C.teal} strokeWidth={2} />}
         {show && level > 1e-6 && <path d={poly(s, ellipse(geo.S, geo.ols, level))} fill="none" stroke={C.red} strokeWidth={2.2} />}
         <Dots s={s} pts={[{ x: geo.ols[0], y: geo.ols[1] }]} color={C.red} r={5} animate={false} />
-        <Label s={s} x={geo.ols[0] + 0.02} y={geo.ols[1] - 0.09} color={C.red} size={12} anchor="middle">β̂ (least squares)</Label>
+        <Label s={s} x={geo.ols[0] + 0.02} y={geo.ols[1] - 0.09} color={C.red} size={12} anchor="middle">b̂ (least squares)</Label>
         {show && <Dots s={s} pts={[{ x: beta[0], y: beta[1] }]} color={C.yellow} r={6} />}
-        <Label s={s} x={D[0] + 0.04} y={D[1] - 0.09} color={C.text} size={14}>{m === 'ridge' ? 'Ridge: β₁² + β₂² ≤ t' : 'Lasso: |β₁| + |β₂| ≤ t'}</Label>
+        <Label s={s} x={D[0] + 0.04} y={D[1] - 0.09} color={C.text} size={14}>{m === 'ridge' ? 'Ridge: b₁² + b₂² ≤ t' : 'Lasso: |b₁| + |b₂| ≤ t'}</Label>
       </>}
     </Plot>
   );
@@ -127,7 +127,7 @@ function PathPlot({ lams, paths, upto, cursor, xr, yr, title, trueB, width = 380
 function BudgetPaths({ bp, cur, yr, title }: { bp: ReturnType<typeof budgetPath>; cur: number; yr: [number, number]; title: string }) {
   const shown = bp.filter((q) => q.s >= cur - 1e-9);
   return (
-    <Plot x={[1, 0]} y={yr} width={380} height={240} xLabel="budget used  ‖β‖ / ‖β_LS‖  (stronger penalty →)" yLabel="coefficient (standardised)" xTicks={5} yTicks={5}>
+    <Plot x={[1, 0]} y={yr} width={380} height={240} xLabel="budget used  ‖b‖ / ‖b_LS‖  (stronger penalty →)" yLabel="coefficient (standardised)" xTicks={5} yTicks={5}>
       {(s) => <>
         <Seg s={s} x1={1} x2={0} y1={0} y2={0} color={C.grey} width={1} />
         {FEATS.map((_, j) => <path key={j} d={shown.map((q, k) => `${k ? 'L' : 'M'}${s.sx(q.s)},${s.sy(q.b[j])}`).join('')} fill="none" stroke={SERIES[j]} strokeWidth={2.2} />)}
@@ -155,12 +155,12 @@ function Animate() {
   const show = p.i > 0;
   const off = FEATS.filter((_, j) => Math.abs(big7.b[j]) < 1e-6);
   const caption = (() => {
-    if (p.i === 0) return <>Two standardised features, area and bedrooms (correlation {geo.rho.toFixed(2)}). Each red oval is a <b>contour of the squared-error loss</b>: every (β₁, β₂) on one oval fits the data equally well. Plain least squares picks the centre, <b>β̂ = ({geo.ols[0].toFixed(2)}, {geo.ols[1].toFixed(2)})</b>.</>;
-    if (p.i === 1) return <>Regularisation puts a <b>budget</b> on coefficient size. Ridge's budget is a <b>circle</b> (β₁² + β₂² ≤ t), Lasso's a <b>diamond</b> (|β₁| + |β₂| ≤ t). The answer is the point inside the budget with the lowest loss: where the teal region <b>first touches</b> an oval. With the full budget that is still β̂.</>;
+    if (p.i === 0) return <>Two standardised features, area and bedrooms (correlation {geo.rho.toFixed(2)}). Each red oval is a <b>contour of the squared-error loss</b>: every (b₁, b₂) on one oval fits the data equally well. Plain least squares picks the centre, <b>b̂ = ({geo.ols[0].toFixed(2)}, {geo.ols[1].toFixed(2)})</b>.</>;
+    if (p.i === 1) return <>Regularisation puts a <b>budget</b> on coefficient size. Ridge's budget is a <b>circle</b> (b₁² + b₂² ≤ t), Lasso's a <b>diamond</b> (|b₁| + |b₂| ≤ t). The answer is the point inside the budget with the lowest loss: where the teal region <b>first touches</b> an oval. With the full budget that is still b̂.</>;
     if (p.i === fr.length - 1) return <><b>Summary.</b> Ridge (circle) shrinks every coefficient smoothly and keeps them all, sharing credit between the twin area features. Lasso (diamond) has <b>corners on the axes</b>, so the touching point often lands on a corner: coefficients become <b>exactly zero</b> and the model selects features. A bigger λ means a smaller budget; choose it by cross-validation.</>;
     if (frac === 0) return <>Zero budget (λ → ∞): both models set every coefficient to 0 and simply predict the average price.</>;
     const bed0 = Math.abs(bL[1]) < 1e-6;
-    if (bed0) return <>Budget {Math.round(frac * 100)}%: the diamond's <b>corner</b> on the β₁ axis is where it touches the oval, so Lasso sets <b>β₂ (bedrooms) = 0 exactly</b>. Ridge's circle has no corners: it keeps β₂ = {bR[1].toFixed(3)}. Below, Lasso has switched off {off.length} of 7 features{off.length ? ` (${off.join(', ')})` : ''}.</>;
+    if (bed0) return <>Budget {Math.round(frac * 100)}%: the diamond's <b>corner</b> on the b₁ axis is where it touches the oval, so Lasso sets <b>b₂ (bedrooms) = 0 exactly</b>. Ridge's circle has no corners: it keeps b₂ = {bR[1].toFixed(3)}. Below, Lasso has switched off {off.length} of 7 features{off.length ? ` (${off.join(', ')})` : ''}.</>;
     return <>Budget cut to <b>{Math.round(frac * 100)}%</b> of least squares (λ: ridge {fmtLam(R.lam)}, lasso {fmtLam(L.lam)}). The teal region shrinks, so the touching point (yellow) slides to a worse oval, closer to the origin. In the 7-feature paths below, coefficients fan in towards zero{off.length ? <>; Lasso has already zeroed <b>{off.join(', ')}</b></> : ''}.</>;
   })();
   const half = { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 8 } as const;
@@ -184,8 +184,8 @@ function Animate() {
             ['budget left', `${Math.round(frac * 100)}%`, C.teal],
             ['ridge λ', show ? (isFinite(R.lam) ? fmtLam(R.lam) : '∞') : '0'],
             ['lasso λ', show ? (isFinite(L.lam) ? fmtLam(L.lam) : '∞') : '0'],
-            ['ridge (β₁, β₂)', (show ? bR : geo.ols).map((v) => v.toFixed(2)).join(', '), C.yellow],
-            ['lasso (β₁, β₂)', (show ? bL : geo.ols).map((v) => v.toFixed(2)).join(', '), C.yellow],
+            ['ridge (b₁, b₂)', (show ? bR : geo.ols).map((v) => v.toFixed(2)).join(', '), C.yellow],
+            ['lasso (b₁, b₂)', (show ? bL : geo.ols).map((v) => v.toFixed(2)).join(', '), C.yellow],
             ['lasso: features kept', `${show ? nzL : 7} / 7`, show && nzL < 7 ? C.gold : C.text],
             ['ridge: features kept', frac === 0 ? '0 / 7' : '7 / 7'],
           ]} />
@@ -266,7 +266,7 @@ const anim: TopicAnim = {
   howto: {
     Animate: { what: 'Top: the classic picture of **Ridge (circle)** and **Lasso (diamond)** budgets touching the red loss contours for two features. Bottom: the **coefficient paths** of a 7-feature flat-price model as the penalty λ grows.', steps: [
       { do: 'Read the first two frames.', notice: 'Least squares sits at the centre of the ovals; the penalty forces the answer inside the teal budget.' },
-      { do: 'Press **▶ Play** and watch the yellow dots.', notice: 'Both move towards the origin; the lasso dot snaps onto the β₁ axis (a corner), making β₂ exactly 0.' },
+      { do: 'Press **▶ Play** and watch the yellow dots.', notice: 'Both move towards the origin; the lasso dot snaps onto the b₁ axis (a corner), making b₂ exactly 0.' },
       { do: 'Watch the two path charts fill in.', notice: 'Ridge curves glide towards zero together; lasso lines hit zero one by one (the noise features first).' },
     ] },
     Playground: { what: 'Choose a penalty and λ for the 7-feature flat-price model; see coefficients, their full path and train/test error across all λ.', steps: [

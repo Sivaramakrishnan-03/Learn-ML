@@ -2,7 +2,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, FnLine, Seg, Label, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, C, SERIES } from '../viz/kit';
-import { credit, growTree, predict, bootstrap, treeGrid, boundary, Field, Boundary, ClassDots, CLS, AX, CP, TNode, G, mean } from './_ensembles-helpers';
+import { mean, bootstrap, sd } from '../viz/math';
+import { credit, growTree, predict, treeGrid, boundary, Field, Boundary, ClassDots, CLS, AX, CP, TNode, G } from './_ensembles-helpers';
 
 /* ---------- pure helpers ---------- */
 const XY = (pts: CP[]) => pts.map((p) => [p.x, p.y]);
@@ -61,7 +62,6 @@ function Animate() {
     const one = predict(growTree(XY(d), LAB(d), d.map(() => 1), { maxDepth: 8 }).root, PROBE) > 0.5 ? 1 : 0;
     return { one, bag: vote(bag(d, 25, 8, 40 + s).trees, PROBE) };
   }), []);
-  const sd = (a: number[]) => { const m = mean(a); return Math.sqrt(mean(a.map((v) => (v - m) ** 2))); };
   type F = { kind: 'data' | 'boot' | 'fit' | 'many' | 'var'; b: number };
   const frames: F[] = [{ kind: 'data', b: 0 }];
   for (let b = 1; b <= 5; b++) frames.push({ kind: 'boot', b }, { kind: 'fit', b });

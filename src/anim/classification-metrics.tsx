@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, Caption, Readout, Slider, Layout, Legend, MatrixView, useStepPlayer, PlayerControls, rng, gauss, C, Scales } from '../viz/kit';
+import { histogram } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 const POS = C.purple, NEG = C.blue; // actual churned / actually stayed
@@ -124,7 +125,7 @@ function makeCases(sep: number, prev: number, seed: number): Case[] {
     return { p: 1 / (1 + Math.exp(-1.3 * z)), y };
   });
 }
-function hist(vals: number[], bins: number) { const c = Array(bins).fill(0); vals.forEach((v) => c[Math.min(bins - 1, Math.floor(v * bins))]++); return c; }
+const hist = (vals: number[], bins: number) => histogram(vals, 0, 1, bins).map((d) => d.y);
 
 function Playground() {
   const [sep, setSep] = useState(2);

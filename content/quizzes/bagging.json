@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In a **bootstrap sample**, rows are drawn **with replacement**. What does that mean in practice?",
+      "options": [
+        "The same row can be picked more than once, and some rows are not picked at all",
+        "Each row appears exactly once, just in a shuffled order",
+        "Half of the rows are picked, so each model trains on a smaller dataset",
+        "Picked rows are replaced with slightly altered synthetic copies"
+      ],
+      "answer": 0,
+      "why": "After a row is picked it goes back into the pool, so it can be picked again; the sample has the same size n as the original, with some rows doubled and others missing. A mere shuffle would give every model identical data, so averaging would cancel nothing.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Which base model is bagging most likely to improve noticeably?",
+      "options": [
+        "A linear regression with a handful of features",
+        "A decision stump with a single split",
+        "A deep, unpruned decision tree",
+        "A model that always predicts the training mean"
+      ],
+      "answer": 2,
+      "why": "Bagging removes **variance**, and deep unpruned trees are the classic high-variance model: small changes in the data reshape them. Linear regression and stumps are stable (low variance), so their bootstrap copies look alike and averaging them adds computation with little gain.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A bag of 100 deep trees scores 86% test accuracy and its **OOB estimate** is 85.5%. What is the most sensible reading?",
+      "options": [
+        "The OOB score is leaking test data, which is why the two numbers agree",
+        "The two numbers agree only by chance; OOB scores are not related to test performance",
+        "The ensemble is overfitting, because the OOB score is lower than the test score",
+        "The OOB estimate is a trustworthy stand-in for unseen-data performance, obtained without a separate validation set"
+      ],
+      "answer": 3,
+      "why": "Each row's OOB prediction comes only from trees that never saw that row, so the OOB score is an honest estimate of performance on new data; agreeing with the test score is exactly what you hope for. A half-point gap is ordinary noise, not a sign of overfitting.",
+      "level": 1,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Each tree has prediction variance σ² = 200 and any two trees' errors have correlation ρ = 0.25. Using the bagging variance formula ρσ² + (1 − ρ)σ² / B, what is the variance of an average of B = 20 trees?",
+      "options": [
+        "10",
+        "50",
+        "57.5",
+        "200"
+      ],
+      "answer": 2,
+      "why": "0.25 × 200 + 0.75 × 200 / 20 = 50 + 7.5 = 57.5. The tempting 10 is σ² / B, which assumes the trees are completely uncorrelated; 50 is only the shared-error floor ρσ² that you would approach with infinitely many trees.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A tiny dataset has n = 10 rows. What is the probability that one particular row is **out-of-bag** for a single bootstrap sample?",
+      "options": [
+        "0.100",
+        "0.349",
+        "0.368",
+        "0.651"
+      ],
+      "answer": 1,
+      "why": "The row must be missed on all 10 draws: (1 − 1/10)¹⁰ = 0.9¹⁰ ≈ 0.349. The familiar 0.368 is the limit for large n, not the value at n = 10; 0.651 is the chance the row is included at least once.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A team grows its bagged ensemble from 200 to 2,000 trees and the validation error barely moves. What is the best explanation?",
+      "options": [
+        "The error has hit the floor set by the correlation between trees (ρσ²), which more trees cannot remove",
+        "Too many trees have caused the ensemble to overfit",
+        "The bootstrap samples were too small to train useful trees",
+        "The trees should have been pruned before averaging"
+      ],
+      "answer": 0,
+      "why": "Adding trees shrinks only the (1 − ρ)σ² / B term; the shared part ρσ² stays, so returns diminish. The next lever is lowering ρ, which is what random forests do. More trees never cause overfitting in bagging; they only cost time and memory.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Why does bagging sample n rows with replacement instead of splitting the data into B separate, non-overlapping chunks?\" Which answer is best?",
+      "options": [
+        "Sampling with replacement guarantees no row is ever duplicated",
+        "Disjoint chunks would make the models more correlated with each other",
+        "It keeps each model's training set as large as the original, so each model stays strong while the samples still differ",
+        "Sampling with replacement reduces the bias of each individual model"
+      ],
+      "answer": 2,
+      "why": "Splitting into B chunks would give each model only n / B rows and so much weaker models. The bootstrap keeps every training set at size n yet makes them different, which is what averaging needs. Disjoint chunks would actually make models less alike, not more, and duplication is the point of replacement, not something it avoids.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"You bagged 500 decision stumps and accuracy barely improved on a single stump. Why?\" Which answer is best?",
+      "options": [
+        "500 trees is not enough; bagging stumps needs several thousand",
+        "Stumps need feature scaling before they can be bagged",
+        "The OOB rows were wasted; you should have used a separate validation set",
+        "Stumps are high-bias, low-variance models; bagging removes variance, not bias, so an average of stumps is still too simple"
+      ],
+      "answer": 3,
+      "why": "Each stump is systematically too simple, and averaging many stable, too-simple models gives a stable, too-simple model. Bagging works best on deep, flexible trees whose errors are large but varied. Adding more stumps cannot fix bias, and trees do not need scaling.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

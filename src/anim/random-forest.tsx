@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, FnLine, Seg, Label, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
-import { credit, growTree, predict, bootstrap, treeGrid, boundary, Field, Boundary, ClassDots, CLS, AX, CP, TNode, SplitLog, G, mean } from './_ensembles-helpers';
+import { mean, bootstrap } from '../viz/math';
+import { credit, growTree, predict, treeGrid, boundary, Field, Boundary, ClassDots, CLS, AX, CP, TNode, SplitLog, G } from './_ensembles-helpers';
 
 /* ---------- pure helpers ---------- */
 const FEAT = ['income', 'credit score'];

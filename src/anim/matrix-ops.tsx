@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Arrow, Dots, Seg, Label, MatrixView, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, C, Scales } from '../viz/kit';
-import { M2, V2, mv, det, blendI, equalH, polyPath, f2 } from './_math-helpers';
+import { M2, V2, mv, det } from '../viz/math';
+import { blendI, equalH, polyPath, f2 } from './_math-helpers';
 
 /* ---------- pure helpers ---------- */
 const X = [[10, 700], [4, 600], [20, 800]];

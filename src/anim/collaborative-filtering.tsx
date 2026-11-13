@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, MatrixView, Caption, Readout, Slider, Toggle, Layout, Legend, Tex, useStepPlayer, PlayerControls, rng, gauss, C, Scales } from '../viz/kit';
+import { dot } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 const FILMS = ['Desert Chase', 'Highway Heist', 'Monsoon Letters', 'Wedding Season', 'Night Train'];
@@ -16,7 +17,6 @@ const R0: number[][] = [
   [2, 0, 4, 5, 1],
 ];
 interface Model { mu: number; P: number[][]; Q: number[][] }
-const dot = (a: number[], b: number[]) => a.reduce((s, v, i) => s + v * b[i], 0);
 const predict = (m: Model, u: number, i: number) => m.mu + dot(m.P[u], m.Q[i]);
 const clip = (v: number) => Math.min(5.5, Math.max(0.5, v));
 

@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What makes a vector an eigenvector of a matrix?",
+      "options": [
+        "It has length exactly 1",
+        "The matrix only stretches, shrinks or flips it, without turning it off its line",
+        "It is one of the original feature columns",
+        "The matrix turns it by 90 degrees"
+      ],
+      "answer": 1,
+      "why": "An eigenvector is a direction the matrix leaves on the same line, scaled by the eigenvalue. Length 1 is just how libraries report them, not what defines them; and eigenvectors are new directions, usually blends of the original features.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A matrix has an eigenvector v with eigenvalue −1. What does the matrix do to v?",
+      "options": [
+        "Squashes it flat to zero",
+        "Leaves it completely unchanged",
+        "Halves its length",
+        "Flips it to point the opposite way, keeping its length"
+      ],
+      "answer": 3,
+      "why": "A negative eigenvalue flips the direction; a size of 1 keeps the length, so Av = −v. Squashing to zero is what an eigenvalue of 0 does, and \"unchanged\" would be an eigenvalue of +1.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What are the eigenvalues of A = [[3, 1], [1, 3]]?",
+      "options": [
+        "4 and 2",
+        "3 and 3",
+        "4 and −2",
+        "6 and 8"
+      ],
+      "answer": 0,
+      "why": "det(A − λI) = (3 − λ)² − 1 = 0 gives 3 − λ = ±1, so λ = 4 or 2. Quick checks: they add to the trace (6) and multiply to the determinant (9 − 1 = 8). \"3 and 3\" reads the diagonal, which only works for diagonal matrices; 6 and 8 are the trace and determinant themselves.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Two standardised features have correlation 0.6, so the covariance matrix is [[1, 0.6], [0.6, 1]]. What share of the variance does the first principal component explain?",
+      "options": [
+        "60%",
+        "80%",
+        "100%",
+        "50%"
+      ],
+      "answer": 1,
+      "why": "(1 − λ)² = 0.36 gives λ = 1.6 or 0.4. Share = 1.6 / (1.6 + 0.4) = **80%**. Reading the correlation (0.6) directly as the share is the tempting shortcut, but the share comes from the eigenvalue, not the correlation.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "PCA on five standardised features gives eigenvalues 4.0, 2.5, 1.0, 0.3 and 0.2. How many components do you need to keep at least 80% of the variance?",
+      "options": [
+        "1",
+        "3",
+        "2",
+        "5, because every feature carries information"
+      ],
+      "answer": 2,
+      "why": "Total = 8.0. The first component gives 4.0/8 = 50%; adding the second gives 6.5/8 = 81.25%, past 80%. Keeping all five defeats the point of PCA; one component (50%) falls well short.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You run PCA twice on the same data. The first run reports the top eigenvector as [0.71, 0.71], the second as [−0.71, −0.71]. What does this mean?",
+      "options": [
+        "The data must have changed between the runs",
+        "The second run is a bug and the results cannot be trusted",
+        "Nothing is wrong: an eigenvector is a direction, and its sign is arbitrary",
+        "The second component has become the first"
+      ],
+      "answer": 2,
+      "why": "If v is an eigenvector, so is −v, with the same eigenvalue; libraries pick a sign arbitrarily. Treating the flip as a bug is a common misreading. It only matters if you interpret the sign of a component score, so fix a sign convention before reporting.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Each month 80% of Brand A's customers stay and 20% switch to B; 70% of B's stay and 30% switch to A. With M = [[0.8, 0.3], [0.2, 0.7]], what is Brand A's long-run market share?",
+      "options": [
+        "50%",
+        "It depends on the starting split",
+        "80%",
+        "60%"
+      ],
+      "answer": 3,
+      "why": "The long-run share s satisfies Ms = 1 × s. Balance flows: 0.2 × A = 0.3 × B, so A : B = 3 : 2, giving A = **60%**. Check: 0.8 × 0.6 + 0.3 × 0.4 = 0.6. The starting split does not matter because the other eigenvalue (0.5) shrinks the gap every month; 80% is just A's retention rate.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"Why should you standardise features before PCA?\" Which answer is best?",
+      "options": [
+        "Otherwise the feature with the largest units has the largest variance and dominates the covariance matrix, so the top component just points along it",
+        "PCA cannot run on unscaled data",
+        "Standardising guarantees the first component explains over 90% of the variance",
+        "It makes the eigenvectors come out with length 1"
+      ],
+      "answer": 0,
+      "why": "Eigenvalues of the covariance matrix are variances, and variance depends on units: salary in rupees will out-vary age in years and grab the first component. PCA runs fine on raw data, which is why the mistake is easy to make. Eigenvector length is a reporting convention unrelated to scaling.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

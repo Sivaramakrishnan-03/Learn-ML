@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What is the **minimum detectable effect** (MDE) in an A/B test?",
+      "options": [
+        "The smallest p-value the test can produce",
+        "The lowest conversion rate seen in either group",
+        "The effect observed at the end of the test",
+        "The smallest improvement worth detecting, chosen in advance as a business decision; it drives the required sample size"
+      ],
+      "answer": 3,
+      "why": "The MDE is set before the test: the smallest lift that would justify acting. Smaller MDEs need much larger samples (halving it roughly quadruples n). It is not the observed effect and has nothing to do with p-values.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Which of these should be decided **before** an A/B test starts?",
+      "options": [
+        "The primary metric, the MDE, α, power and therefore the sample size",
+        "Which metric looked best after the test",
+        "Whether to use a one-sided test, based on early results",
+        "When to stop, based on daily p-values"
+      ],
+      "answer": 0,
+      "why": "Fixing these up front protects against p-hacking. Choosing the metric, the sidedness or the stopping point after seeing data inflates the false-positive rate.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Control: 8,000 visitors, 400 purchases (5.0%). Variant: 8,000 visitors, 480 purchases (6.0%). Using a pooled two-proportion z-test, what are z and the two-sided p-value?",
+      "options": [
+        "z ≈ 2.77, p ≈ 0.003",
+        "z ≈ 1.00, p ≈ 0.32",
+        "z ≈ 2.77, p ≈ 0.006",
+        "z ≈ 0.28, p ≈ 0.78"
+      ],
+      "answer": 2,
+      "why": "Pooled rate = 880 / 16,000 = 5.5%. SE = √(0.055 × 0.945 × (1/8,000 + 1/8,000)) = 0.0036. z = 0.010 / 0.0036 = 2.77, two-sided p ≈ 0.0055. 0.003 is the one-sided tail; z = 1.00 forgets to divide by the SE (it is the lift in points).",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A test with 1,000 visitors per arm shows a lift of 1.5 points, p = 0.15, 95% CI −0.5 to +3.5 points. What is the right conclusion?",
+      "options": [
+        "Variant B does not work; drop it",
+        "Inconclusive: the test was too small to tell, and the truth could be anywhere from slightly worse to much better",
+        "Variant B works; a 30% relative lift is huge",
+        "The confidence interval is wrong because it includes negative values"
+      ],
+      "answer": 1,
+      "why": "Not significant with a wide interval means the test lacked power, not that B fails. About 3,800 visitors per arm were needed to detect this lift with 80% power. Claiming success ignores the fact that zero (and slight harm) is still plausible.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A test was planned with about 10,300 visitors per arm to detect a lift from 4.0% to 4.8%. The team now wants to detect 4.0% to 4.4% instead (α = 5%, power = 80%). Roughly how many visitors per arm are needed?",
+      "options": [
+        "About 5,150",
+        "About 20,600",
+        "About 10,300",
+        "About 39,500"
+      ],
+      "answer": 3,
+      "why": "Required n scales with 1 / MDE². Halving the MDE from 0.8 to 0.4 points roughly quadruples n: 7.85 × (0.04 × 0.96 + 0.044 × 0.956) / 0.004² ≈ 39,500. Doubling (20,600) is the common intuition, and it leaves the test badly under-powered.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A product manager checks the A/B dashboard daily and plans to stop the moment p drops below 0.05. Why is this a problem?",
+      "options": [
+        "Repeated peeking gives many chances for random noise to cross 0.05, inflating the false-positive rate well above 5%; use a fixed sample size or a sequential method designed for monitoring",
+        "It is fine; stopping early saves traffic",
+        "Daily checks make the p-value too large",
+        "It only matters for one-sided tests"
+      ],
+      "answer": 0,
+      "why": "Each look is another test. Stopping at the first crossing turns a 5% false-alarm rate into a much higher one. Sequential testing with adjusted thresholds, or a Bayesian analysis with a pre-agreed rule, allows monitoring safely.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "A planned test (10,500 per arm) gives 4.0% versus 4.8%, p = 0.005, 95% CI for the lift +0.25 to +1.35 points. Even the low end is worth about ₹15,000 a day. What is the soundest reason to ship B?",
+      "options": [
+        "p = 0.005 means a 99.5% chance B is better",
+        "The observed lift is 20%, which is large",
+        "The whole interval is above zero, and even its cautious end is commercially worthwhile",
+        "B had more purchases, so it must be better"
+      ],
+      "answer": 2,
+      "why": "The decision rests on the range of plausible effects: all positive, and even the smallest is worth the change. A p-value is not the probability that B is better, and a raw count or observed lift on its own ignores uncertainty.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "In an interview: \"A 50/50 test ended with 10,300 users in A and 9,700 in B. Anything to worry about?\"",
+      "options": [
+        "No, a 300-user gap is small",
+        "Yes: a chi-square goodness-of-fit test against 10,000 each gives χ² = 18, p ≈ 0.00002, a sample-ratio mismatch; the assignment or logging is broken, so investigate before trusting any result",
+        "Only if the conversion rates differ",
+        "No, just analyse the data with weights"
+      ],
+      "answer": 1,
+      "why": "χ² = (300² + 300²) / 10,000 = 18 with 1 degree of freedom, p ≈ 2 × 10⁻⁵, far too unlikely for a fair split. Sample-ratio mismatch usually means some users were lost or mis-assigned non-randomly (for example a bug in one variant), which can bias the comparison. Reweighting does not repair a broken randomisation.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "You want to minimise a loss. In which direction should you move the parameters?",
+      "options": [
+        "Along the gradient, because it points to the steepest change",
+        "Against the gradient, because the gradient points to the steepest increase",
+        "Along the largest single partial derivative only",
+        "In any direction where the loss is currently high"
+      ],
+      "answer": 1,
+      "why": "The gradient points uphill (steepest increase), so its negative is the steepest way down. Moving along the gradient when minimising is one of the most common mistakes, and it makes the loss rise.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "For f(x, y) = x² + 5y, what is the gradient at (3, 1)?",
+      "options": [
+        "(6, 0)",
+        "(9, 5)",
+        "(6, 5)",
+        "(2, 5)"
+      ],
+      "answer": 2,
+      "why": "∂f/∂x = 2x = 6 (treating y as constant) and ∂f/∂y = 5 (treating x as constant), so ∇f = **(6, 5)**. (9, 5) uses the value x² instead of its slope; (6, 0) wrongly treats 5y as a constant when differentiating by y.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Using the chain rule, what is d/dx (4x − 1)³ at x = 1?",
+      "options": [
+        "27",
+        "108",
+        "36",
+        "12"
+      ],
+      "answer": 1,
+      "why": "Outer slope 3u² with u = 4x − 1 = 3 gives 27; inner slope is 4; multiply: 27 × 4 = **108**. Stopping at 27 forgets the inner derivative, the classic chain-rule slip.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "The gradient of a loss with respect to two parameters (m, b) is (4, −6). Which update reduces the loss fastest?",
+      "options": [
+        "Decrease m and increase b, with b changing more",
+        "Increase m and decrease b, with m changing more",
+        "Decrease both m and b equally",
+        "Leave b alone, because its gradient is negative"
+      ],
+      "answer": 0,
+      "why": "Steepest descent is −∇L = (−4, 6): decrease m, increase b, and change b about 1.5 times as much. Following the gradient's signs directly (increase m, decrease b) climbs the loss instead.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A van drives at 60 km per hour, does 12 km per litre, and diesel costs ₹90 per litre. By the chain rule, how fast does fuel spending grow per hour?",
+      "options": [
+        "₹5 per hour",
+        "₹162 per hour",
+        "₹64,800 per hour",
+        "₹450 per hour"
+      ],
+      "answer": 3,
+      "why": "Multiply the rates along the chain: 60 km/h × (1/12) litre per km × ₹90 per litre = **₹450 per hour**. ₹64,800 multiplies by 12 instead of dividing (km per litre must be flipped to litres per km); ₹5 stops after the first link.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A line ŷ = m·x + b is fitted to x = [1, 2], y = [2, 4] with mean squared error, starting at m = 0, b = 0. Using ∂L/∂m = −(2/n) Σ x(y − ŷ) and ∂L/∂b = −(2/n) Σ (y − ŷ), what is the gradient?",
+      "options": [
+        "(−10, −6)",
+        "(10, 6)",
+        "(−6, −10)",
+        "(−20, −12)"
+      ],
+      "answer": 0,
+      "why": "Errors are [2, 4]. ∂L/∂m = −(2/2)(1 × 2 + 2 × 4) = −10; ∂L/∂b = −(2/2)(2 + 4) = −6. Both negative, so raise m and b. (10, 6) drops the minus sign; (−20, −12) forgets to divide by n = 2; (−6, −10) swaps the entries by forgetting that m's term weights each error by x.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "In back-propagation through one neuron, ∂L/∂a = −0.6, ∂a/∂z = 0.25 and ∂z/∂w = x = 3. What is ∂L/∂w, and what should happen to w?",
+      "options": [
+        "−0.15; increase w",
+        "+0.45; decrease w",
+        "−0.45; increase w",
+        "−3.35; increase w"
+      ],
+      "answer": 2,
+      "why": "The chain rule multiplies the local slopes: −0.6 × 0.25 × 3 = **−0.45**. A negative gradient means increasing w lowers the loss. −0.15 forgets the last link (the input x); −3.35 adds the slopes instead of multiplying them.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"What is a vanishing gradient, and why are deep networks of sigmoid layers prone to it?\" Which answer is best?",
+      "options": [
+        "The loss reaches zero, so there is nothing left to learn",
+        "The gradient is exactly zero at every saddle point, so training stops",
+        "The learning rate is set too high, so gradients disappear",
+        "Back-propagation multiplies one local slope per layer; the sigmoid's slope is at most 0.25, so across many layers the product shrinks towards zero and early layers barely learn"
+      ],
+      "answer": 3,
+      "why": "The chain rule turns depth into a long product. With sigmoid slopes of 0.25 or less, ten layers give at most 0.25¹⁰ ≈ 0.000001 of the signal. A too-high learning rate causes exploding or diverging updates, the opposite symptom; that is why ReLU-style activations and careful initialisation are used.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

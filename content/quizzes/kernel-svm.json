@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Normal machine readings sit near the centre of the chart and faults surround them in a ring. Adding the feature **x² + y²** lets a linear SVM separate them. Why does it help, when it is computed only from features the model already had?",
+      "options": [
+        "Because it removes the noisy readings",
+        "Because it standardises the features",
+        "Because a straight line can only weight and add features; it can never compute squares by itself, so giving it \"squared distance from the centre\" as a column lets a straight rule express a circle",
+        "Because more columns always improve accuracy"
+      ],
+      "answer": 2,
+      "why": "A linear boundary is a weighted sum of the columns it is given. The squared-distance column is small for normal points and large for faults, so one flat cut on it is a circle in the original space. Adding columns does not always help; this one helps because it matches the shape of the problem.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Two points are at squared distance **‖x − z‖² = 2**. What is their RBF kernel similarity with **γ = 0.5**?",
+      "options": [
+        "About 0.607",
+        "About 0.135",
+        "About 0.368",
+        "1"
+      ],
+      "answer": 2,
+      "why": "K = exp(−γ‖x − z‖²) = exp(−0.5 × 2) = e^(−1) ≈ 0.368. 0.135 is e^(−2), which forgets γ. 0.607 is e^(−0.5), which forgets the distance. A similarity of 1 is reserved for identical points.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Using the degree-2 polynomial kernel **K(x, z) = (x · z)²**, what is K for x = (2, 1) and z = (3, 2)?",
+      "options": [
+        "8",
+        "64",
+        "13",
+        "40"
+      ],
+      "answer": 1,
+      "why": "x · z = 2×3 + 1×2 = 8, and squaring gives 64. This equals the dot product of the mapped points (a², √2·a·b, b²): (4, 2√2, 1) · (9, 6√2, 4) = 36 + 24 + 4 = 64. 8 forgets to square; 13 squares the coordinates of z and adds them, which is not the kernel.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "On scikit-learn's noisy two-rings data, an RBF SVM with **γ = 1000** reaches 100% training accuracy with 398 of 400 points as support vectors, but only 75.5% cross-validated accuracy. γ = 1 scored best. What is happening at γ = 1000?",
+      "options": [
+        "The model is underfitting because gamma is too small",
+        "Each point's influence is so local that the boundary wraps a tiny island round almost every training point: memorisation, so lower gamma (and tune C with it)",
+        "The model needs a linear kernel instead",
+        "The 100% training accuracy proves γ = 1000 is best"
+      ],
+      "answer": 1,
+      "why": "Large gamma makes similarity collapse almost immediately with distance, so nearly every point becomes a support vector holding its own little region. Training accuracy is perfect and held-out accuracy falls: overfitting. A linear kernel is a coin flip on rings, so it is no fix.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "What accuracy should you expect from a **linear** SVM on the classic \"ring around a core\" dataset with balanced classes?",
+      "options": [
+        "Close to 100%, because SVMs find the widest street",
+        "About 75%, because half the ring is always separable",
+        "0%, because it predicts the opposite class every time",
+        "About 50%, no better than tossing a coin, because any straight line leaves both classes on both sides"
+      ],
+      "answer": 3,
+      "why": "The true boundary is a circle; every straight line cuts through both the core and the ring, so the linear model does no better than chance. The widest street only helps when a straight street exists. The kernel trick is what lets the SVM bend.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A new point has squared distance **1** to support vector A (class +1) and squared distance **2** to each of support vectors B and C (both class −1). All weights α = 1, b = 0. What does the RBF SVM predict with **γ = 0.5**?",
+      "options": [
+        "+1, because A is the single closest support vector",
+        "+1: score ≈ +0.10",
+        "No prediction, because the score is exactly 0",
+        "−1: score = e^(−0.5) − 2e^(−1) ≈ 0.607 − 0.736 ≈ −0.13"
+      ],
+      "answer": 3,
+      "why": "Score = Σ αᵢ yᵢ K(xᵢ, x) = 0.607 − 0.368 − 0.368 ≈ −0.13, so predict −1: at this gamma the two slightly farther support vectors outvote A. +0.10 is the score at γ = 1 (0.368 − 2 × 0.135), where influence fades faster and A wins. Gamma decides how quickly the voices fade.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "A team wants to train an RBF SVM on **1 million** rows. What is the main problem and a sensible alternative?",
+      "options": [
+        "The kernel needs a similarity for every pair of points (about 5 × 10¹¹ pairs), so time and memory explode; use gradient boosting, a linear model on approximate kernel features (`Nystroem`, `RBFSampler`), or a neural network",
+        "No problem: kernel SVMs scale linearly with rows",
+        "The problem is only that features must be scaled",
+        "RBF kernels cannot handle more than 784 features"
+      ],
+      "answer": 0,
+      "why": "Pairwise similarities grow with the square of the row count: 100,000 rows already means 10 billion pairs. Approximate kernel features let a fast linear model mimic the RBF boundary. Scaling is required but does not fix the cost, and the number of features is not the bottleneck here.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"Explain the kernel trick in one or two sentences.\"",
+      "options": [
+        "The SVM only ever uses the data through dot products between pairs of points, so you replace each dot product with a kernel that gives the dot product in a bigger feature space directly, without building that space",
+        "It builds every squared and product feature explicitly, then fits a linear SVM on them",
+        "It removes the need to choose C",
+        "It turns the SVM into a decision tree with curved splits"
+      ],
+      "answer": 0,
+      "why": "The trick is the substitution: K(x, z) = φ(x) · φ(z) computed cheaply from the original features. That is why the RBF kernel can use an infinite-dimensional space at the cost of one distance and one exponential. Building the features explicitly is exactly what the trick avoids; C (and gamma) still need tuning.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

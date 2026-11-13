@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Is PCA a feature-selection method?",
+      "options": [
+        "Yes, it keeps the original columns with the highest variance and drops the rest",
+        "Yes, it keeps the columns most correlated with the target",
+        "No, it builds new columns (components) that are weighted mixes of all the original features",
+        "No, it only removes rows that are outliers"
+      ],
+      "answer": 2,
+      "why": "Feature selection keeps some original columns; PCA rotates the data onto new axes, and every component blends all features through its loadings. PCA never looks at a target at all.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "You run PCA on unscaled data with `salary` (in rupees) and `age` (in years). What is likely to happen?",
+      "options": [
+        "PCA refuses to run on unscaled data",
+        "PC1 becomes almost entirely age, because it varies more in relative terms",
+        "Nothing; PCA is unaffected by units",
+        "PC1 becomes almost entirely salary, simply because its numbers are much bigger"
+      ],
+      "answer": 3,
+      "why": "PCA chases variance, and a variance measured in rupees squared dwarfs one in years squared, so salary takes over PC1. Standardising first lets each feature count on an equal footing.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Two standardised features have correlation 0.6. What share of the variance does PC1 explain?",
+      "options": [
+        "50%",
+        "60%",
+        "80%",
+        "100%"
+      ],
+      "answer": 2,
+      "why": "The covariance matrix is [[1, 0.6], [0.6, 1]] with eigenvalues 1.6 and 0.4; PC1 explains 1.6 / 2 = 80%. The tempting 60% confuses the correlation with the explained share.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Five standardised features have eigenvalues 2.4, 1.2, 0.8, 0.4 and 0.2. Using the Kaiser rule (keep eigenvalues above 1), how many components do you keep, and what share of variance do they hold?",
+      "options": [
+        "1 component, 48%",
+        "2 components, 72%",
+        "3 components, 88%",
+        "4 components, 96%"
+      ],
+      "answer": 1,
+      "why": "Two eigenvalues exceed 1, and (2.4 + 1.2) / 5 = 72% because the eigenvalues of standardised data add up to the number of features. 4 components (96%) is what a 95% target would choose instead; the two rules can disagree.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "In an EV sensor PCA, PC2 has loadings of 0.90 on outside temperature and small values (between −0.3 and 0.2) on everything else. What does PC2 mainly represent?",
+      "options": [
+        "Ambient conditions, essentially outside temperature",
+        "Overall load on the vehicle",
+        "Nothing; only PC1 can be interpreted",
+        "Measurement error, since its loadings are small"
+      ],
+      "answer": 0,
+      "why": "A component is named from its large loadings, and here one feature dominates. PC1, with similar positive loadings on motor, battery, current and speed, is the overall-load direction. Later components can be perfectly interpretable.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You add PCA keeping 95% of the variance before a failure classifier, and accuracy drops compared with using the raw features. What is the most likely reason?",
+      "options": [
+        "PCA always makes classifiers worse",
+        "95% is too little; PCA should keep 100%",
+        "A low-variance direction you dropped carried the signal that predicts failures; choose the number of components by validation performance",
+        "The features were standardised, which removed the signal"
+      ],
+      "answer": 2,
+      "why": "PCA ranks directions by spread, not by usefulness for your target, so the 5% you dropped can matter. Tune k by validation when PCA feeds a supervised model. Keeping 100% would reduce nothing.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"What do the eigenvalues represent in PCA?\"",
+      "options": [
+        "The loadings of each feature on a component",
+        "The number of features per component",
+        "The correlation between each component and the target",
+        "The variance of the data along each principal direction (eigenvector)"
+      ],
+      "answer": 3,
+      "why": "Each eigenvector is a principal direction and its eigenvalue is how much variance lies along it; dividing by the total gives the explained-variance ratio. The loadings are the eigenvector entries, not the eigenvalues, and PCA never uses a target.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"You have class labels and want a low-dimensional view that separates the classes. PCA or LDA?\"",
+      "options": [
+        "PCA, because it always finds the directions that separate classes best",
+        "LDA, because it is supervised and looks for directions that separate the classes, while PCA looks for maximum spread regardless of labels",
+        "PCA, because LDA cannot be used with labels",
+        "Either; they give identical directions"
+      ],
+      "answer": 1,
+      "why": "PCA is unsupervised: its top direction may run along variation that has nothing to do with the classes. Linear Discriminant Analysis uses the labels to find directions that pull class means apart relative to their spread.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

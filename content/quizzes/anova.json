@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What does a one-way ANOVA test, despite its name?",
+      "options": [
+        "Whether the variances of the groups are equal",
+        "Whether all group means are equal, by comparing variation between group means with variation within groups",
+        "Whether the data are normally distributed",
+        "Which pair of groups differs most"
+      ],
+      "answer": 1,
+      "why": "H₀ is that all group means are equal. It is called analysis of variance because it decides this by comparing two variances. It does not say which pair differs; that needs a post-hoc test.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "The F-statistic in a one-way ANOVA is…",
+      "options": [
+        "Within-group variance ÷ between-group variance",
+        "The sum of all pairwise t-statistics",
+        "The largest group mean ÷ the smallest group mean",
+        "Between-group variance (MSB) ÷ within-group variance (MSW)"
+      ],
+      "answer": 3,
+      "why": "F = MSB / MSW: the spread of group means relative to the noise inside groups. Under H₀ both estimate the same noise and F is about 1; real differences push F up. Flipping the ratio would make large differences give small values.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Comparing 5 groups by running all 10 pairwise t-tests at α = 0.05, what is the chance of **at least one** false positive if all groups are truly identical (treating the tests as independent)?",
+      "options": [
+        "5%",
+        "10%",
+        "About 40%",
+        "50%"
+      ],
+      "answer": 2,
+      "why": "1 − 0.95¹⁰ = 0.40. Each test carries its own 5% risk, and they accumulate. This is why ANOVA (or a correction for multiple comparisons) is used. 5% would hold for a single test only.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Four groups of 5 observations give SSB = 60 and SSW = 80. What is the F-statistic?",
+      "options": [
+        "4.0",
+        "0.75",
+        "1.33",
+        "3.0"
+      ],
+      "answer": 0,
+      "why": "df between = 4 − 1 = 3; df within = 20 − 4 = 16. MSB = 60 / 3 = 20; MSW = 80 / 16 = 5; F = 20 / 5 = 4.0 (p ≈ 0.027). 0.75 divides the sums of squares without their degrees of freedom.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "After a significant ANOVA on three scripts, Tukey HSD gives: C − A significant, C − B significant, B − A not significant (adjusted p = 0.24). What should the team conclude?",
+      "options": [
+        "Scripts A and B are proven to perform equally",
+        "Roll out script C; A and B cannot be told apart with this much data",
+        "All three scripts differ",
+        "Run more t-tests on A versus B until one is significant"
+      ],
+      "answer": 1,
+      "why": "C beats both others. Not significant for B − A means the data cannot distinguish them, not that they are equal. Testing repeatedly until something is significant inflates the false-positive rate that Tukey was protecting.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A one-way ANOVA on three steel suppliers gives F = 0.145, p = 0.87. What does an F below 1 mean?",
+      "options": [
+        "The group means are even closer together than random noise would typically make them: no evidence of a difference",
+        "The calculation must be wrong, since F cannot be below 1",
+        "The suppliers differ strongly, in the opposite direction",
+        "Supplier quality is perfectly identical"
+      ],
+      "answer": 0,
+      "why": "F below 1 happens by chance when between-group spread is smaller than within-group noise would typically produce. It gives no evidence of differences, so procurement can choose on other grounds. It does not prove the suppliers are identical, and F, a ratio of variances, has no direction.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Using the same data (SSB = 60, SSW = 80), what share of the total variation is explained by group membership (η²)?",
+      "options": [
+        "0.57",
+        "0.75",
+        "0.43",
+        "4.0"
+      ],
+      "answer": 2,
+      "why": "η² = SSB / SST = 60 / (60 + 80) = 0.43, so group explains 43% of the variation. 0.75 is SSB / SSW, which is not a share of the total; 0.57 is the unexplained share; 4.0 is the F-statistic.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "In an interview: \"How does one-way ANOVA relate to the t-test?\"",
+      "options": [
+        "They are unrelated",
+        "ANOVA always gives a smaller p-value than a t-test",
+        "ANOVA is just a series of t-tests averaged together",
+        "With exactly two groups, one-way ANOVA and the equal-variance t-test give the same p-value, with F = t²; ANOVA generalises the t-test to three or more groups"
+      ],
+      "answer": 3,
+      "why": "For two groups, F equals the square of Student's t and the p-values match. ANOVA does not average pairwise tests; it tests all means at once with a single F, which is how it avoids piling up false positives.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

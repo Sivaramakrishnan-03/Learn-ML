@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In gradient descent, what does the learning rate control?",
+      "options": [
+        "The direction of each step",
+        "The number of iterations to run",
+        "How far each step moves, by multiplying the gradient",
+        "How many rows of data are used per step"
+      ],
+      "answer": 2,
+      "why": "The gradient supplies the direction and relative sizes; the learning rate α turns that into a step length. The number of rows per step is the batch size, a separate setting that is often confused with it.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "You train on 50,000 rows using mini-batches of 250 rows. How many iterations make up one epoch?",
+      "options": [
+        "250",
+        "1",
+        "50,000",
+        "200"
+      ],
+      "answer": 3,
+      "why": "An epoch is one full pass through the data: 50,000 ÷ 250 = **200** iterations, each using one mini-batch. Equating one epoch with one iteration is the usual mix-up; that is only true for full-batch gradient descent.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "On L(w) = (w − 3)², with gradient 2(w − 3), start at w = 0 with learning rate α = 0.1. What is w after two steps?",
+      "options": [
+        "1.2",
+        "1.08",
+        "0.6",
+        "−1.08"
+      ],
+      "answer": 1,
+      "why": "Step 1: gradient −6, w = 0 + 0.6 = 0.6. Step 2: gradient 2 × (0.6 − 3) = −4.8, w = 0.6 + 0.48 = **1.08**. 1.2 assumes every step is the same size, but the slope flattens as you approach 3; −1.08 adds the gradient instead of subtracting it.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "After 1,000 iterations your loss curve reads 9.00, 8.99, 8.98, … falling steadily but very slowly, with no bouncing. What is the most likely diagnosis?",
+      "options": [
+        "The learning rate is probably too small; try a larger value and compare loss curves",
+        "The learning rate is too large and training is diverging",
+        "The model has converged at the minimum",
+        "The gradient has the wrong sign"
+      ],
+      "answer": 0,
+      "why": "A smooth but painfully slow fall is the signature of tiny steps, like α = 0.01 on the bowl covering under 8% of the distance in four steps. Divergence looks like a growing loss, not a slowly falling one, and \"converged\" would mean the loss has stopped falling, not that it is still drifting down.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Compared with full-batch gradient descent, what is the main trade-off of stochastic gradient descent (one row per step)?",
+      "options": [
+        "It needs no learning rate",
+        "Each step is exact, but very slow on big data",
+        "It always reaches a lower loss",
+        "Each step is far cheaper, but the path is noisy and jittery"
+      ],
+      "answer": 3,
+      "why": "SGD estimates the gradient from a single row, so steps are cheap but noisy; the noise can even help escape shallow traps. Exact but slow steps describe batch gradient descent. SGD still needs a learning rate and does not guarantee a lower loss.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "On L(w) = (w − 3)², start at w = 0 with α = 0.75. Each step multiplies the gap to 3 by (1 − 2α). What is w after two steps, and how does training behave?",
+      "options": [
+        "1.5; it converges smoothly from one side",
+        "4.5; it diverges",
+        "2.25; it converges while bouncing from one side of 3 to the other",
+        "It bounces between 0 and 6 for ever"
+      ],
+      "answer": 2,
+      "why": "1 − 2α = −0.5: the gap flips sign and halves. w goes 0 → 4.5 → **2.25** → 3.375 → …, overshooting each time but closing in. 4.5 is only the first step; bouncing for ever needs α = 1 exactly, and divergence needs α above 1.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"Your gradient descent zig-zags and converges very slowly. One feature is income in rupees and another is age in years. What would you do and why?\" Which answer is best?",
+      "options": [
+        "Increase the learning rate until it speeds up",
+        "Standardise the features: very different scales stretch the loss surface into a narrow valley where one learning rate is too big for one direction and too small for the other",
+        "Remove the income feature",
+        "Switch to a larger number of epochs and wait"
+      ],
+      "answer": 1,
+      "why": "Unscaled features give an elongated valley, so steps overshoot across the steep direction while crawling along the shallow one. Raising the learning rate makes the zig-zag worse and can diverge; more epochs only waits out the symptom.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Which statement about gradient descent on a neural network's loss is correct?",
+      "options": [
+        "The loss is usually not convex, so it can settle in a local minimum or slow down on a plateau; the guarantee holds for convex losses such as linear and logistic regression",
+        "It is guaranteed to reach the global minimum with a sensible learning rate",
+        "Gradient descent cannot be used on neural networks",
+        "A convex loss has many valleys, so it is harder than a neural network's"
+      ],
+      "answer": 0,
+      "why": "The guarantee of reaching the minimum applies to convex, bowl-shaped losses with a single valley. Neural-network losses have many dips and flat stretches, which is why variants such as momentum and Adam are used. Carrying the convex guarantee over to deep learning is the tempting mistake.",
+      "level": 3,
+      "kind": "concept"
+    }
+  ]
+}

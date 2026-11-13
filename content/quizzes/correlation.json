@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "You convert sales from ₹ lakh to rupees (multiply by 1,00,000) before computing their correlation with ad spend. What happens to Pearson's r?",
+      "options": [
+        "It is multiplied by 1,00,000",
+        "It does not change",
+        "It is divided by 1,00,000",
+        "It becomes 1"
+      ],
+      "answer": 1,
+      "why": "Correlation divides the covariance by both standard deviations, so the unit change cancels out. The **covariance** is multiplied by 1,00,000, which is exactly why correlation, not covariance, is used to describe strength.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Ad spend and sales have r = 0.6. What share of the variation in sales does a straight-line fit on ad spend account for?",
+      "options": [
+        "60%",
+        "6%",
+        "77%",
+        "36%"
+      ],
+      "answer": 3,
+      "why": "r² = 0.6² = 0.36, so 36%. Reading r itself as a percentage (60%) overstates the fit; 77% is √0.6, which goes the wrong way.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Ice-cream sales and drownings are positively correlated. What is the most likely explanation?",
+      "options": [
+        "A confounder: hot weather increases both swimming and ice-cream sales",
+        "Drownings cause people to buy ice cream",
+        "Eating ice cream causes drowning",
+        "The correlation must be a calculation error"
+      ],
+      "answer": 0,
+      "why": "A confounder influences both variables and creates a correlation even though neither causes the other. Correlation alone cannot tell you the direction or existence of a causal link.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Two variables have covariance 12, with standard deviations 3 and 5. What is Pearson's r?",
+      "options": [
+        "2.40",
+        "0.80",
+        "4.00",
+        "0.64"
+      ],
+      "answer": 1,
+      "why": "r = covariance ÷ (s_x × s_y) = 12 / (3 × 5) = 0.80. 2.40 divides by only one SD, and 4.00 = 12 / 3 likewise; any \"correlation\" outside −1 to +1 signals a mistake. 0.64 is r².",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Across eight stores, footfall and sales give Pearson r = 0.06 but Spearman ρ = 0.33. Earlier data showed r ≈ 0.99. What should you suspect first?",
+      "options": [
+        "The relationship has genuinely disappeared",
+        "Spearman is always lower than Pearson",
+        "An outlier or data-entry error is distorting Pearson's r; plot the data and check the records",
+        "The sample is too large"
+      ],
+      "answer": 2,
+      "why": "A single wrong value (sales typed as 5 instead of 45) can wipe out Pearson's r, while Spearman, using ranks, is hurt far less. A big gap between the two is a warning sign. Always look at the scatter plot before concluding anything.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "When is Spearman's rank correlation a better choice than Pearson's r?",
+      "options": [
+        "When the relationship is a perfectly straight line with no outliers",
+        "When both variables are categorical labels such as city names",
+        "When you want to measure a U-shaped relationship",
+        "When the relationship is consistently rising or falling but curved, when there are outliers, or when the data are ranks or 1–5 ratings"
+      ],
+      "answer": 3,
+      "why": "Spearman measures monotonic relationships and resists outliers. For a clean straight line Pearson is fine. A U-shape is not monotonic, so Spearman misses it too, and unordered labels such as city names have no ranks.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "With 10,000 customers, the correlation between age and basket size is r = 0.03 with p = 0.003. How should you report it?",
+      "options": [
+        "Statistically significant but negligible: r² = 0.0009, so age explains less than 0.1% of the variation in basket size",
+        "A strong relationship, because p is far below 0.05",
+        "Not significant, because r is close to zero",
+        "Proof that age causes larger baskets"
+      ],
+      "answer": 0,
+      "why": "With large samples even tiny correlations are significant. Look at r and r², not just the p-value. Significance concerns whether r is exactly zero, which is a different question from importance, and observational correlation never proves causation.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "In an interview: \"Twelve months of data show r = 0.85 between ad spend and sales, but the budget rises every festival season. How would you find out whether ads drive sales?\"",
+      "options": [
+        "The correlation is high, so ads clearly drive sales",
+        "Compute Spearman as well; if it is also high, causation is proven",
+        "Recognise season as a confounder and run a randomised experiment, such as a geo-experiment that varies spend across regions; if that is impossible, use causal methods and state the assumptions",
+        "Remove the festival months and recompute r"
+      ],
+      "answer": 2,
+      "why": "Randomisation is the gold standard for causation because it breaks the link with confounders like season. A second correlation measure has the same problem. Dropping months just throws away data and may leave other confounders in place.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

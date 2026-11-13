@@ -1,0 +1,96 @@
+{
+  "id": "customer-segmentation",
+  "title": "Customer segments and personas for a D2C brand",
+  "track": "unsupervised",
+  "level": 2,
+  "hours": 4,
+  "summary": "Segment 4,000 customers on recency, frequency, spend and behaviour with k-means and Gaussian mixtures, choose k with elbow, silhouette and BIC, test stability, and turn clusters into named personas with a ₹ campaign budget split.",
+  "business": "A direct-to-consumer skincare brand sells through its app and website across India. Marketing has a **₹40 lakh quarterly CRM budget** and today sends the same 20%-off coupon to everyone. The CMO asks: **what distinct customer groups do we have, how much is each worth, and what should we do differently for each so that the budget goes where it earns the most?** Clusters are only useful if a marketer can describe each in one sentence and act on it.",
+  "topics": [
+    "kmeans",
+    "gmm",
+    "scaling",
+    "feature-engineering",
+    "pca",
+    "hierarchical"
+  ],
+  "dataset": {
+    "name": "Synthetic customer behaviour table (4,000 customers)",
+    "how": "Generated in step 1 with `numpy.random.default_rng(3)` from five hidden behaviour profiles: recency (days since last order), orders in the last 12 months, total spend (₹), average discount used (%), share of app orders and number of product categories bought. The hidden profile is kept only for a final sanity check, never as a model input."
+  },
+  "steps": [
+    {
+      "title": "Generate the customer table",
+      "detail": "Each customer is drawn from one of five hidden profiles with overlapping distributions, which is what real behaviour looks like: no clean gaps between groups. We keep the true profile in a separate array to check, at the very end, how well clustering recovered it. In a real project you never have this.",
+      "code": "import numpy as np\nimport pandas as pd\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.cluster import KMeans, AgglomerativeClustering\nfrom sklearn.mixture import GaussianMixture\nfrom sklearn.metrics import silhouette_score, adjusted_rand_score\nfrom sklearn.decomposition import PCA\n\npd.set_option(\"display.width\", 160); pd.set_option(\"display.max_columns\", 20)\nrng = np.random.default_rng(3)\nprofiles = {  # share, recency mean, orders mean, avg order ₹, discount %, app share, categories\n    \"loyal\": (0.18, 20, 11, 1400, 6, 0.8, 4),\n    \"deal\": (0.25, 45, 6, 650, 28, 0.6, 2),\n    \"new\": (0.22, 25, 1.5, 900, 15, 0.5, 1),\n    \"lapsing\": (0.25, 210, 3, 800, 12, 0.3, 2),\n    \"premium\": (0.10, 35, 5, 3200, 3, 0.4, 3),\n}\nn = 4000\ntrue = rng.choice(list(profiles), n, p=[v[0] for v in profiles.values()])\ndef draw(k):\n    _, rec, orders, aov, disc, app, cats = profiles[k]\n    o = max(1, rng.poisson(orders))\n    return [rng.gamma(4, rec / 4), o, o * aov * rng.lognormal(0, 0.3), np.clip(rng.normal(disc, 4), 0, 50),\n            np.clip(rng.normal(app, 0.15), 0, 1), max(1, rng.poisson(cats))]\ncust = pd.DataFrame([draw(k) for k in true], columns=[\"recency_days\", \"orders_12m\", \"spend_rs\", \"avg_discount_pct\", \"app_share\", \"categories\"])\ncust[\"recency_days\"] = cust[\"recency_days\"].round()\ncust[\"spend_rs\"] = cust[\"spend_rs\"].round(-1)\nprint(cust.describe().round(1))"
+    },
+    {
+      "title": "Transform and scale the features",
+      "detail": "Distance-based clustering is dominated by whichever feature has the biggest numbers, so spend in ₹ would swamp everything else. First log-transform the skewed counts and money (so a ₹2,000 vs ₹4,000 gap matters like ₹20,000 vs ₹40,000), then standardise every column to mean 0, SD 1. Keep the unscaled table for describing clusters later: personas are written in rupees and days, not z-scores.",
+      "code": "X = cust.copy()\nfor c in [\"recency_days\", \"orders_12m\", \"spend_rs\", \"categories\"]:\n    X[c] = np.log1p(X[c])\nXs = StandardScaler().fit_transform(X)\nprint(pd.DataFrame(Xs, columns=X.columns).describe().loc[[\"mean\", \"std\"]].round(2))"
+    },
+    {
+      "title": "Choose k: elbow and silhouette",
+      "detail": "Fit k-means for k = 2 … 9. **Inertia** (within-cluster sum of squares) always falls as k grows; look for the bend. The **silhouette score** measures how much closer points are to their own cluster than to the next one (−1 to 1). Pick the k where silhouette is high *and* the clusters make business sense: a model with 9 segments that marketing cannot staff is worse than 5 usable ones.",
+      "code": "ks = range(2, 10)\ninertia, sil = [], []\nfor k in ks:\n    km = KMeans(k, n_init=10, random_state=0).fit(Xs)\n    inertia.append(km.inertia_)\n    sil.append(silhouette_score(Xs, km.labels_, sample_size=2000, random_state=0))\nfig, ax = plt.subplots(1, 2, figsize=(10, 3.5))\nax[0].plot(list(ks), inertia, \"o-\"); ax[0].set_title(\"Elbow: inertia\"); ax[0].set_xlabel(\"k\")\nax[1].plot(list(ks), sil, \"o-\"); ax[1].set_title(\"Silhouette\"); ax[1].set_xlabel(\"k\")\nplt.tight_layout(); plt.savefig(\"seg_choose_k.png\", dpi=100); plt.close()\nprint(pd.DataFrame({\"k\": list(ks), \"inertia\": np.round(inertia), \"silhouette\": np.round(sil, 3)}))"
+    },
+    {
+      "title": "Fit k-means and profile the clusters",
+      "detail": "Fit the chosen k and describe each cluster in the original units: size, median recency, orders, spend, discount dependence and app share. Add each cluster's share of total revenue. A cluster that is 10% of customers but 30% of revenue changes how you spend money.",
+      "code": "K = 5\nkm = KMeans(K, n_init=20, random_state=0).fit(Xs)\ncust[\"cluster\"] = km.labels_\nprof = cust.groupby(\"cluster\").agg(customers=(\"spend_rs\", \"size\"), recency=(\"recency_days\", \"median\"),\n                                   orders=(\"orders_12m\", \"median\"), spend=(\"spend_rs\", \"median\"),\n                                   discount=(\"avg_discount_pct\", \"mean\"), app=(\"app_share\", \"mean\"),\n                                   revenue_lakh=(\"spend_rs\", lambda s: s.sum() / 1e5))\nprof[\"revenue_share_%\"] = 100 * prof[\"revenue_lakh\"] / prof[\"revenue_lakh\"].sum()\nprof[\"customer_share_%\"] = 100 * prof[\"customers\"] / prof[\"customers\"].sum()\nprint(prof.round(1))"
+    },
+    {
+      "title": "Compare with a Gaussian mixture model",
+      "detail": "k-means assumes round clusters of similar size and gives hard labels. A **GMM** allows elongated, differently sized clusters and gives each customer a membership probability. Use **BIC** (lower is better) to choose the number of components and covariance type, compare the labelling with k-means using the adjusted Rand index (ARI), and count 'borderline' customers whose top probability is below 0.6: they are the ones a campaign is most likely to misfire on.",
+      "code": "bic = {}\nfor cov in [\"full\", \"diag\"]:\n    for k in range(3, 8):\n        bic[(cov, k)] = GaussianMixture(k, covariance_type=cov, n_init=2, random_state=0).fit(Xs).bic(Xs)\nbest = min(bic, key=bic.get)\nprint(\"Best by BIC:\", best, round(bic[best]))\ngmm = GaussianMixture(best[1], covariance_type=best[0], n_init=3, random_state=0).fit(Xs)\nproba = gmm.predict_proba(Xs)\ncust[\"gmm\"] = proba.argmax(1)\nprint(\"ARI k-means vs GMM:\", round(adjusted_rand_score(cust[\"cluster\"], cust[\"gmm\"]), 3))\nprint(\"Borderline customers (max prob < 0.6):\", int((proba.max(1) < 0.6).sum()))"
+    },
+    {
+      "title": "Visualise in two dimensions with PCA",
+      "detail": "You cannot plot six dimensions, but PCA can project the scaled data onto the two directions of greatest variance. Colour the points by cluster and print how much variance the two components keep: if it is low, overlapping clusters in the picture may still be well separated in the full space.",
+      "code": "pca = PCA(2).fit(Xs)\nZ = pca.transform(Xs)\nplt.figure(figsize=(6, 5))\nplt.scatter(Z[:, 0], Z[:, 1], c=cust[\"cluster\"], s=5, cmap=\"tab10\")\nplt.xlabel(\"PC1\"); plt.ylabel(\"PC2\"); plt.title(f\"Clusters in PCA space ({pca.explained_variance_ratio_.sum():.0%} of variance)\")\nplt.savefig(\"seg_pca.png\", dpi=100); plt.close()\nprint(pd.DataFrame(pca.components_.T, index=X.columns, columns=[\"PC1\", \"PC2\"]).round(2))"
+    },
+    {
+      "title": "Test stability",
+      "detail": "Segments that change every time you rerun are not segments. Refit k-means on 20 bootstrap samples and compare each refit's labels with the original on all customers using ARI; values above about 0.8 mean the structure is real. A quick hierarchical (Ward) clustering on a sample is a second, independent opinion.",
+      "code": "aris = []\nfor b in range(20):\n    idx = rng.choice(n, n, replace=True)\n    kb = KMeans(K, n_init=5, random_state=b).fit(Xs[idx])\n    aris.append(adjusted_rand_score(km.labels_, kb.predict(Xs)))\nprint(f\"Bootstrap ARI: mean {np.mean(aris):.3f}, min {np.min(aris):.3f}\")\nsub = rng.choice(n, 1500, replace=False)\nward = AgglomerativeClustering(K, linkage=\"ward\").fit(Xs[sub])\nprint(\"ARI k-means vs Ward (sample):\", round(adjusted_rand_score(km.labels_[sub], ward.labels_), 3))"
+    },
+    {
+      "title": "Name personas and split the budget",
+      "detail": "Give each cluster a name and a one-line action using simple rules on its profile (recent and frequent → loyal; high discount → deal-seekers; long recency → lapsing; high spend per order → premium; single order → new). Then split the ₹40 lakh budget, here in proportion to revenue at stake with a boost for win-back, and write one action per persona. Finally, because this is simulated data, peek at the ARI against the hidden profiles.",
+      "code": "def name(r):\n    if r[\"recency\"] > 120: return \"Lapsing\", \"Win-back: personalised reminder + small one-time offer\"\n    if r[\"orders\"] <= 2 and r[\"spend\"] < 2500: return \"New\", \"Onboarding series, second-order nudge within 30 days\"\n    if r[\"discount\"] > 20: return \"Deal-seekers\", \"Bundles and loyalty points instead of blanket 20% off\"\n    if r[\"spend\"] / max(r[\"orders\"], 1) > 2000: return \"Premium\", \"Early access, no discounts, concierge service\"\n    return \"Loyal\", \"Referral programme and subscription offer\"\nprof[[\"persona\", \"action\"]] = prof.apply(lambda r: pd.Series(name(r)), axis=1)\nweight = prof[\"revenue_share_%\"] * np.where(prof[\"persona\"] == \"Lapsing\", 1.5, 1.0)\nprof[\"budget_lakh\"] = (40 * weight / weight.sum()).round(1)\nprint(prof[[\"persona\", \"customer_share_%\", \"revenue_share_%\", \"budget_lakh\", \"action\"]].round(1).to_string())\nprint(\"ARI vs hidden profiles (simulation only):\", round(adjusted_rand_score(true, cust[\"cluster\"]), 3))"
+    }
+  ],
+  "deliverables": [
+    "A k-selection page: elbow, silhouette and GMM BIC, with the chosen k justified in business terms.",
+    "A persona table: name, size, revenue share, median recency/orders/spend, discount dependence, and one action each.",
+    "A PCA scatter and a stability result (bootstrap ARI) showing the segments are reproducible.",
+    "A ₹40 lakh budget allocation by persona with the rule you used and the KPI you would track for each."
+  ],
+  "rubric": [
+    {
+      "criterion": "Preprocessing",
+      "good": "Skewed features logged and all features scaled; explains why spend would otherwise dominate."
+    },
+    {
+      "criterion": "Choosing k",
+      "good": "Uses more than one criterion (elbow, silhouette, BIC) plus business usability; does not chase the maximum score blindly."
+    },
+    {
+      "criterion": "Method comparison",
+      "good": "k-means and GMM compared with ARI; borderline customers identified via GMM probabilities."
+    },
+    {
+      "criterion": "Validation",
+      "good": "Bootstrap stability and an independent method (Ward) checked."
+    },
+    {
+      "criterion": "Actionability",
+      "good": "Personas described in rupees and days with a concrete action and budget each; a marketer could run the campaign tomorrow."
+    }
+  ],
+  "extensions": [
+    "Design an A/B test for the deal-seeker persona: bundles vs 20% coupon, with sample size and the margin-per-customer metric.",
+    "Add a 'predicted next-90-day spend' model and allocate budget by expected incremental ₹ rather than past revenue.",
+    "Try DBSCAN on the PCA projection and discuss whether 'noise' customers are a segment of their own."
+  ]
+}

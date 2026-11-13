@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Which description fits underfitting?",
+      "options": [
+        "High error on both training and test data, because the model is too simple to capture the real pattern",
+        "Very low training error, much higher test error",
+        "Low error on both training and test data",
+        "Test error lower than training error"
+      ],
+      "answer": 0,
+      "why": "An underfitting model is consistently wrong, on data it learned from and on new data alike. Very low training error with much higher test error is the opposite problem, overfitting.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A loan-default model scores 62% accuracy on training data and 61% on validation data. What is the most likely diagnosis?",
+      "options": [
+        "High variance: the model has memorised the training data",
+        "High bias: both scores are low and close together, so the model is too simple",
+        "A perfect balance, because the scores are almost equal",
+        "Data leakage"
+      ],
+      "answer": 1,
+      "why": "Low and similar scores are the fingerprint of high bias. A small gap alone is not a sign of a good model: it only rules out high variance. The first things to try are better features, a more flexible model or less regularisation.",
+      "level": 1,
+      "kind": "interpretation"
+    },
+    {
+      "q": "The true cost of a machine is ₹50 thousand. A model retrained on five samples predicts 44, 46, 45, 43 and 47 (₹ thousand). What are bias², variance and the expected squared error?",
+      "options": [
+        "Bias² 25, variance 2, total 27",
+        "Bias² 5, variance 2, total 7",
+        "Bias² 0, variance 27, total 27",
+        "Bias² 25, variance 10, total 35"
+      ],
+      "answer": 0,
+      "why": "Average = 225 / 5 = 45, so bias = −5 and bias² = **25**. Deviations −1, 1, 0, −2, 2 give variance (1 + 1 + 0 + 4 + 4) / 5 = **2**. Total = 27, matching the average squared miss (36 + 16 + 25 + 49 + 9) / 5. Bias² 5 forgets to square the bias; variance 10 forgets to divide by 5.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "You collect ten times more training data of the same kind. Which part of the error do you expect to shrink?",
+      "options": [
+        "Bias",
+        "All three equally",
+        "Irreducible error",
+        "Variance"
+      ],
+      "answer": 3,
+      "why": "More data makes the model less sensitive to the particular sample, which reduces variance. It does not fix wrong assumptions (bias): a straight line stays a straight line however many rows you add. Irreducible noise never shrinks.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "What does regularisation do in terms of bias and variance?",
+      "options": [
+        "It removes both bias and variance",
+        "It reduces bias by making the model more flexible",
+        "It deliberately adds a little bias to remove a lot of variance",
+        "It reduces the irreducible error"
+      ],
+      "answer": 2,
+      "why": "A penalty that keeps coefficients small makes the model less flexible: slightly more systematic error, much less wobble between samples. Thinking it reduces bias gets the direction backwards; less regularisation is the remedy for high bias.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A learning curve shows training and validation error meeting at a high level as you add rows, and staying flat. What should you do?",
+      "options": [
+        "Collect much more data",
+        "Add more regularisation",
+        "Increase model flexibility or add better features, because the problem is bias and more data will not help",
+        "Stop: the model is as good as it can be"
+      ],
+      "answer": 2,
+      "why": "Curves that have already met at a high error mean the model cannot capture the pattern, however much data it sees. Collecting more data is the tempting but wasted remedy; more regularisation would make the bias worse.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A straight line fitted to machine cost against age misses by +6.4 at age 1, −4.6 at age 5 and about +6.6 at age 10. What do these residuals tell you?",
+      "options": [
+        "Random noise; nothing can be done",
+        "High variance; use a simpler model",
+        "The data contains typos at ages 1 and 10",
+        "Bias: the misses follow a smooth plus-minus-plus pattern, so the straight line is systematically wrong and a curve (for example adding age²) is needed"
+      ],
+      "answer": 3,
+      "why": "Noise would scatter randomly; misses that go plus, minus, plus in a smooth wave are a predictable shape the model cannot bend to. That is bias. More rows of the same data would not remove it; a more flexible model would.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Why does a random forest usually beat a single deep decision tree?\" Which answer is best?",
+      "options": [
+        "Each tree in the forest has lower bias than a single tree",
+        "Deep trees have low bias but high variance; averaging many trees trained on different samples cancels much of their individual wobble while keeping the low bias",
+        "Random forests use fewer features, so they cannot overfit",
+        "Forests remove the irreducible error"
+      ],
+      "answer": 1,
+      "why": "Ensembles attack variance directly. Each deep tree overfits in its own way, and averaging cancels the different mistakes. Claiming forests \"cannot overfit\" overstates it, and the individual trees are not less biased than a single deep tree.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

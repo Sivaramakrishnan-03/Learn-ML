@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What does the **M-step** of EM do in a Gaussian Mixture Model?",
+      "options": [
+        "Refits each component's share, mean and covariance, weighting every point by its responsibility",
+        "Assigns each point fully to its nearest component",
+        "Computes each point's probability of belonging to each component",
+        "Chooses the number of components with BIC"
+      ],
+      "answer": 0,
+      "why": "The M-step treats responsibilities as fractional memberships and recomputes weighted shares, means and spreads. Computing the probabilities is the E-step, and full assignment to the nearest centre is what k-means does.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A GMM with three components gives a customer responsibilities of 0.62 and 0.25 for the first two components. What is the responsibility for the third?",
+      "options": [
+        "It cannot be known without the third component's mean",
+        "0.25",
+        "0.38",
+        "0.13"
+      ],
+      "answer": 3,
+      "why": "A point's responsibilities always add up to 1, so the third is 1 − 0.62 − 0.25 = 0.13. That is exactly what `predict_proba` returns: one probability per component, summing to 1.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Two 1-D components have the same SD of 1: component A has share 0.7 and mean 0, component B has share 0.3 and mean 4. What is A's responsibility for a point at x = 2?",
+      "options": [
+        "0.30",
+        "0.50",
+        "0.57",
+        "0.70"
+      ],
+      "answer": 3,
+      "why": "x = 2 is equally far from both means and the SDs match, so the bell heights are equal and only the shares differ: 0.7 × h / (0.7 × h + 0.3 × h) = 0.70. The tempting 0.50 is the k-means-style view that a halfway point is a coin toss, which ignores the shares.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A 1-D GMM is fitted to n = 500 customers (ln 500 ≈ 6.21). K = 2 (5 parameters) has log-likelihood −1,200; K = 3 (8 parameters) has −1,195. Using BIC = parameters × ln(n) − 2 × log-likelihood, which K do you choose?",
+      "options": [
+        "K = 3, with BIC ≈ 2,431 versus ≈ 2,440 for K = 2",
+        "K = 3, because its log-likelihood is higher",
+        "K = 2, with BIC ≈ 2,431 versus ≈ 2,440 for K = 3",
+        "Neither; BIC cannot compare different K"
+      ],
+      "answer": 2,
+      "why": "K = 2: 5 × 6.21 + 2,400 ≈ 2,431; K = 3: 8 × 6.21 + 2,390 ≈ 2,440. Lower BIC wins, so K = 2. A higher log-likelihood always comes with more components; the penalty is what stops you adding them forever.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Three customers spend 2, 4 and 9 (₹ hundred). Their responsibilities for component A are 1.0, 0.5 and 0.0. What is A's new mean after the M-step?",
+      "options": [
+        "2.67",
+        "3.00",
+        "4.00",
+        "5.00"
+      ],
+      "answer": 0,
+      "why": "Effective count N_A = 1.0 + 0.5 + 0 = 1.5; weighted sum = 1.0 × 2 + 0.5 × 4 + 0 × 9 = 4; mean = 4 / 1.5 ≈ 2.67. The tempting 3.00 averages 2 and 4 as if both fully belonged to A, and 4.00 forgets to divide by N_A.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Your data contains two crescent-shaped groups. A GMM assigns many points to a component with probability 0.99, yet the assignments clearly cut across the crescents. How should you read the 0.99?",
+      "options": [
+        "Probabilities are only as good as the model: the groups are not bell-shaped, so the GMM can be confidently wrong",
+        "The model is 99% accurate, so trust it",
+        "Add more EM iterations until the crescents appear",
+        "A high probability proves the crescents are not real groups"
+      ],
+      "answer": 0,
+      "why": "A GMM describes data as a sum of bell curves; crescents violate that, so its probabilities are not calibrated to reality. DBSCAN suits such shapes better. A responsibility is a model-based probability, not a measured accuracy.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"You fit a full-covariance GMM to 50 features with only 300 rows and get unstable, collapsing components. Why, and what would you do?\"",
+      "options": [
+        "Too few EM iterations; raise `max_iter`",
+        "Switch `covariance_type` to `full` for more flexibility",
+        "GMMs require at least 50 components for 50 features",
+        "A full covariance with 50 features needs 1,275 numbers per component, far too many for 300 rows; use `diag` or `tied` covariance, or reduce dimensions first"
+      ],
+      "answer": 3,
+      "why": "A 50 × 50 covariance has 50 × 51 / 2 = 1,275 free numbers, so each component is badly under-determined. Simpler covariance types or PCA first fix this, and `reg_covar` guards against collapse. The model was already `full`; adding iterations cannot create data.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"In what sense is k-means a special case of a GMM?\"",
+      "options": [
+        "If every component has the same tiny circular spread, responsibilities become all-or-nothing, which is hard assignment to the nearest centre",
+        "K-means is a GMM with full covariance matrices",
+        "K-means is a GMM fitted with BIC instead of EM",
+        "They are unrelated; k-means does not use means"
+      ],
+      "answer": 0,
+      "why": "Shrink every component to the same small spherical bell and the nearest centre takes essentially all the credit, so the E-step becomes the k-means assignment step and the M-step becomes the mean update. Full covariance is the opposite extreme: the most flexible shapes.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

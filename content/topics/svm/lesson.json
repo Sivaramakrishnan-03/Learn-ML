@@ -14,13 +14,14 @@
     "SVMs need **scaled features**. For non-linear boundaries, use the **kernel trick** (next topic)."
   ],
   "example": {
-    "title": "Effect of C on a noisy dataset",
+    "title": "Reading a trained SVM",
     "steps": [
-      "C = 0.01: wide margin, 12% training errors, CV accuracy 85%",
-      "C = 1: balanced margin, 6% training errors, CV accuracy 91%",
-      "C = 1,000: narrow margin bending around noise, 1% training errors, CV accuracy 84%"
+      "Seven scaled points; a linear SVM with very large C finds w = (1, 1), b = −6, so the boundary is x₁ + x₂ = 6",
+      "(2, 3) and (3, 2), class −1: f = −1, exactly on their kerb; (4, 3) and (3, 4), class +1: f = +1 → the four support vectors",
+      "(1, 1): f = −4, deep in its own territory, not a support vector",
+      "Margin width = 2 / √(1² + 1²) ≈ 1.41. New point (4, 4): f = +2 → predict +1"
     ],
-    "result": "C = 1 wins. As always, choose by validation, not training error."
+    "result": "Four support vectors define everything: delete (1, 1), (2, 2) or (5, 5) and retraining gives exactly the same line."
   },
   "mistakes": [
     "Not scaling features.",
@@ -42,7 +43,7 @@
     "When probabilities or interpretability are required"
   ],
   "practice": {
-    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.svm import SVC\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import cross_val_score\nX, y = load_breast_cancer(return_X_y=True)\nfor C in [0.01, 1, 100]:\n    print(C, cross_val_score(make_pipeline(StandardScaler(), SVC(kernel=\"linear\", C=C)), X, y, cv=5).mean().round(3))"
+    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.svm import SVC\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import cross_val_score\nX, y = load_breast_cancer(return_X_y=True)\nfor C in [0.01, 1, 100]:\n    print(C, cross_val_score(make_pipeline(StandardScaler(), SVC(kernel=\"linear\", C=C)), X, y, cv=5).mean().round(3))   # 0.968, 0.972, 0.96"
   },
   "check": [
     {
@@ -68,5 +69,9 @@
       "why": "It strongly penalises any violation."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "f(x) = w \\cdot x + b, \\qquad \\text{margin width} = \\frac{2}{\\lVert w \\rVert}",
+    "plain": "Predict +1 if the score f(x) is positive, −1 if negative; the boundary is f(x) = 0. The street is 2 divided by the length of w wide, so smaller weights mean a wider street."
+  }
 }

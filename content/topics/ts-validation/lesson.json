@@ -14,14 +14,14 @@
     "Metrics: MAE and RMSE in units; **MAPE** or **WAPE** for percentages; **MASE** compares against a naive forecast. **Always compare against a naive baseline** (last value, or same period last year)."
   ],
   "example": {
-    "title": "Backtesting a demand model (3-month horizon)",
+    "title": "WAPE versus MAPE on four products",
     "steps": [
-      "Window 1: train Jan 2022–Dec 2023 → forecast Jan–Mar 2024: WAPE 12%",
-      "Window 2: train to Mar 2024 → Apr–Jun: WAPE 9%",
-      "Window 3: train to Jun 2024 → Jul–Sep: WAPE 15% (festival shift)",
-      "Average WAPE 12% vs seasonal-naive baseline 18%"
+      "One week, four SKUs. Actuals: 100, 80, 120, 10. Forecasts: 90, 88, 108, 20",
+      "Absolute errors 10, 8, 12, 10 → total 40, MAE = 10 units",
+      "Percentage errors 10%, 10%, 10%, 100% → MAPE = 32.5%",
+      "WAPE = 40 / 310 ≈ 12.9%"
     ],
-    "result": "The model beats the baseline by 6 points, and window 3 flags festival dates as a feature to add."
+    "result": "MAPE says 32.5% because one tiny SKU missed by 10 units; WAPE's 12.9% reflects the business impact far better. Choose the metric before looking at the results, then score it in a rolling-origin backtest against a naive baseline."
   },
   "mistakes": [
     "Random k-fold on time series.",
@@ -37,7 +37,7 @@
     "Every forecasting model before deployment"
   ],
   "practice": {
-    "code": "import numpy as np\nfrom sklearn.model_selection import TimeSeriesSplit\ny = np.arange(36)\nfor tr, te in TimeSeriesSplit(n_splits=4, test_size=3).split(y):\n    print(\"train up to\", tr[-1], \"→ test\", te)"
+    "code": "import numpy as np\nfrom sklearn.model_selection import TimeSeriesSplit\nactual, fcst = np.array([100, 80, 120, 10]), np.array([90, 88, 108, 20])\nerr = np.abs(actual - fcst)\nprint(\"MAPE\", (err / actual).mean().round(3), \"WAPE\", (err.sum() / actual.sum()).round(3))   # 0.325 0.129\ny = np.arange(36)\nfor tr, te in TimeSeriesSplit(n_splits=4, test_size=3).split(y):\n    print(\"train up to\", tr[-1], \"→ test\", te)"
   },
   "check": [
     {
@@ -63,5 +63,9 @@
       "why": "Without a baseline a \"12% error\" means little."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "\\text{WAPE} = \\frac{\\sum_t |y_t - \\hat y_t|}{\\sum_t |y_t|}",
+    "plain": "Weighted absolute percentage error: total absolute miss divided by total actual volume, so big sellers count more and tiny items cannot blow it up."
+  }
 }

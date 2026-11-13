@@ -6,6 +6,7 @@ import { useStepPlayer, PlayerControls } from '../components/StepPlayer';
 import { Tex } from '../components/Tex';
 import { customers, P } from '../lib/datasets';
 import { elbow, kmeans, KFrame } from '../lib/ml';
+import { mean } from '../viz/math';
 import { ModelContent } from './types';
 
 const AX = { xLabel: 'store visits per month', yLabel: 'average basket (₹ ×1000)' };
@@ -170,15 +171,15 @@ function silhouette(pts: P[], assign: number[]) {
   const s = pts.map((p, i) => {
     const own = pts.filter((_, j) => assign[j] === assign[i] && j !== i);
     if (!own.length) return 0;
-    const a = own.reduce((t, q) => t + d(p, q), 0) / own.length;
+    const a = mean(own.map((q) => d(p, q)));
     let b = Infinity;
     for (let c = 0; c < k; c++) if (c !== assign[i]) {
       const o = pts.filter((_, j) => assign[j] === c);
-      if (o.length) b = Math.min(b, o.reduce((t, q) => t + d(p, q), 0) / o.length);
+      if (o.length) b = Math.min(b, mean(o.map((q) => d(p, q))));
     }
     return (b - a) / Math.max(a, b);
   });
-  return s.reduce((a, b) => a + b, 0) / s.length;
+  return mean(s);
 }
 const pipeSil = silhouette(pipePts, pipeFinal.assign);
 

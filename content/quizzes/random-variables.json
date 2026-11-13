@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A shop's expected number of orders is 1.1 per day. What does that mean?",
+      "options": [
+        "Most days the shop gets exactly 1.1 orders",
+        "1.1 is the most likely number of orders",
+        "Averaged over many days, orders come to about 1.1 per day, even though no single day can have 1.1 orders",
+        "The shop never gets more than 1.1 orders"
+      ],
+      "answer": 2,
+      "why": "The mean is a probability-weighted average, not a promised or most likely value; here it is not even a possible value. Treating the mean as the most likely outcome is a common misreading.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "X takes the value 0 with probability 0.5, 2 with probability 0.3 and 4 with probability 0.2. What is the mean of X?",
+      "options": [
+        "2",
+        "6",
+        "0.33",
+        "1.4"
+      ],
+      "answer": 3,
+      "why": "Mean = 0 × 0.5 + 2 × 0.3 + 4 × 0.2 = 0 + 0.6 + 0.8 = **1.4**. 2 is the simple average of the three values, which ignores that 0 is far more likely than 4.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "For the same X (0 with probability 0.5, 2 with 0.3, 4 with 0.2; mean 1.4), what is the standard deviation?",
+      "options": [
+        "2.44",
+        "4.4",
+        "About 1.56",
+        "1.4"
+      ],
+      "answer": 2,
+      "why": "Variance = (0 − 1.4)² × 0.5 + (2 − 1.4)² × 0.3 + (4 − 1.4)² × 0.2 = 0.98 + 0.108 + 1.352 = 2.44, so SD = √2.44 ≈ **1.56**. 2.44 is the variance, in squared units; 4.4 is the average of X² before subtracting the squared mean.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Orders per day have mean 1.1 and SD 0.7. Each order earns ₹250 and the day has a fixed cost of ₹150, so profit = 250X − 150. What are the mean and SD of daily profit?",
+      "options": [
+        "Mean ₹125, SD ₹175",
+        "Mean ₹125, SD ₹25",
+        "Mean ₹275, SD ₹175",
+        "Mean ₹125, SD ₹0.7"
+      ],
+      "answer": 0,
+      "why": "Mean: 250 × 1.1 − 150 = **₹125**. SD: only the scaling matters, 250 × 0.7 = **₹175**. Subtracting the fixed cost from the SD (giving ₹25) is the trap: a fixed amount shifts the mean but adds no uncertainty.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Delivery times are roughly normal with mean 45 minutes and SD 10 minutes. If you promise delivery within 65 minutes, about what share of deliveries will break the promise?",
+      "options": [
+        "About 2.3%",
+        "About 16%",
+        "About 5%",
+        "About 32%"
+      ],
+      "answer": 0,
+      "why": "65 minutes is two SDs above the mean. About 95% fall within ±2 SD, leaving 5% split between the two tails, so roughly **2.3%** are later than 65 minutes. 5% counts both tails, but early deliveries do not break the promise; 16% would be the share beyond one SD (55 minutes).",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A salesperson makes 5 calls a day; each converts independently with probability 0.3. What is the probability of at least one sale in a day?",
+      "options": [
+        "1.5, so a sale is certain",
+        "About 0.002",
+        "About 0.168",
+        "About 0.832"
+      ],
+      "answer": 3,
+      "why": "This is binomial. P(no sale) = 0.7⁵ ≈ 0.168, so P(at least one) = 1 − 0.168 ≈ **0.832**. 1.5 is the mean (5 × 0.3), not a probability; 0.002 is 0.3⁵, the chance that all five calls convert.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Delivery time is a continuous random variable. What is the probability that a delivery takes exactly 30.000… minutes?",
+      "options": [
+        "The height of the density curve at 30",
+        "0; for continuous variables you ask about ranges, such as between 29 and 31 minutes",
+        "1 divided by the number of possible times",
+        "It equals the probability of 30 orders in the discrete case"
+      ],
+      "answer": 1,
+      "why": "Individual exact values of a continuous variable have zero probability; probabilities are areas under the density curve over a range. Reading the curve's height as a probability is the common mistake: a density can even exceed 1.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview: \"Two suppliers both average 5 days to deliver. Why might you still prefer one?\" Which answer is best?",
+      "options": [
+        "You would not; equal means make them equivalent",
+        "Their spread can differ: a supplier delivering in 4 or 6 days (SD 1) needs less safety stock than one delivering in 2 or 8 days (SD 3), so variance has a rupee cost",
+        "Prefer the one with the higher variance, because it is sometimes faster",
+        "Only the median matters for supply planning"
+      ],
+      "answer": 1,
+      "why": "Planning has to cover the bad days, so stock is set by the spread as well as the average: 6 days of cover for the reliable supplier, 8 for the erratic one. Judging on the mean alone hides that risk; occasional fast deliveries do not offset the slow ones you must stock for.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

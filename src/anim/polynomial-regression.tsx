@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { polyFit, rmse } from './_regression-helpers';
+import { polyFit, rmse } from '../viz/math';
 
 /* ---------- pure helpers ---------- */
 // Test-track fuel use (litres per 100 km) against cruising speed (km/h): high when slow, lowest near 80 km/h, high again when fast.

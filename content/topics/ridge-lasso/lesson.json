@@ -11,21 +11,21 @@
     "Add a **penalty** for large coefficients to the loss. The model must now balance fitting the data against keeping the coefficients small. Think of it as a **budget** on coefficient size.",
     "**Ridge (L2)** penalises squared coefficients: it shrinks all of them smoothly towards zero but rarely to exactly zero. It is great with many correlated features.",
     "**Lasso (L1)** penalises absolute values: it can push coefficients **exactly to zero**, so it performs automatic feature selection.",
-    "**Elastic Net** mixes the two. The penalty strength **α (lambda)** is tuned by cross-validation. **Always scale features first**, otherwise the penalty treats units unfairly."
+    "**Elastic Net** mixes the two. The penalty strength **λ** (called `alpha` in scikit-learn) is tuned by cross-validation. **Always scale features first**, otherwise the penalty treats units unfairly."
   ],
   "formula": {
-    "tex": "\\min_\\beta \\; \\sum (y - X\\beta)^2 + \\lambda \\sum \\beta_j^2 \\;\\; (\\text{Ridge}) \\quad \\text{or} \\quad + \\lambda \\sum |\\beta_j| \\;\\; (\\text{Lasso})",
-    "plain": "Least squares + a penalty on coefficient size: squared for Ridge, absolute for Lasso."
+    "tex": "\\min_{b} \\; \\sum_i (y_i - \\hat y_i)^2 + \\lambda \\sum_j b_j^2 \\;\\; (\\text{Ridge}) \\quad \\text{or} \\quad + \\lambda \\sum_j |b_j| \\;\\; (\\text{Lasso})",
+    "plain": "Sum of squared errors + λ × a penalty on coefficient size: squared for Ridge, absolute values for Lasso. The intercept is not penalised."
   },
   "example": {
-    "title": "50 marketing features, 200 weeks of data",
+    "title": "Ridge by hand on the five flats",
     "steps": [
-      "OLS: train R² 0.95, CV R² 0.41 (overfitting)",
-      "Ridge (α tuned by CV): CV R² 0.68",
-      "Lasso: CV R² 0.66, keeps only 9 of 50 features",
-      "Business prefers Lasso: 9 drivers are explainable"
+      "Five flats from linear regression: Sxy = 172, Sxx = 40, so the ordinary slope = 172 / 40 = 4.3 (₹ lakh per 100 sq ft)",
+      "Ridge slope = Sxy / (Sxx + λ): λ = 10 → 172 / 50 = 3.44; λ = 40 → 172 / 80 = 2.15; λ = 400 → 172 / 440 ≈ 0.39",
+      "Lasso slope = (Sxy − λ/2) / Sxx, floored at 0: λ = 100 → 122 / 40 = 3.05; λ = 344 or more → exactly 0",
+      "The intercept is recalculated each time so the line still passes through the average flat (10, 52)"
     ],
-    "result": "Regularisation trades a little training fit for much better generalisation, and Lasso adds simplicity."
+    "result": "Ridge shrinks the slope smoothly but never to zero; Lasso switches the feature off completely once λ/2 reaches Sxy. That is how Lasso selects features."
   },
   "mistakes": [
     "Forgetting to standardise features.",
@@ -51,7 +51,7 @@
     "What happens as λ → 0 and λ → ∞?"
   ],
   "practice": {
-    "code": "from sklearn.datasets import load_diabetes\nfrom sklearn.linear_model import RidgeCV, LassoCV\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nX, y = load_diabetes(return_X_y=True)\nlasso = make_pipeline(StandardScaler(), LassoCV(cv=5)).fit(X, y)\nprint(\"non-zero coefs:\", (lasso[-1].coef_ != 0).sum(), \"of\", X.shape[1])\nprint(\"ridge alpha:\", make_pipeline(StandardScaler(), RidgeCV(alphas=[0.1, 1, 10, 100])).fit(X, y)[-1].alpha_)"
+    "code": "import numpy as np\nfrom sklearn.datasets import load_diabetes\nfrom sklearn.linear_model import Ridge, Lasso, LassoCV\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nX = np.array([[6], [8], [10], [12], [14]]); y = np.array([35, 44, 50, 62, 69])   # the five flats\nprint([float(Ridge(alpha=lam).fit(X, y).coef_[0].round(2)) for lam in (10, 40, 400)])  # [3.44, 2.15, 0.39]\n# sklearn's Lasso divides the squared error by 2n, so alpha = λ / (2n) = λ / 10 here\nprint([float(Lasso(alpha=lam / 10).fit(X, y).coef_[0].round(2)) for lam in (100, 344)])  # [3.05, 0.0]\nXd, yd = load_diabetes(return_X_y=True)\nlasso = make_pipeline(StandardScaler(), LassoCV(cv=5)).fit(Xd, yd)\nprint(\"non-zero coefs:\", (lasso[-1].coef_ != 0).sum(), \"of\", Xd.shape[1])"
   },
   "check": [
     {

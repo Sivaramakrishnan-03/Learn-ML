@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Md } from './Md';
 
 export interface HowToStep { do: string; notice: string }
@@ -8,17 +8,18 @@ export interface HowToSpec { what: string; steps: HowToStep[] }
 export function HowTo({ spec }: { spec?: HowToSpec }) {
   const [open, setOpenState] = useState(() => { try { return localStorage.getItem('learnpath-ml:howto') !== 'hidden'; } catch { return true; } });
   const setOpen = (v: boolean) => { setOpenState(v); try { localStorage.setItem('learnpath-ml:howto', v ? 'shown' : 'hidden'); } catch { /* ignore */ } };
+  const id = 'howto' + useId().replace(/:/g, '');
   if (!spec) return null;
   return (
     <div className="howto">
-      <button className="howto-head" onClick={() => setOpen(!open)}>
-        <span>🧭 How to use this</span><span className="muted small">{open ? 'hide ▲' : 'show ▼'}</span>
+      <button type="button" className="howto-head" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls={id}>
+        <span><span aria-hidden="true">🧭 </span>How to use this</span><span className="muted small" aria-hidden="true">{open ? 'hide ▲' : 'show ▼'}</span>
       </button>
-      {open && <div className="howto-body">
+      {open && <div className="howto-body" id={id}>
         <p style={{ marginBottom: 8 }}><Md text={spec.what} /></p>
         <ol>
           {spec.steps.map((s, i) => (
-            <li key={i}><b>Try:</b> <Md text={s.do} /><br /><span className="notice">👀 <b>Notice:</b> <Md text={s.notice} /></span></li>
+            <li key={i}><b>Try:</b> <Md text={s.do} /><br /><span className="notice"><span aria-hidden="true">👀 </span><b>Notice:</b> <Md text={s.notice} /></span></li>
           ))}
         </ol>
       </div>}

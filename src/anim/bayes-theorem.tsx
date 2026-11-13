@@ -180,7 +180,7 @@ const anim: TopicAnim = {
   Animate,
   Playground,
   howto: {
-    Animate: { what: 'The lesson\'s medical test (1% prevalence, 99% sensitivity, 5% false positives) shown as **10,000 people**. We split them into true and false positives, then update beliefs with a second test and with the three-plant defect example.', steps: [
+    Animate: { what: 'The medical test from the chapter (1% prevalence, 99% sensitivity, 5% false positives) shown as **10,000 people**. We split them into true and false positives, then update beliefs with a second test and with the three-plant defect example.', steps: [
       { do: 'Step through the first five frames.', notice: '100 sick → 99 true positives; 9,900 healthy → **495 false positives**. In the positive room only 99 of 594 are sick: **16.7%**.' },
       { do: 'Continue through "second test" and the climbing bars.', notice: 'Posterior becomes the next prior: 1% → 16.7% → 79.8% → 98.8%.' },
       { do: 'Watch the plant frames.', notice: 'Prior (blue) × likelihood gives gold bars; normalising gives the posterior (green): plant C rises from 20% to **47.6%**.' },

@@ -14,14 +14,14 @@
     "**Cold start**: new users or items have no history, so blend with content features or popularity. Evaluate with **ranking metrics** (precision@k, NDCG) on a time-based hold-out, and confirm with A/B tests."
   ],
   "example": {
-    "title": "Predict a rating with factors",
+    "title": "User-based prediction for Asha",
     "steps": [
-      "User Priya: [action 0.9, romance 0.2]",
-      "Movie \"Fast Chase\": [action 0.95, romance 0.1]",
-      "Predicted affinity = 0.9×0.95 + 0.2×0.1 = 0.875 (high)",
-      "Movie \"Love Letters\": [0.1, 0.9] → 0.09 + 0.18 = 0.27 (low)"
+      "Ratings on Desert Chase, Highway Heist, Monsoon Letters: Asha (5, 4, 1), Ravi (5, 5, 1), Kabir (4, 4, 2), Meera (1, 2, 5). Will Asha like \"Wedding Season\"?",
+      "Cosine similarity: Asha–Ravi = 46 / (6.48 × 7.14) ≈ 0.994; Asha–Kabir = 38 / (6.48 × 6) ≈ 0.977. Meera has opposite taste (Pearson −1), so she is left out",
+      "Neighbours' ratings of Wedding Season: Ravi 2, Kabir 1",
+      "Prediction = (0.994 × 2 + 0.977 × 1) / (0.994 + 0.977) ≈ 1.50"
     ],
-    "result": "Recommend \"Fast Chase\". The factors were learned purely from viewing behaviour."
+    "result": "About 1.5 out of 5: do not recommend \"Wedding Season\" to Asha. Her neighbours are action fans who disliked it."
   },
   "mistakes": [
     "Evaluating with random splits instead of time-based ones (leaks the future).",
@@ -40,7 +40,7 @@
     "Brand-new catalogues with no interactions (content-based first)"
   ],
   "practice": {
-    "code": "import numpy as np\nR = np.array([[5, 4, 0, 1], [4, 5, 1, 0], [1, 0, 5, 4], [0, 1, 4, 5]], float)   # users × items, 0 = unknown\nU, s, Vt = np.linalg.svd(R, full_matrices=False)\nk = 2; approx = U[:, :k] @ np.diag(s[:k]) @ Vt[:k]\nprint(approx.round(1))     # filled-in scores for unseen items\n# Production: implicit, LightFM, or two-tower neural models"
+    "code": "import numpy as np\n# Desert Chase, Highway Heist, Monsoon Letters (the films Asha has rated)\nasha, ravi, kabir = np.array([5, 4, 1]), np.array([5, 5, 1]), np.array([4, 4, 2])\ncos = lambda a, b: a @ b / (np.linalg.norm(a) * np.linalg.norm(b))\nsims = np.array([cos(asha, ravi), cos(asha, kabir)])\nwedding = np.array([2, 1])                           # Ravi's and Kabir's ratings of Wedding Season\nprint(sims.round(3), round(float(sims @ wedding / sims.sum()), 2))   # [0.994 0.977] 1.5\n# Production: matrix factorisation (implicit, LightFM) or two-tower neural models"
   },
   "check": [
     {
@@ -66,5 +66,9 @@
       "why": "Collaborative signals need history."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "\\hat{r}_{ui} = \\frac{\\sum_{v \\in N(u)} \\text{sim}(u,v)\\, r_{vi}}{\\sum_{v \\in N(u)} |\\text{sim}(u,v)|}",
+    "plain": "User-based prediction: average the neighbours' ratings of the item, weighting each neighbour by how similar their tastes are to the user's (for example cosine similarity)."
+  }
 }

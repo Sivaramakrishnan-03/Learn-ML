@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In 5-fold cross-validation, how many times is each row used for validation, and how many times for training?",
+      "options": [
+        "Each row is used only once in total",
+        "Validated 5 times, never used for training",
+        "Validated 4 times, used for training once",
+        "Validated once, used for training 4 times"
+      ],
+      "answer": 3,
+      "why": "Each fold takes exactly one turn as validation data, and in the other four rounds it is part of the training data. That rotation is why every row contributes to the estimate and to learning.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "You run 10-fold cross-validation on 5,000 training rows. How many rows does each fold-model train on?",
+      "options": [
+        "500",
+        "4,500",
+        "5,000",
+        "50"
+      ],
+      "answer": 1,
+      "why": "Each of the 10 folds holds 500 rows; each model trains on the other 9 folds, 9 × 500 = **4,500** rows, and is scored on 500. 500 is the validation fold size, not the training size.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "After using 5-fold CV to choose a model, what do you deploy?",
+      "options": [
+        "A single model refitted on all the training data",
+        "An average of the five fold-models",
+        "The fold-model with the best score",
+        "The fold-model trained on the most recent fold"
+      ],
+      "answer": 0,
+      "why": "Cross-validation estimates performance; it does not produce the final model. The fold-models are thrown away. Picking the best fold-model is tempting, but its score is partly luck and it saw less data than a refit on everything.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "5-fold CV gives accuracies 0.70, 0.74, 0.72, 0.76, 0.68. What are the mean and the standard deviation (dividing by k)?",
+      "options": [
+        "Mean 0.72, SD ≈ 0.028",
+        "Mean 0.72, SD ≈ 0.0008",
+        "Mean 0.74, SD ≈ 0.028",
+        "Mean 0.72, SD ≈ 0.08"
+      ],
+      "answer": 0,
+      "why": "Mean = 3.60 / 5 = 0.72. Differences −0.02, +0.02, 0, +0.04, −0.04; squares sum to 0.0040; ÷ 5 = 0.0008; SD = √0.0008 ≈ **0.028**. 0.0008 is the variance (no square root). Dividing by k − 1 gives about 0.032, so say which you used.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Fold scores are 0.91, 0.90, 0.92, 0.55 and 0.91. What is the most useful reading?",
+      "options": [
+        "The mean, 0.84, is all you need to report",
+        "One slice of data behaves very differently; investigate what is special about fold 4 (a group, a period, a data problem) before trusting the mean",
+        "Drop fold 4 and report 0.91",
+        "The model is underfitting"
+      ],
+      "answer": 1,
+      "why": "A large spread is information: the model is unstable on part of the data. Reporting only the mean hides it, and dropping the awkward fold is cherry-picking. Typical causes are a distinct customer group, a different time period or a data error concentrated in that fold.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You have 48 months of data and use `TimeSeriesSplit(n_splits=3)` with default settings. What are the training and validation months in the last split?",
+      "options": [
+        "Train on months 1–32, validate on months 33–48",
+        "Train on months 13–48, validate on months 1–12",
+        "Train on months 1–36, validate on months 37–48",
+        "Train on a random 36 months, validate on the other 12"
+      ],
+      "answer": 2,
+      "why": "With 3 splits, the data is cut into 4 blocks of 12. The training window grows (1–12, 1–24, 1–36) and validation is always the next 12 months, so the last split trains on 1–36 and validates on 37–48. Validating on earlier months or shuffling would let the model see the future.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "You tune 200 hyperparameter settings with 5-fold CV and report the best mean CV score as the model's expected performance. What is the problem?",
+      "options": [
+        "None; CV scores are always unbiased",
+        "You should have used 2-fold CV",
+        "200 settings is too few for CV to work",
+        "Picking the maximum of many noisy scores is optimistic; use nested CV (an outer loop to score, an inner loop to tune) or a final untouched test set"
+      ],
+      "answer": 3,
+      "why": "Each CV score has some luck; the best of 200 is likely to be one of the luckier ones. Believing a CV score stays unbiased after you select on it is the trap. Nested CV gives an honest score for the whole \"tune then train\" process.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview: \"You scaled the features and selected the top 20 using all the training data, then ran cross-validation. What is wrong, and how do you fix it?\" Which answer is best?",
+      "options": [
+        "Nothing; preprocessing does not affect CV",
+        "Feature selection should always happen after the final model is trained",
+        "Leakage: each validation fold influenced the scaling and feature choice, so CV scores are optimistic. Put the steps inside a `Pipeline` so they are refitted on each training fold",
+        "You should scale only the validation folds"
+      ],
+      "answer": 2,
+      "why": "Any step that learns from data must be fitted inside each fold, or the validation rows help shape the model that is scored on them. Feature selection on all rows is a particularly strong form of this leakage. A pipeline passed to `cross_val_score` handles it automatically.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

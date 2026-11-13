@@ -4,6 +4,7 @@ import { linearOrder, Topic, TRACKS, TrackId, TOPIC_BY_ID } from '../data/curric
 import { QUIZZES, LESSONS, CheckQ } from '../content';
 import { isUnlocked, progress, testOut } from '../lib/progress';
 import { Md } from '../components/Md';
+import { OptMark } from '../components/Quiz';
 
 // Adaptive placement across ALL topics: per track, binary-search the furthest topic you can answer (2 questions per track).
 const PER_TRACK = 2;
@@ -55,7 +56,7 @@ export default function Placement() {
         <h1>🧭 Your placement</h1>
         <div className="card" style={{ marginBottom: 14 }}>
           {tracks.map(({ k, topics }) => <div key={k} className="row small" style={{ marginBottom: 4 }}>
-            <span className="dot" style={{ background: TRACKS[k].color }} /><b style={{ minWidth: 170 }}>{TRACKS[k].title}</b>
+            <span className="dot" aria-hidden="true" style={{ background: TRACKS[k].color }} /><b style={{ minWidth: 'min(170px, 40%)' }}>{TRACKS[k].title}</b>
             <span className="muted">{(found[k] ?? -1) + 1} of {topics.length} topics known{found[k] >= 0 ? ` (up to "${topics[found[k]].title}")` : ''}</span>
           </div>)}
         </div>
@@ -74,14 +75,17 @@ export default function Placement() {
       <h1>🧭 Placement quiz</h1>
       <div className="page-intro">{total} adaptive questions covering <b>all {linearOrder().length} topics</b>: for each of the {tracks.length} tracks you get {PER_TRACK} questions, and each answer moves you to a harder or easier topic in that track. Unsure? Pick your best guess.</div>
       <div className="row small muted" style={{ marginBottom: 6 }}>Question {answeredSoFar + 1} of {total} · {TRACKS[cur.k].title} · topic: {TOPIC_BY_ID[topic!.id].title}</div>
-      <div className="bar" style={{ marginBottom: 16 }}><div style={{ width: `${(answeredSoFar / total) * 100}%` }} /></div>
+      <div className="bar" style={{ marginBottom: 16 }} role="progressbar" aria-label="Placement progress" aria-valuemin={0} aria-valuemax={total} aria-valuenow={answeredSoFar}><div style={{ width: `${(answeredSoFar / total) * 100}%` }} /></div>
       {q ? <div className="card">
-        <h3><Md text={q.q} /></h3>
-        {q.options.map((o, i) => <button key={i} className={`opt ${picked === null ? '' : i === q.answer ? 'right' : i === picked ? 'wrong' : ''}`} onClick={() => picked === null && setPicked(i)} disabled={picked !== null}><Md text={o} /></button>)}
-        {picked !== null && <div className="row" style={{ marginTop: 8 }}>
-          <span className="small">{picked === q.answer ? '✅ Correct' : '❌ Not quite'}</span><span className="spacer" />
-          <button className="btn primary" onClick={next}>Next →</button>
-        </div>}
+        <h2 className="h3" id="placement-q"><Md text={q.q} /></h2>
+        <div role="group" aria-labelledby="placement-q">
+        {q.options.map((o, i) => { const cls = picked === null ? '' : i === q.answer ? 'right' : i === picked ? 'wrong' : '';
+          return <button key={i} type="button" className={`opt ${cls}`} onClick={() => picked === null && setPicked(i)} aria-disabled={picked !== null} aria-pressed={picked === i}><OptMark cls={cls} /><Md text={o} /></button>; })}
+        </div>
+        <div className="row" style={{ marginTop: 8 }}>
+          <span className="small" role="status" aria-live="polite">{picked !== null && <b>{picked === q.answer ? '✅ Correct' : '❌ Not quite'}</b>}</span><span className="spacer" />
+          {picked !== null && <button className="btn primary" onClick={next}>Next →</button>}
+        </div>
       </div> : <p>No question available for this topic.</p>}
     </div>
   );

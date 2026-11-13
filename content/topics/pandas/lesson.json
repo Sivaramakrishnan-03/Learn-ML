@@ -10,18 +10,18 @@
   "explain": [
     "A **DataFrame** is a table with named columns, like an Excel sheet that remembers every step you took. A single column is a **Series**.",
     "Start every analysis with `df.head()`, `df.info()` (types and missing values) and `df.describe()` (summary statistics).",
-    "Select with `df[\"col\"]`, filter with a condition `df[df[\"city\"] == \"Chennai\"]`, and create columns with `df[\"price_per_sqft\"] = df.price / df.area`.",
-    "`groupby` is the pivot table of pandas: \"split by category, apply a summary, combine\". `df.groupby(\"city\")[\"price\"].mean()` gives the average price per city."
+    "Select with `df[\"col\"]`, filter with a condition `df[df[\"city\"] == \"Chennai\"]`, and create columns with `df[\"revenue\"] = df.units * df.price`.",
+    "`groupby` is the pivot table of pandas: \"split by category, apply a summary, combine\". `df.groupby(\"city\")[\"revenue\"].sum()` gives the revenue per city."
   ],
   "example": {
-    "title": "Average price per city",
+    "title": "Filter and create a column",
     "steps": [
-      "Rows: Chennai ₹60L, Chennai ₹80L, Pune ₹50L, Pune ₹70L, Pune ₹90L",
-      "groupby(\"city\")[\"price\"].mean()",
-      "Chennai → (60 + 80) / 2 = ₹70L",
-      "Pune → (50 + 70 + 90) / 3 = ₹70L"
+      "Six orders (city, product, units, price): Chennai Tea 10 × ₹50, Pune Coffee 4 × ₹120, Chennai Coffee 6 × ₹120, Kochi Tea 12 × ₹50, Pune Tea 8 × ₹50, Chennai Tea 5 × ₹50",
+      "df[\"revenue\"] = df.units * df.price → 500, 480, 720, 600, 400, 250 (total ₹2,950)",
+      "df[df[\"city\"] == \"Chennai\"] keeps orders 1, 3 and 6 → 500 + 720 + 250 = ₹1,470",
+      "df.groupby(\"city\")[\"revenue\"].sum() → Chennai 1,470, Kochi 600, Pune 880"
     ],
-    "result": "Same average, but Pune has a wider spread. Add .agg([\"mean\", \"std\", \"count\"]) to see it."
+    "result": "A formula column, an AutoFilter and a pivot table in three lines, and they rerun unchanged on next week's 60,000 orders. Add .agg([\"sum\", \"mean\", \"count\"]) to see that Kochi's ₹600 comes from a single order."
   },
   "mistakes": [
     "Chained assignment (`df[df.a > 1][\"b\"] = 0`) silently fails. Use `df.loc[df.a > 1, \"b\"] = 0`.",
@@ -33,7 +33,7 @@
     "groupby = split → apply → combine"
   ],
   "practice": {
-    "code": "import pandas as pd\ndf = pd.DataFrame({\"city\": [\"Chennai\", \"Chennai\", \"Pune\", \"Pune\", \"Pune\"],\n                   \"price\": [60, 80, 50, 70, 90], \"area\": [900, 1200, 800, 1000, 1400]})\ndf[\"price_per_100sqft\"] = df.price / df.area * 100\nprint(df.groupby(\"city\")[\"price\"].agg([\"mean\", \"std\", \"count\"]))"
+    "code": "import pandas as pd\ndf = pd.DataFrame({\"city\": [\"Chennai\", \"Pune\", \"Chennai\", \"Kochi\", \"Pune\", \"Chennai\"],\n                   \"product\": [\"Tea\", \"Coffee\", \"Coffee\", \"Tea\", \"Tea\", \"Tea\"],\n                   \"units\": [10, 4, 6, 12, 8, 5], \"price\": [50, 120, 120, 50, 50, 50]})\ndf[\"revenue\"] = df.units * df.price\nprint(df[\"revenue\"].sum())                                # 2950\nprint(df[df[\"city\"] == \"Chennai\"][\"revenue\"].sum())       # 1470\nprint(df.groupby(\"city\")[\"revenue\"].agg([\"sum\", \"mean\", \"count\"]))"
   },
   "check": [
     {

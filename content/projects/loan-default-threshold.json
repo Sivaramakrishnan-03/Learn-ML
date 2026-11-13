@@ -1,0 +1,97 @@
+{
+  "id": "loan-default-threshold",
+  "title": "Loan default model with a cost-based approval threshold",
+  "track": "classification",
+  "level": 2,
+  "hours": 5,
+  "summary": "Predict default on 20,000 personal-loan applications with a logistic regression pipeline, check calibration, then choose the approval cut-off that minimises expected ₹ loss rather than the default 0.5, and explain decisions with odds ratios and reason codes.",
+  "business": "A mid-sized NBFC disburses unsecured personal loans of ₹50,000 to ₹10 lakh. About 8% of borrowers default, and a default typically loses **60% of the loan amount**, while rejecting a good applicant forgoes about **14% of the loan amount** in interest margin over the tenure. The credit head asks: **at what predicted default probability should we reject an application so that total expected loss is lowest, and how many ₹ crore does that save versus today's rule of approving everyone with a CIBIL score above 700?**",
+  "topics": [
+    "logistic-regression",
+    "classification-metrics",
+    "train-test-split",
+    "scaling",
+    "feature-engineering",
+    "sklearn-pipelines"
+  ],
+  "dataset": {
+    "name": "Synthetic personal-loan applications (20,000 rows)",
+    "how": "Generated in step 1 with `numpy.random.default_rng(2024)`: monthly income (₹), loan amount (₹), tenure (months), CIBIL score, existing EMIs (₹/month), employment type, city tier, age and a default flag drawn from a known logistic model (~8% default rate)."
+  },
+  "steps": [
+    {
+      "title": "Generate the application book",
+      "detail": "Default risk rises with the share of income already committed to EMIs (FOIR), falls with credit score and is higher for some employment types. We simulate that with a logistic model so you can later check whether your model recovers sensible effects. Note the class imbalance: about 1 in 12 applicants defaults.",
+      "code": "import numpy as np\nimport pandas as pd\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.preprocessing import OneHotEncoder, StandardScaler\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import (roc_auc_score, average_precision_score, confusion_matrix,\n                             classification_report, brier_score_loss)\nfrom sklearn.calibration import calibration_curve\n\nrng = np.random.default_rng(2024)\nn = 20000\nincome = np.round(rng.lognormal(np.log(55000), 0.5, n), -2)\nloan = np.round(np.clip(income * rng.uniform(2, 12, n), 50000, 1_000_000), -3)\ntenure = rng.choice([12, 24, 36, 48, 60], n)\nemi_new = loan * (0.16 / 12) / (1 - (1 + 0.16 / 12) ** -tenure)\nexisting = np.round(income * rng.beta(2, 6, n), -2)\ncibil = np.clip(rng.normal(730, 55, n), 300, 900).round()\nemp = rng.choice([\"Salaried\", \"Self-employed\", \"Gig\"], n, p=[0.65, 0.27, 0.08])\ntier = rng.choice([\"Tier 1\", \"Tier 2\", \"Tier 3\"], n, p=[0.5, 0.33, 0.17])\nage = rng.integers(22, 60, n)\nfoir = (existing + emi_new) / income\nlogit = (-3.8 + 3.2 * (foir - 0.45) - 0.022 * (cibil - 730) + np.select([emp == \"Self-employed\", emp == \"Gig\"], [0.35, 0.8], 0)\n         + np.select([tier == \"Tier 2\", tier == \"Tier 3\"], [0.1, 0.25], 0) - 0.01 * (age - 35))\ndefault = (rng.random(n) < 1 / (1 + np.exp(-logit))).astype(int)\napps = pd.DataFrame({\"income\": income, \"loan\": loan, \"tenure\": tenure, \"existing_emi\": existing, \"cibil\": cibil,\n                     \"employment\": emp, \"city_tier\": tier, \"age\": age, \"default\": default})\nprint(apps.head()); print(\"Default rate:\", round(apps[\"default\"].mean(), 4))"
+    },
+    {
+      "title": "Engineer features and split into train / validation / test",
+      "detail": "Lenders think in ratios, so build **FOIR** (all EMIs ÷ income) and **loan-to-income**. Split 60/20/20 with `stratify` so each part keeps the 8% default rate. The validation set is for choosing the threshold; the test set is touched once at the end. Choosing the threshold on test data would make your savings estimate optimistic.",
+      "code": "def add_features(d):\n    d = d.copy()\n    r = 0.16 / 12\n    d[\"new_emi\"] = d[\"loan\"] * r / (1 - (1 + r) ** -d[\"tenure\"])\n    d[\"foir\"] = (d[\"existing_emi\"] + d[\"new_emi\"]) / d[\"income\"]\n    d[\"loan_to_income\"] = d[\"loan\"] / (12 * d[\"income\"])\n    d[\"log_income\"] = np.log(d[\"income\"])\n    return d\napps = add_features(apps)\nnum = [\"foir\", \"loan_to_income\", \"log_income\", \"cibil\", \"age\", \"tenure\"]\ncat = [\"employment\", \"city_tier\"]\ntrain, rest = train_test_split(apps, test_size=0.4, stratify=apps[\"default\"], random_state=0)\nval, test = train_test_split(rest, test_size=0.5, stratify=rest[\"default\"], random_state=0)\nprint(len(train), len(val), len(test), [round(x[\"default\"].mean(), 3) for x in (train, val, test)])"
+    },
+    {
+      "title": "Fit a logistic regression pipeline and beat the accuracy trap",
+      "detail": "A model that predicts 'no default' for everyone is 92% accurate and useless, so accuracy is the wrong yardstick. Fit a pipeline (scaling + one-hot + logistic regression) and judge it with **ROC AUC** (ranking quality) and **PR AUC** (precision–recall area, more informative when positives are rare; its baseline is the default rate, 0.08).",
+      "code": "pre = ColumnTransformer([(\"num\", StandardScaler(), num), (\"cat\", OneHotEncoder(drop=\"first\"), cat)])\nclf = Pipeline([(\"pre\", pre), (\"lr\", LogisticRegression(C=1.0, max_iter=1000))])\nclf.fit(train[num + cat], train[\"default\"])\np_val = clf.predict_proba(val[num + cat])[:, 1]\nprint(f\"Validation ROC AUC {roc_auc_score(val['default'], p_val):.3f}, PR AUC {average_precision_score(val['default'], p_val):.3f}\")\nprint(\"Accuracy of 'approve all':\", round(1 - val[\"default\"].mean(), 3))\nprint(confusion_matrix(val[\"default\"], (p_val >= 0.5).astype(int)))\nprint(classification_report(val[\"default\"], (p_val >= 0.5).astype(int), digits=3))"
+    },
+    {
+      "title": "Check calibration",
+      "detail": "Cost calculations multiply probabilities by rupees, so a predicted 10% must really mean about 1 in 10 defaults. A **calibration curve** compares predicted and observed default rates in bins; the **Brier score** summarises it. Logistic regression is usually well calibrated without class weights; using `class_weight='balanced'` would inflate every probability, which is fine for ranking but wrong for expected-loss maths.",
+      "code": "frac_pos, mean_pred = calibration_curve(val[\"default\"], p_val, n_bins=10, strategy=\"quantile\")\nplt.plot(mean_pred, frac_pos, \"o-\", label=\"model\"); plt.plot([0, 0.5], [0, 0.5], \"k--\", label=\"perfect\")\nplt.xlabel(\"Predicted default probability\"); plt.ylabel(\"Observed default rate\"); plt.legend(); plt.title(\"Calibration (validation)\")\nplt.savefig(\"loan_calibration.png\", dpi=100); plt.close()\nprint(f\"Brier score {brier_score_loss(val['default'], p_val):.4f} (approve-all baseline {brier_score_loss(val['default'], np.full(len(val), train['default'].mean())):.4f})\")\nbal = Pipeline([(\"pre\", pre), (\"lr\", LogisticRegression(class_weight=\"balanced\", max_iter=1000))]).fit(train[num + cat], train[\"default\"])\nprint(\"Mean predicted PD: plain\", round(p_val.mean(), 3), \"| balanced\", round(bal.predict_proba(val[num + cat])[:, 1].mean(), 3))"
+    },
+    {
+      "title": "Choose the threshold that minimises expected ₹ loss",
+      "detail": "Each decision has a cost that depends on the loan size: approving a defaulter costs 60% of the loan (**false negative**), rejecting a good borrower costs the 14% margin (**false positive**). Sweep thresholds from 0.01 to 0.6 on the **validation** set and sum the actual costs. The theory says the optimum is near 0.14 / (0.14 + 0.60) ≈ 0.19 when probabilities are calibrated; check that your curve agrees.",
+      "code": "LGD, MARGIN = 0.60, 0.14\ndef total_cost(y, p, amount, t):\n    reject = p >= t\n    fn = (~reject) & (y == 1)\n    fp = reject & (y == 0)\n    return (LGD * amount[fn]).sum() + (MARGIN * amount[fp]).sum()\ngrid = np.round(np.arange(0.01, 0.61, 0.01), 2)\nyv, av = val[\"default\"].to_numpy(), val[\"loan\"].to_numpy()\ncosts = np.array([total_cost(yv, p_val, av, t) for t in grid])\nt_best = grid[costs.argmin()]\nplt.plot(grid, costs / 1e7); plt.axvline(t_best, ls=\"--\"); plt.xlabel(\"Reject if PD ≥ threshold\"); plt.ylabel(\"Total cost (₹ crore)\")\nplt.title(\"Expected loss vs threshold (validation)\"); plt.savefig(\"loan_threshold.png\", dpi=100); plt.close()\nprint(f\"Best threshold {t_best} (theory ≈ {MARGIN / (MARGIN + LGD):.2f}); cost ₹{costs.min() / 1e7:.2f} cr vs ₹{costs[grid == 0.5][0] / 1e7:.2f} cr at 0.5\")"
+    },
+    {
+      "title": "Evaluate once on the test set against today's policy",
+      "detail": "Now apply the chosen threshold to the untouched test set and compare three policies: approve everyone, today's rule (approve if CIBIL > 700) and the model. Report total ₹ loss, approval rate and default rate among approved loans, then scale the saving to the annual book (the test set is 4,000 applications; assume 60,000 a year).",
+      "code": "p_test = clf.predict_proba(test[num + cat])[:, 1]\nyt, at = test[\"default\"].to_numpy(), test[\"loan\"].to_numpy()\npolicies = {\"approve all\": np.zeros(len(test), bool), \"CIBIL ≤ 700 rejected\": test[\"cibil\"].to_numpy() <= 700,\n            f\"model, PD ≥ {t_best}\": p_test >= t_best}\nrows = []\nfor name, reject in policies.items():\n    cost = (LGD * at[(~reject) & (yt == 1)]).sum() + (MARGIN * at[reject & (yt == 0)]).sum()\n    rows.append({\"policy\": name, \"cost_cr\": cost / 1e7, \"approval_%\": 100 * (~reject).mean(), \"bad_rate_approved_%\": 100 * yt[~reject].mean()})\nsummary = pd.DataFrame(rows).set_index(\"policy\")\nprint(summary.round(2))\nsaving = (summary[\"cost_cr\"].iloc[1] - summary[\"cost_cr\"].iloc[2]) * 60000 / len(test)\nprint(f\"Annual saving vs CIBIL rule: ≈ ₹{saving:.1f} crore\")"
+    },
+    {
+      "title": "Explain the model: odds ratios and reason codes",
+      "detail": "Regulators and customers need reasons. Because inputs are standardised, `exp(coefficient)` is the change in default odds for a one-standard-deviation increase. For any rejected applicant, the features with the largest positive contribution (coefficient × standardised value) are the **reason codes** you would print on the decline letter.",
+      "code": "names = clf.named_steps[\"pre\"].get_feature_names_out()\ncoefs = clf.named_steps[\"lr\"].coef_[0]\nprint(pd.Series(np.exp(coefs), index=names).sort_values().round(2).rename(\"odds ratio per SD / vs reference\"))\ni = int(np.argmax(p_test))\nz = clf.named_steps[\"pre\"].transform(test[num + cat].iloc[[i]])\ncontrib = pd.Series(np.asarray(z).ravel() * coefs, index=names).sort_values(ascending=False)\nprint(f\"Applicant PD {p_test[i]:.2f}; top reasons:\\n\", contrib.head(3).round(2))"
+    },
+    {
+      "title": "Check stability and fairness across segments",
+      "detail": "A threshold that works overall can treat segments very differently. Compare approval rate, observed default rate among approved and model calibration (mean predicted vs actual) by city tier and employment type. Large gaps are not automatically unfair, but each needs a business justification and monitoring after launch.",
+      "code": "seg = test.assign(pd_hat=p_test, approved=p_test < t_best)\nfor col in [\"city_tier\", \"employment\"]:\n    print(seg.groupby(col).agg(n=(\"default\", \"size\"), approval_rate=(\"approved\", \"mean\"),\n                               mean_pd=(\"pd_hat\", \"mean\"), actual_default=(\"default\", \"mean\")).round(3))"
+    }
+  ],
+  "deliverables": [
+    "A model card: features, validation ROC AUC / PR AUC, calibration plot and Brier score.",
+    "The cost-versus-threshold chart with the chosen cut-off and the reasoning behind the 60% / 14% cost assumptions.",
+    "A policy comparison table on the test set (approve all, CIBIL rule, model) with ₹ crore loss, approval rate and bad rate, plus the annualised saving.",
+    "An odds-ratio table and one worked decline letter with three reason codes.",
+    "A segment table (city tier, employment) with any gaps flagged for the credit committee."
+  ],
+  "rubric": [
+    {
+      "criterion": "Metric choice",
+      "good": "Explains why accuracy misleads at 8% prevalence and uses ROC AUC and PR AUC with their baselines."
+    },
+    {
+      "criterion": "Data splits",
+      "good": "Threshold chosen on validation only; test set used once; stratified splits."
+    },
+    {
+      "criterion": "Calibration",
+      "good": "Calibration checked before using probabilities in ₹ calculations; effect of class weights understood."
+    },
+    {
+      "criterion": "Cost-based decision",
+      "good": "Loan-size-dependent costs used; optimum compared with the theoretical cut-off; savings scaled sensibly."
+    },
+    {
+      "criterion": "Explainability and fairness",
+      "good": "Odds ratios interpreted correctly; reason codes produced; segment differences reported and discussed."
+    }
+  ],
+  "extensions": [
+    "Replace the single cut-off with risk-based pricing: three PD bands with different interest rates, and recompute expected profit.",
+    "Compare with a gradient boosting model plus isotonic calibration (`CalibratedClassifierCV`) and see whether the ₹ saving justifies the loss of transparency.",
+    "Simulate a drift scenario (incomes fall 10% in Tier 3 cities) and track how the population stability index and the bad rate among approved loans move."
+  ]
+}

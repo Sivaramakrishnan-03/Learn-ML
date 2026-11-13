@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "With squared-error loss, what is gradient boosting's starting prediction F₀?",
+      "options": [
+        "The mean of the target",
+        "Zero for every row",
+        "The prediction of one deep decision tree",
+        "A random value for each row"
+      ],
+      "answer": 0,
+      "why": "The constant that minimises squared error is the mean, so every row starts there and the trees then correct the residuals. Starting with a deep tree would leave little for later trees to fix and defeats the step-by-step idea.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "After a few rounds, a store has a residual of −4 (₹ lakh). What does that mean?",
+      "options": [
+        "The model currently predicts ₹4 lakh too low for that store",
+        "The next tree will be given a weight of −4",
+        "The loss for that store is −4",
+        "The model currently predicts ₹4 lakh too high for that store"
+      ],
+      "answer": 3,
+      "why": "Residual = actual − predicted, so a negative residual means the prediction is above the actual value. The next tree will try to push this store's prediction down. Squared-error loss can never be negative, so it cannot be −4.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Four stores sold 12, 16, 26 and 30 (₹ lakh). Start from the mean, use learning rate η = 0.1, and let tree 1 split {1, 2} vs {3, 4} with leaf values equal to the average residual. What is store 4's prediction after tree 1?",
+      "options": [
+        "21.0",
+        "21.7",
+        "21.9",
+        "28.0"
+      ],
+      "answer": 1,
+      "why": "F₀ = (12 + 16 + 26 + 30) / 4 = 21; residuals are −9, −5, +5, +9; the right leaf is (5 + 9) / 2 = +7; so store 4 becomes 21 + 0.1 × 7 = 21.7. The tempting 28.0 forgets the learning rate, and 21.9 uses store 4's own residual instead of the leaf average.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "In a churn model with log loss, a customer who **did** churn currently has a predicted probability of 0.20. What is their pseudo-residual?",
+      "options": [
+        "−0.20",
+        "0.20",
+        "0.80",
+        "−1.386"
+      ],
+      "answer": 2,
+      "why": "For log loss the pseudo-residual is label − current probability = 1 − 0.20 = 0.80, a strong push upwards. −0.20 would be the pseudo-residual of a customer who stayed; −1.386 is the starting log-odds ln(0.2 / 0.8), not a residual.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Training loss keeps falling as trees are added, but validation loss is lowest at tree 340 and rises afterwards. What should you conclude?",
+      "options": [
+        "Add more trees; validation loss will come back down",
+        "The learning rate is too small and should be raised to 1.0",
+        "The model starts overfitting after about 340 trees, so keep roughly 340 (this is what early stopping does)",
+        "Nothing; like a random forest, extra boosting trees are harmless"
+      ],
+      "answer": 2,
+      "why": "Each extra tree fits what is left over, and eventually what is left over is mostly noise, so validation error turns upwards. Early stopping picks the best round automatically. Unlike a random forest, boosting can overfit as trees are added.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A churn model starts at a 20% base rate, so F₀ = ln(0.2 / 0.8) ≈ −1.386 in log-odds. Tree 1 puts a customer in a leaf with value +3.0 and η = 0.1. What is the customer's new churn probability?",
+      "options": [
+        "0.200",
+        "0.252",
+        "0.500",
+        "0.834"
+      ],
+      "answer": 1,
+      "why": "New log-odds = −1.386 + 0.1 × 3.0 = −1.086; probability = 1 / (1 + e^1.086) ≈ 0.252. Adding 0.3 straight to the probability gives the wrong 0.500 (boosting adds in log-odds, not probability), and 0.834 forgets the learning rate.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "A complaints model built with gradient boosting reaches a validation AUC of 0.99 and its top feature is `refund_issued`. What is the most likely explanation?",
+      "options": [
+        "Target leakage: refunds are issued after complaints, so the feature secretly contains the answer and boosting greedily exploits it",
+        "Gradient boosting is simply very good at this problem",
+        "The learning rate is too low",
+        "The trees are too shallow to overfit, so the score must be real"
+      ],
+      "answer": 0,
+      "why": "A feature recorded after the outcome will not be available at prediction time in the real world, and boosting will find and exploit any such leak. Remove it and re-validate. A near-perfect score on a messy business problem should raise suspicion, not celebration.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Why can gradient boosting overfit as you add trees, while a random forest rarely does?\" Which answer is best?",
+      "options": [
+        "Boosting trains on bootstrap samples, which leak information",
+        "Boosting uses deeper trees than random forests",
+        "Random forests use a learning rate and boosting does not",
+        "Boosting adds each tree to a running sum that keeps chasing the remaining residuals, which eventually are noise; a forest averages independent trees, so extra trees only stabilise it"
+      ],
+      "answer": 3,
+      "why": "In a forest each new tree is one more vote in an average; in boosting each new tree changes the prediction itself by fitting what is still wrong. Boosting usually uses shallow trees (depth 3–6), and it is boosting, not the forest, that has a learning rate.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In matrix factorisation, how is the personal-taste part of a predicted rating computed?",
+      "options": [
+        "As the cosine similarity between the user and their nearest neighbour",
+        "As the average rating of the item across all users",
+        "As the dot product of the user's and the item's latent factor vectors",
+        "As the number of times the user has watched similar items"
+      ],
+      "answer": 2,
+      "why": "Each user and item gets a short vector of learned factors, and their dot product measures the taste match; the full prediction adds the global average and user and item biases. The item's average rating is roughly the item-bias part, not the personal part.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "In a user–item matrix built from viewing data, a cell is empty for a particular user and film. What does that usually mean?",
+      "options": [
+        "The user disliked the film",
+        "The film is unpopular",
+        "The user rated the film 0",
+        "The user has probably not seen the film"
+      ],
+      "answer": 3,
+      "why": "Most cells are empty because each user has seen only a sliver of the catalogue; \"not watched\" mostly means \"not seen\". Treating empty cells as zeros or dislikes biases the model, which is why matrix factorisation trains only on known cells.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Global average μ = 3.5, user bias +0.2, item bias −0.3, user factors (0.6, 0.8) and item factors (0.5, 0.5). What is the predicted rating?",
+      "options": [
+        "0.7",
+        "4.1",
+        "4.2",
+        "4.7"
+      ],
+      "answer": 1,
+      "why": "Dot product = 0.6 × 0.5 + 0.8 × 0.5 = 0.7; prediction = 3.5 + 0.2 − 0.3 + 0.7 = 4.1. 4.2 ignores both biases, 4.7 adds the item bias as +0.3, and 0.7 is only the taste-match part.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "For one user, 3 of your top 10 recommendations were watched in the hidden period, during which the user watched 6 items in total. What are precision@10 and recall@10?",
+      "options": [
+        "Precision 30%, recall 50%",
+        "Precision 50%, recall 30%",
+        "Precision 30%, recall 30%",
+        "Precision 60%, recall 50%"
+      ],
+      "answer": 0,
+      "why": "Precision@10 = hits / list length = 3 / 10 = 30%; recall@10 = hits / items actually engaged with = 3 / 6 = 50%. Swapping the denominators gives the tempting reversed answer.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "User A rated two films (5, 1) and user B rated them (1, 5): exactly opposite tastes. What is the raw cosine similarity between them?",
+      "options": [
+        "−1.00",
+        "0.00",
+        "0.38",
+        "1.00"
+      ],
+      "answer": 2,
+      "why": "Cosine = (5 × 1 + 1 × 5) / (√26 × √26) = 10 / 26 ≈ 0.38, positive because all ratings are positive. Subtracting each user's mean first (Pearson correlation) gives the honest −1. That is why raw cosine on 1-to-5 ratings is misleading.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A recommender scores a superb precision@10 offline using a random train/test split, yet an A/B test shows no lift in watch time. What is the most likely cause?",
+      "options": [
+        "A/B tests are unreliable for recommenders",
+        "Precision@10 was too strict a metric",
+        "The random split let the model learn from users' future behaviour, inflating offline scores; use a time-based split that hides each user's most recent interactions",
+        "The model needs more latent factors"
+      ],
+      "answer": 2,
+      "why": "Random splits leak the future: the model sees interactions that happened after the ones it is tested on. A time-based hold-out mimics real use. The A/B test, measuring watch time, is the final judge, not the problem.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Our recommender keeps showing the same blockbusters and niche titles never get a chance. Why, and what would you do?\"",
+      "options": [
+        "This is cold start; ask new users for preferences",
+        "Switch from item-based to user-based filtering, which removes popularity bias",
+        "The latent factors are too small; double them",
+        "Popularity bias and a feedback loop: recommended items get more interactions, so they get recommended more; add exploration, diversity rules and some randomised traffic to measure true preferences"
+      ],
+      "answer": 3,
+      "why": "The model trains on data its own recommendations created, which amplifies what is already popular. Deliberate exploration and randomised traffic break the loop and reveal real tastes. Cold start is about having no history at all, which is a different problem.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "One SGD step: μ = 3.0 (no biases), user p = (1.0, 0.5), item q = (0.6, 0.4), actual rating 4, learning rate 0.1, no regularisation. Using p ← p + 0.1 × error × q, what is the updated user vector?",
+      "options": [
+        "(0.988, 0.492)",
+        "(1.012, 0.508)",
+        "(1.020, 0.520)",
+        "(1.120, 0.580)"
+      ],
+      "answer": 1,
+      "why": "Prediction = 3.0 + (0.6 + 0.2) = 3.8, so error = 4 − 3.8 = 0.2; p moves by 0.1 × 0.2 × (0.6, 0.4) = (0.012, 0.008), giving (1.012, 0.508). (0.988, 0.492) moves the wrong way, (1.120, 0.580) forgets the learning rate, and (1.020, 0.520) ignores q.",
+      "level": 3,
+      "kind": "calculation"
+    }
+  ]
+}

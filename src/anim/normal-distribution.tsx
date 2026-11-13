@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, FnLine, Seg, Label, Arrow, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
-import { hist, normPdf, normCdf, normalSample, pct } from './_stats1-helpers';
+import { histogram, normPdf, normCdf, normalSample } from '../viz/math';
+import { pct } from './_stats1-helpers';
 
 /* ---------- pure helpers ---------- */
 const MU = 170, SIG = 7;
@@ -56,7 +57,7 @@ function Animate() {
   const p = useStepPlayer(frames.length, 2600);
   const f = frames[p.i];
   const shown = sim.slice(0, f.k);
-  const h = hist(shown, X[0], X[1], 35);
+  const h = histogram(shown, X[0], X[1], 35, { density: true, closed: false });
   const showHist = f.mu === MU && f.sd === SIG && f.cut === undefined;
   const yMax = 0.115;
   const pdf = (x: number) => normPdf(x, f.mu, f.sd);

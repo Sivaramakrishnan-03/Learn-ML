@@ -2,7 +2,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, Tex, C, Scales } from '../viz/kit';
-import { LP, rings, moons, xorPts, trainSVM, linearK, polyK, rbfK, sigmoid, DecisionHeat, lineEnds, SVMFit } from './_clf-helpers';
+import { sigmoid } from '../viz/math';
+import { LP, rings, moons, xorPts, trainSVM, linearK, polyK, rbfK, DecisionHeat, lineEnds, SVMFit } from './_clf-helpers';
 
 /* ---------- pure helpers ---------- */
 const CL = [C.blue, C.red];

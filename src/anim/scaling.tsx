@@ -3,7 +3,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, Seg, Label, FnLine, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, C, Scales } from '../viz/kit';
-import { inr, mean, median, quantile, sd } from './_dataprep-helpers';
+import { mean, median, quantile, sd } from '../viz/math';
+import { inr } from './_dataprep-helpers';
 
 /* ---------- pure helpers ---------- */
 interface Cu { age: number; inc: number; name?: string } // inc in rupees

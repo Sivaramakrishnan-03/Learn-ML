@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, C, SERIES } from '../viz/kit';
-import { Pt, polyFit, rmse, mean, sd, sampleCurve, permutation, clipped } from './_workflow-helpers';
+import { mean, sd, sampleCurve, permutation } from '../viz/math';
+import { Pt, polyFit, rmse, clipped } from './_workflow-helpers';
 
 /* ---------- pure helpers ---------- */
 const LO = 10, HI = 100, YR: [number, number] = [2, 24];

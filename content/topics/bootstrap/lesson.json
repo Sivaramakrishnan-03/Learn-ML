@@ -14,14 +14,14 @@
     "Great for medians, percentiles, ratios and custom business metrics where no simple formula exists."
   ],
   "example": {
-    "title": "Median delivery time",
+    "title": "Three bootstrap samples by hand",
     "steps": [
-      "50 delivery times; observed median 38 min",
-      "Resample 50 times with replacement → median 37; again → 39; …",
-      "Repeat 10,000 times",
-      "2.5th and 97.5th percentiles of the medians: 35 and 41 min"
+      "Three call durations: 3, 5 and 8 minutes; mean = 5.33",
+      "Draw 3 with replacement: 3, 3, 8 → mean 4.67",
+      "Again: 5, 8, 8 → mean 7.00",
+      "Again: 3, 5, 5 → mean 4.33 (there are 3³ = 27 possible ordered draws; a computer samples thousands)"
     ],
-    "result": "95% bootstrap CI for the median: 35–41 minutes, with no formula needed."
+    "result": "Even three resamples show the mean could plausibly sit anywhere from about 4 to 7. The mechanics are identical for real data: 10,000 resamples of 12 delivery times (median 34 min) give a 95% percentile interval for the median of about 29 to 39.5 minutes, with no formula needed."
   },
   "mistakes": [
     "Resampling without replacement (that just shuffles the data).",
@@ -34,7 +34,7 @@
     "Works for almost any statistic"
   ],
   "practice": {
-    "code": "import numpy as np\nrng = np.random.default_rng(0)\nx = rng.gamma(4, 10, 50)\nmeds = [np.median(rng.choice(x, len(x), replace=True)) for _ in range(10_000)]\nprint(round(np.median(x), 1), np.percentile(meds, [2.5, 97.5]).round(1))"
+    "code": "import numpy as np\nrng = np.random.default_rng(0)\nx = np.array([22, 25, 28, 30, 31, 33, 35, 36, 38, 41, 52, 75])   # delivery times (min)\nmeds = [np.median(rng.choice(x, len(x), replace=True)) for _ in range(10_000)]\nprint(np.median(x), round(np.std(meds, ddof=1), 1))   # 34.0, bootstrap SE ≈ 3\nprint(np.percentile(meds, [2.5, 97.5]))               # ≈ [29. 39.5]"
   },
   "check": [
     {

@@ -14,14 +14,14 @@
     "Tuning recipe: fix learning rate 0.05 → find n_estimators with early stopping → tune depth / num_leaves and min_child_weight → tune subsample and colsample → lower the learning rate and retrain."
   ],
   "example": {
-    "title": "Choosing a library",
+    "title": "Leaf values with and without λ",
     "steps": [
-      "10M rows, mostly numeric, speed matters → LightGBM",
-      "Many high-cardinality categories (merchant ID, city) → CatBoost",
-      "Medium data, mature ecosystem, monotonic constraints → XGBoost",
-      "Always compare against a tuned random forest and logistic regression baseline"
+      "Four stores from gradient boosting: sales 10, 14, 20, 28 (₹ lakh), starting prediction 18 → g = prediction − actual = 8, 4, −2, −10, h = 1 each",
+      "Split {1, 2} vs {3, 4}: left G = 12, H = 2; right G = −12, H = 2",
+      "λ = 0: w = −6 and +6 (the plain average residuals). λ = 1 (XGBoost's default): w = −12/3 = −4 and +4",
+      "Gain with λ = 1, γ = 0: ½ × [144/3 + 144/3 − 0²/5] = 48, so the split is worth making"
     ],
-    "result": "The differences are usually small. Data quality and features matter more than the library choice."
+    "result": "λ pulls leaf values towards zero, so each tree makes a more cautious correction; γ charges for every extra leaf. Library choice (XGBoost, LightGBM, CatBoost) usually matters less than data quality and features."
   },
   "mistakes": [
     "Tuning dozens of parameters before getting the features right.",
@@ -68,5 +68,9 @@
       "why": "For example, risk must not decrease as debt increases."
     }
   ],
-  "chapterMinutes": 15
+  "chapterMinutes": 15,
+  "formula": {
+    "tex": "w^{*} = -\\frac{G}{H + \\lambda}, \\qquad \\text{Gain} = \\tfrac{1}{2} \\left[ \\frac{G_L^2}{H_L + \\lambda} + \\frac{G_R^2}{H_R + \\lambda} - \\frac{(G_L + G_R)^2}{H_L + H_R + \\lambda} \\right] - \\gamma",
+    "plain": "A leaf's value is minus its summed gradients over its summed hessians plus λ. A split is made only if its gain (left score + right score − unsplit score, minus the leaf cost γ) is positive."
+  }
 }

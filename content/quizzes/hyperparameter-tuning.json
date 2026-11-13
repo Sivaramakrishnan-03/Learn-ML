@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why can't you choose a decision tree's `max_depth` by picking the value with the best training accuracy?",
+      "options": [
+        "Training accuracy cannot be computed for trees",
+        "Training accuracy keeps rising as the tree gets deeper, reaching 100% with no limit, so it always picks the most overfitted tree",
+        "Training accuracy always favours the shallowest tree",
+        "Because `max_depth` is a parameter, not a hyperparameter"
+      ],
+      "answer": 1,
+      "why": "A deeper tree can memorise more of the training data, so training accuracy only goes up. Each setting must be judged on data it did not learn from, such as CV folds. `max_depth` is a hyperparameter: you set it before training.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A grid search tries C in {0.01, 0.1, 1, 10} and penalty in {l1, l2} with 5-fold CV. How many model fits does it run (ignoring the final refit)?",
+      "options": [
+        "40",
+        "8",
+        "6",
+        "30"
+      ],
+      "answer": 0,
+      "why": "Combinations = 4 × 2 = 8; each is fitted once per fold: 8 × 5 = **40** fits. 8 forgets the folds, and 30 adds the counts (4 + 2) instead of multiplying them.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Each random-search trial has a 5% chance of landing in the best 5% of the search space. What is the chance that at least one of 30 trials does?",
+      "options": [
+        "150%, so it is certain",
+        "95%",
+        "About 21%",
+        "About 79%"
+      ],
+      "answer": 3,
+      "why": "The chance all 30 miss is 0.95³⁰ ≈ 0.215, so at least one hits with probability 1 − 0.215 ≈ **79%**. Multiplying 30 × 5% double-counts overlapping successes and exceeds 100%; 21% is the chance of missing every time. 60 trials would push it to about 95%.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Tuning tree depth gives: depth 3, training 0.82, CV 0.81; depth 5, training 0.86, CV 0.83; depth 7, training 0.91, CV 0.83; depth 12, training 0.99, CV 0.80. Which depth should you choose?",
+      "options": [
+        "Depth 12, the best training accuracy",
+        "Depth 7, because it ties on CV and has higher training accuracy",
+        "Depth 5: it ties for the best CV score and is the simpler of the two",
+        "Depth 3, because training and CV are closest"
+      ],
+      "answer": 2,
+      "why": "Choose on CV, and among ties prefer the simplest model: easier to explain and less likely to overfit new data. Depth 7's higher training score only reflects more memorisation. A small gap alone is not the goal; depth 3 has the lowest CV score.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "For a random forest, which hyperparameters are usually worth tuning first?",
+      "options": [
+        "max_features and min_samples_leaf; n_estimators mostly just needs to be large enough, since more trees are safe, only slower",
+        "n_estimators, because more trees always need careful tuning",
+        "The random seed, to find the luckiest one",
+        "The split criterion only"
+      ],
+      "answer": 0,
+      "why": "Each model family has a few dials that do most of the work. More trees rarely hurt a forest, so huge grids over n_estimators waste budget. Tuning the seed is fitting noise, not improving the model.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "After a 500-trial random search, the best CV F1 is 0.80, but the final test-set F1 is only 0.66. What is the most likely explanation?",
+      "options": [
+        "The test set is always harder, so this gap is normal",
+        "Picking the best of many noisy CV scores was optimistic (the search partly fitted luck in the folds), or something leaked into CV; nested CV gives an honest estimate of the whole tuning process",
+        "The model needs more trials",
+        "The test set should be used for tuning instead"
+      ],
+      "answer": 1,
+      "why": "When tuning works, CV and test scores stay close (for example 0.64 and 0.63). A large drop means the winning CV score was inflated. Running more trials makes the selection optimism worse, and tuning on the test set would just hide the problem.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A grid has 4 hyperparameters with 5 values each, uses 5-fold CV, and each fit takes 30 seconds. About how long does it take?",
+      "options": [
+        "About 10 minutes",
+        "About 2.6 hours",
+        "About 3.3 hours",
+        "About 26 hours"
+      ],
+      "answer": 3,
+      "why": "Combinations = 5⁴ = 625; fits = 625 × 5 = 3,125; time = 3,125 × 30 s = 93,750 s ≈ **26 hours**. 10 minutes uses 4 × 5 = 20 combinations instead of 5⁴. About 3.3 hours is what an 80-trial random search would cost (400 fits).",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"A colleague tried many settings, kept the one with the best test-set score, and reports that score. What is wrong, and what should they do?\" Which answer is best?",
+      "options": [
+        "Nothing, as long as the test set is large",
+        "They should have used accuracy instead of F1",
+        "The test set has become part of tuning, so its score is optimistic; tune with CV on the training data, refit the winner, and score the untouched test set once",
+        "They should report the average of all settings' test scores"
+      ],
+      "answer": 2,
+      "why": "Choosing on the test set turns it into a validation set, so it no longer estimates performance on new data. A large test set reduces noise but does not remove the selection bias. Keep a clean hold-out for one final score.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

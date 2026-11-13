@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Two simple exponential smoothing models use α = 0.9 and α = 0.1. Which one follows a genuine change in demand faster?",
+      "options": [
+        "α = 0.9, because it accepts 90% of each surprise; the price is that it also copies random blips",
+        "α = 0.1, because it remembers more history",
+        "Both react equally fast",
+        "Neither; simple smoothing cannot react to changes"
+      ],
+      "answer": 0,
+      "why": "α is the fraction of each forecast error accepted. High α adapts quickly but is jumpy; low α filters noise but lags. After a jump from 100 to 150, α = 0.8 reaches 148 in two weeks, while α = 0.2 is still 16 units short after five.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Why is a simple exponential smoothing forecast a **flat line** for all future periods?",
+      "options": [
+        "Because α was set too low",
+        "Because simple smoothing estimates only the current level, with no trend or seasonal component",
+        "Because the data must have been stationary",
+        "It is a software bug"
+      ],
+      "answer": 1,
+      "why": "Simple smoothing tracks one thing: the level. Every future period gets that same value. To forecast slopes use Holt's method, and for seasonal shapes Holt-Winters. Changing α changes the level, not the flatness.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Simple exponential smoothing with α = 0.2. The forecast for week 1 is 50. Actuals are 60 in week 1 and 40 in week 2. What is the forecast for week 3?",
+      "options": [
+        "52.0",
+        "43.6",
+        "50.0",
+        "49.6"
+      ],
+      "answer": 3,
+      "why": "Week 1: 50 + 0.2 × (60 − 50) = 52. Week 2: 52 + 0.2 × (40 − 52) = 52 − 2.4 = 49.6. 52.0 stops after one update; 43.6 swaps α and 1 − α (putting 0.8 on each new actual), which makes the forecast chase every blip.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "With α = 0.3, what weight does simple exponential smoothing give to the observation from **two weeks before** the latest one?",
+      "options": [
+        "0.147",
+        "0.210",
+        "0.300",
+        "0.090"
+      ],
+      "answer": 0,
+      "why": "Weights are α, α(1 − α), α(1 − α)², …: the latest gets 0.3, the previous 0.21, the one before 0.3 × 0.7² = 0.147. 0.090 = α² is a common slip. The weights decay exponentially and add up to 1.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Holt's method: level 100, trend +5 per month, α = 0.4, β = 0.2. This month's actual is 111. What is the forecast **two months ahead**?",
+      "options": [
+        "112.88",
+        "117.40",
+        "111.00",
+        "118.36"
+      ],
+      "answer": 3,
+      "why": "The forecast for this month was 105. New level = 0.4 × 111 + 0.6 × 105 = 107.4. New trend = 0.2 × (107.4 − 100) + 0.8 × 5 = 5.48. Two months ahead = 107.4 + 2 × 5.48 = 118.36. 112.88 is one month ahead; 117.40 forgets to update the trend.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Additive Holt-Winters in September: level ₹300 lakh, trend +₹2 lakh per month, seasonal adjustment for December −₹25 lakh. What is the December forecast?",
+      "options": [
+        "₹277 lakh",
+        "₹306 lakh",
+        "₹281 lakh",
+        "₹275 lakh"
+      ],
+      "answer": 2,
+      "why": "December is h = 3 months ahead: 300 + 3 × 2 − 25 = ₹281 lakh. ₹277 lakh uses only one month of trend; ₹306 lakh forgets the seasonal adjustment; ₹275 lakh ignores the trend.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Fitting simple exponential smoothing to a daily price series gives a fitted α of 0.98. What does that tell you?",
+      "options": [
+        "The model is excellent and should be deployed",
+        "The series is very stable with lots of noise",
+        "The series behaves almost like a random walk: the best forecast is close to the last value, so the naive forecast will be about as good",
+        "α should be forced down to 0.2"
+      ],
+      "answer": 2,
+      "why": "An α near 1 means almost all weight on the latest observation, which is the naive forecast. That is typical of random-walk-like series. Stable, noisy series give low fitted α, and forcing α down would just make forecasts lag.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "In an interview: \"Why is a damped trend often preferred to Holt's linear trend for long horizons?\"",
+      "options": [
+        "Damped trends always fit history better",
+        "Holt extends the trend in a straight line forever, which can produce absurd long-range forecasts; a damped trend fades the slope so forecasts level off, and it often forecasts better in practice",
+        "Damped trends remove the need for a level component",
+        "Damped trends handle seasonality, which Holt cannot"
+      ],
+      "answer": 1,
+      "why": "Growth rarely continues unchanged for years, so damping is the safer default beyond a few periods. Its advantage is in forecasting, not necessarily in fitting history. Seasonality needs Holt-Winters (with or without damping).",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

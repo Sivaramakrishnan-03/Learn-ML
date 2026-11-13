@@ -15,7 +15,7 @@ export default function Chooser() {
       <p className="muted">Answer a few questions about your problem. This is a starting point, not a law: always compare against a simple baseline.</p>
       <div className="row small" style={{ marginBottom: 16 }}>
         {path.slice(0, -1).map((p, i) => (
-          <button key={i} className="btn" onClick={() => setPath(path.slice(0, i + 1).map((x, j) => (j === i ? { node: x.node } : x)))}>{p.answer} ✕</button>
+          <button key={i} type="button" className="btn" aria-label={`Change answer: ${p.answer}`} onClick={() => setPath(path.slice(0, i + 1).map((x, j) => (j === i ? { node: x.node } : x)))}>{p.answer} <span aria-hidden="true">✕</span></button>
         ))}
       </div>
       {cur.q && <div className="card">
@@ -24,7 +24,7 @@ export default function Chooser() {
       </div>}
       {cur.result && <div className="card" style={{ borderColor: '#83c167' }}>
         <div className="muted small">Recommended</div>
-        <h2 style={{ color: '#83c167' }}>{cur.result.title}</h2>
+        <h2 style={{ color: 'var(--green-text)' }}>{cur.result.title}</h2>
         <p>{cur.result.why}</p>
         <div className="row">{cur.result.topics.map((t) => <Link key={t} className="btn" to={`/topic/${t}`}>{TOPIC_BY_ID[t]?.title} →</Link>)}</div>
         <button className="btn" style={{ marginTop: 14 }} onClick={() => setPath([{ node: 'start' }])}>↺ Start over</button>

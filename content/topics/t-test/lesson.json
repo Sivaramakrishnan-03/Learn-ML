@@ -18,14 +18,14 @@
     "plain": "t = observed difference divided by its standard error (how many \"noise units\" apart the means are)."
   },
   "example": {
-    "title": "New fertiliser",
+    "title": "One-sample: is the filling machine on target?",
     "steps": [
-      "Plot A (old): mean height 50 cm; plot B (new): 53 cm; 30 plants each",
-      "Standard error of the difference = 1.25 cm",
-      "t = (53 − 50) / 1.25 = 2.4",
-      "With ~58 degrees of freedom, p ≈ 0.02"
+      "10 bottles labelled 500 ml: 498, 497, 501, 495, 499, 496, 500, 497, 498, 494",
+      "Mean = 497.5 ml; s = √(42.5 / 9) = 2.173 ml; SE = 2.173 / √10 = 0.687 ml",
+      "t = (497.5 − 500) / 0.687 = −3.64 with 9 degrees of freedom",
+      "Two-sided p = 0.0054; 95% CI = 497.5 ± 2.262 × 0.687 = 495.9 to 499.1 ml"
     ],
-    "result": "A 3 cm difference is unlikely to be pure luck. Next question: is 3 cm worth the extra cost?"
+    "result": "Reject H₀: the machine underfills by about 2.5 ml and the whole interval lies below 500. Recalibrate; the fix is cheap and underfilling risks regulatory trouble."
   },
   "mistakes": [
     "Using an independent t-test on paired data.",
@@ -45,7 +45,7 @@
     "Proportions with large samples (z-test / chi-square)"
   ],
   "practice": {
-    "code": "import numpy as np\nfrom scipy import stats\nrng = np.random.default_rng(1)\na, b = rng.normal(50, 5, 30), rng.normal(53, 5, 30)\nprint(stats.ttest_ind(a, b, equal_var=False))      # Welch's t-test\nbefore = rng.normal(70, 8, 20); after = before + rng.normal(2, 2, 20)\nprint(stats.ttest_rel(before, after))              # paired"
+    "code": "from scipy import stats\nfill = [498, 497, 501, 495, 499, 496, 500, 497, 498, 494]\nprint(stats.ttest_1samp(fill, 500))                    # t = -3.64, p = 0.0054  (one-sample)\na = [42, 45, 39, 47, 44, 41, 46, 43]; b = [38, 40, 36, 41, 39, 35, 42, 37]\nprint(stats.ttest_ind(a, b, equal_var=False))          # Welch: t = 3.81, p = 0.002\nbefore = [62, 70, 55, 68, 74, 59, 65, 71]; after = [66, 73, 57, 73, 77, 64, 67, 75]\nprint(stats.ttest_rel(after, before))                  # paired: t = 8.28, p = 0.00007"
   },
   "check": [
     {

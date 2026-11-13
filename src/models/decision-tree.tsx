@@ -7,7 +7,7 @@ const TC = ['#fc6255', '#83c167'];
 import { useStepPlayer, PlayerControls } from '../components/StepPlayer';
 import { Tex } from '../components/Tex';
 import { loans, P } from '../lib/datasets';
-import { accuracy, buildTree, predictTree, split, TreeFrame, TreeNode } from '../lib/ml';
+import { accuracy, buildTree, giniOf, predictTree, split, TreeFrame, TreeNode } from '../lib/ml';
 import { ModelContent } from './types';
 
 const AX = { xLabel: 'annual income (₹ lakh)', yLabel: 'credit score', fx: (v: number) => `${v * 3}`, fy: (v: number) => `${300 + v * 60}` };
@@ -157,7 +157,7 @@ function Playground() {
 /* ---------- Math visual: a node and its split ---------- */
 function GiniBar({ counts, label }: { counts: number[]; label: string }) {
   const n = counts[0] + counts[1] || 1;
-  const g = 1 - (counts[0] / n) ** 2 - (counts[1] / n) ** 2;
+  const g = giniOf(counts);
   return (
     <div style={{ marginBottom: 10 }}>
       <div className="small">{label}: {counts[1]} repaid / {counts[0]} default → Gini <b>{g.toFixed(3)}</b></div>
@@ -176,7 +176,7 @@ function MathVis({ mode }: { mode: 'pure' | 'split' | 'entropy' }) {
     const H = (p: number) => (p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p)));
     return (
       <svg viewBox="0 0 300 150" className="canvas">
-        <polyline points={ps.map((p) => `${X(p)},${Y(2 * p * (1 - p))}`).join(' ')} fill="none" stroke="#f0ac5f" strokeWidth={2} />
+        <polyline points={ps.map((p) => `${X(p)},${Y(giniOf([p, 1 - p]))}`).join(' ')} fill="none" stroke="#f0ac5f" strokeWidth={2} />
         <polyline points={ps.map((p) => `${X(p)},${Y(H(p))}`).join(' ')} fill="none" stroke="#58c4dd" strokeWidth={2} />
         <text x={200} y={30} fill="#58c4dd" fontSize={10}>entropy</text><text x={200} y={70} fill="#f0ac5f" fontSize={10}>Gini</text>
         <text x={150} y={146} fill="#8b95a7" fontSize={9} textAnchor="middle">p (share of "repaid")</text>

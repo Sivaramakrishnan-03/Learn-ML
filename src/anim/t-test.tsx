@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Arrow, Region, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { mean, sdS, normPdf, tPdf, tInv, tP2, pFmt } from './_stats1-helpers';
+import { mean, sdS, normPdf, tPdf, tInv, tP2 } from '../viz/math';
+import { pFmt } from './_stats1-helpers';
 
 /* ---------- pure helpers ---------- */
 const PLANT_A = [42, 45, 39, 47, 44, 41, 46, 43];

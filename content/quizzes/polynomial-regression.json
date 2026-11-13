@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Weekly revenue rises as you raise the price from ₹200 to ₹300 and then falls as you go on to ₹400. Which model is the natural first choice?",
+      "options": [
+        "A straight line, because price is a single number",
+        "A degree-10 polynomial, because it will fit all the weeks most closely",
+        "Logistic regression, because revenue has a maximum",
+        "A degree-2 polynomial, because it can bend once to make a single peak"
+      ],
+      "answer": 3,
+      "why": "One rise and one fall is a single bend, which is exactly what a quadratic (degree 2) captures. A straight line cannot find a peak. A degree-10 polynomial would fit the training weeks more closely but chase noise. Logistic regression is for yes/no targets, not a curved numeric relationship.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "The revenue model is **revenue ≈ −4.07 + 1.5579 × price − 0.0026714 × price²**. What does the negative coefficient on price² tell you?",
+      "options": [
+        "Raising the price always lowers revenue",
+        "The curve is an arch, so the turning point is a maximum",
+        "The curve is a U, so the turning point is a minimum",
+        "The model has failed because coefficients should be positive"
+      ],
+      "answer": 1,
+      "why": "When b₂ is negative the quadratic opens downwards (an arch), so the turning point is the highest revenue. A positive b₂, as in the fuel model, gives a U with a minimum. Revenue does rise with price at first, so \"always lowers\" misreads the curve by looking at one term instead of the whole shape.",
+      "level": 1,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A farm fits **yield = 50 + 12x − 0.4x²**, where x is fertiliser in kg per plot. At what dose is predicted yield highest?",
+      "options": [
+        "15 kg",
+        "7.5 kg",
+        "30 kg",
+        "−15 kg"
+      ],
+      "answer": 0,
+      "why": "The turning point is at −b₁ / (2b₂) = −12 / (2 × −0.4) = 15 kg, and b₂ < 0 makes it a maximum (yield 140). 30 kg forgets the factor of 2, 7.5 kg divides by 4b₂ instead of 2b₂, and −15 kg drops the minus sign in the formula.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "On 30 noisy fuel readings, a degree-1 polynomial has training RMSE 1.03 and cross-validated RMSE 1.05. What does this pair of numbers tell you?",
+      "options": [
+        "The model is underfitting (high bias): it is too simple, so it is equally poor on training and new data",
+        "The model is overfitting, because the cross-validated error is higher",
+        "The model is ideal, because the training and validation errors are almost equal",
+        "Nothing, because RMSE cannot compare models of different degree"
+      ],
+      "answer": 0,
+      "why": "Overfitting shows as a **gap** between low training error and higher validation error. Here both errors are large and close together, the signature of a model too stiff to follow the U-shape. Degree 2 cuts both to about 0.3. Small gap alone does not mean a good model; the level of error matters too.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "In the fuel model **fuel ≈ 13.5 − 0.2017 × speed + 0.001286 × speed²**, a colleague says \"each extra km/h saves 0.2017 litres per 100 km\". What is wrong?",
+      "options": [
+        "Nothing: −0.2017 is the effect of one extra km/h",
+        "Changing speed also changes speed², so no single coefficient is the effect of speed; read the curve as a whole (shape, turning point, predictions)",
+        "The coefficient should be read in km per litre, not litres per 100 km",
+        "The coefficient is only valid at speed zero, so it should be ignored"
+      ],
+      "answer": 1,
+      "why": "The effect of one extra km/h depends on where you start: below about 78 km/h fuel falls, above it fuel rises. The individual b's only make sense together. Holding speed² fixed while changing speed is impossible, which is why the \"holding the others fixed\" reading from multiple regression breaks down here.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "With 10 features and degree 3, including all cross terms such as x₁·x₂ and the intercept, how many columns does the polynomial model have?",
+      "options": [
+        "30",
+        "1,000",
+        "286",
+        "13"
+      ],
+      "answer": 2,
+      "why": "The number of terms of degree up to 3 in 10 variables is the combination C(13, 3) = 286. 30 counts only x, x² and x³ for each feature with no cross terms, and 1,000 is 10³, which is not how terms are counted. This explosion is why polynomial regression is best kept to one to three features.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "The fuel quadratic, fitted on speeds 40–120 km/h, predicts about 14.1 litres per 100 km at 160 km/h. How should you treat that number?",
+      "options": [
+        "Trust it: the R² of 0.9997 shows the model is extremely accurate",
+        "Trust it, but only if you switch to a degree-4 polynomial",
+        "Distrust it because quadratics cannot predict values above the training maximum",
+        "Distrust it: it is an extrapolation, and a U-curve keeps rising outside the data just because of its shape"
+      ],
+      "answer": 3,
+      "why": "The model never saw a speed above 120 km/h, so 160 km/h is pure extrapolation; the number comes from the formula, not from evidence. A near-perfect R² describes the fit inside the range only. Higher degrees make edge behaviour worse, not better. Quadratics can output any value; the issue is whether you should believe it.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview question: \"Cross-validation suggests you need degree 8 to capture the pattern. What do you do?\"",
+      "options": [
+        "Use degree 8 and report the training R²",
+        "Drop back to degree 1 because simpler is always better",
+        "Reach for a spline (or a ridge-regularised polynomial or tree model), which follows complex shapes without the wild edge swings of one high-degree polynomial",
+        "Remove the outliers until degree 2 fits"
+      ],
+      "answer": 2,
+      "why": "Needing a high degree is a sign that a single polynomial is the wrong tool: it becomes unstable at the edges and numerically fragile. Splines join low-degree pieces at knots; regularisation tames the large coefficients. Dropping to degree 1 would underfit, and deleting data to fit a preferred model is not analysis.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

@@ -18,14 +18,14 @@
     "plain": "How much buying A raises the chance of buying B, compared with B's normal rate."
   },
   "example": {
-    "title": "1,000 supermarket baskets",
+    "title": "Scoring three rules on the ten bills",
     "steps": [
-      "Bread in 200 baskets; butter in 150; both in 90",
-      "Support(bread & butter) = 90 / 1000 = 9%",
-      "Confidence(bread → butter) = 90 / 200 = 45%",
-      "Lift = 0.45 / 0.15 = 3.0"
+      "Ten grocery bills: bread in 7, milk in 6, butter in 4, tea in 3, biscuits in 2",
+      "{butter} → {bread}: all 4 butter bills contain bread → support 0.4, confidence 1.0, lift = 1.0 / 0.7 ≈ 1.43",
+      "{tea} → {biscuits}: both in 2 of the 3 tea bills → support 0.2, confidence ≈ 0.67, lift = 0.67 / 0.2 ≈ 3.33",
+      "{milk} → {bread}: both in 4 of the 6 milk bills → support 0.4, confidence ≈ 0.67, lift = 0.67 / 0.7 ≈ 0.95"
     ],
-    "result": "Bread buyers are 3× as likely to buy butter. Place them near each other, or bundle a promotion."
+    "result": "Milk → bread has the same confidence as tea → biscuits, but lift below 1: it is popularity, not association. Tea → biscuits is the strongest real link, even though it is rarer. Test a tea-and-biscuits offer."
   },
   "mistakes": [
     "Ranking rules by confidence alone (popular items get high confidence by default; check lift).",
@@ -43,7 +43,7 @@
     "Personalised recommendations at scale (use collaborative filtering)"
   ],
   "practice": {
-    "code": "# pip install mlxtend  (run locally)\nimport pandas as pd\nfrom mlxtend.frequent_patterns import apriori, association_rules\nbaskets = pd.DataFrame([[1,1,0],[1,1,1],[1,0,0],[0,1,1],[1,1,0]], columns=[\"bread\",\"butter\",\"jam\"]).astype(bool)\nfi = apriori(baskets, min_support=0.4, use_colnames=True)\nprint(association_rules(fi, metric=\"lift\", min_threshold=1)[[\"antecedents\",\"consequents\",\"support\",\"confidence\",\"lift\"]])",
+    "code": "# pip install mlxtend  (run locally)\nimport pandas as pd\nfrom mlxtend.preprocessing import TransactionEncoder\nfrom mlxtend.frequent_patterns import apriori, association_rules\nbills = [[\"bread\", \"butter\", \"milk\"], [\"bread\", \"butter\"], [\"bread\", \"jam\"], [\"milk\", \"tea\"], [\"bread\", \"butter\", \"jam\"],\n         [\"milk\", \"bread\"], [\"tea\", \"biscuits\"], [\"bread\", \"butter\", \"milk\"], [\"milk\", \"tea\", \"biscuits\"], [\"bread\", \"milk\"]]\nte = TransactionEncoder()\nbaskets = pd.DataFrame(te.fit(bills).transform(bills), columns=te.columns_)\nfi = apriori(baskets, min_support=0.2, use_colnames=True)\nrules = association_rules(fi, metric=\"lift\", min_threshold=0)\ncols = [\"antecedents\", \"consequents\", \"support\", \"confidence\", \"lift\"]\nprint(rules.sort_values(\"lift\", ascending=False)[cols].round(2).head(4).to_string())   # tea → biscuits: lift 3.33",
     "note": "Needs mlxtend: run locally."
   },
   "check": [

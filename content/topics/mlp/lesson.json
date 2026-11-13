@@ -9,19 +9,19 @@
   "why": "Multi-layer perceptrons are the foundation of deep learning. CNNs, RNNs and transformers are specialised versions of the same layers-plus-back-propagation idea.",
   "explain": [
     "Stack neurons in **layers**: input → hidden layer(s) → output. Each hidden neuron learns a feature; deeper layers combine features into more abstract ones.",
-    "Non-linear **activations** (ReLU = max(0, x)) are essential. Without them, any number of layers collapses into one linear model.",
+    "Non-linear **activations** (ReLU = max(0, x), or the older tanh and sigmoid) are essential. Without them, any number of layers collapses into one linear model.",
     "**Forward pass**: compute the prediction. **Loss**: measure the error. **Back-propagation**: use the chain rule to send the error backwards and compute each weight's gradient, like a relay team passing feedback backwards so every runner improves. Then a gradient-descent optimiser (Adam) updates the weights.",
     "Practical tips: **scale inputs**, start small (one or two hidden layers), use **early stopping** and regularisation (weight decay, dropout). For tabular data, boosting usually wins; MLPs shine on images, text and audio."
   ],
   "example": {
-    "title": "Solving XOR with one hidden layer",
+    "title": "Solving XOR with two hidden neurons",
     "steps": [
-      "Hidden neuron h₁ ≈ OR(x₁, x₂); hidden neuron h₂ ≈ AND(x₁, x₂)",
-      "Output = h₁ AND NOT h₂",
-      "(0, 0) → 0; (1, 0) → 1; (0, 1) → 1; (1, 1) → 0",
-      "Back-propagation discovers such hidden features automatically"
+      "Hand-picked ReLU neurons: h₁ = max(0, x₁ + x₂), h₂ = max(0, x₁ + x₂ − 1); output = h₁ − 2h₂",
+      "(0, 0): h₁ = 0, h₂ = 0 → 0. (0, 1) and (1, 0): h₁ = 1, h₂ = 0 → 1",
+      "(1, 1): h₁ = 2, h₂ = 1 → 2 − 2 = 0",
+      "h₁ counts how many inputs are on; h₂ fires only when both are; the output subtracts the \"both\" case"
     ],
-    "result": "One hidden layer creates the non-linear boundary a single perceptron could not."
+    "result": "Exactly XOR, which a single perceptron cannot learn. Back-propagation discovers weights like these by itself."
   },
   "mistakes": [
     "No input scaling (training stalls).",
@@ -73,5 +73,9 @@
       "why": "The error is propagated layer by layer with the chain rule."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "\\mathbf{h} = \\operatorname{ReLU}(W_1 \\mathbf{x} + \\mathbf{b}_1), \\qquad p = \\sigma(\\mathbf{v} \\cdot \\mathbf{h} + c)",
+    "plain": "Hidden neurons: weighted sums of the inputs plus biases, passed through ReLU. Output: a weighted sum of the hidden neurons plus a bias, passed through the sigmoid to give a probability."
+  }
 }

@@ -1,15 +1,19 @@
-import { useMemo } from 'react';
+import { createContext, useContext, useId, useMemo } from 'react';
 import { scaleLinear, extent, hierarchy, tree as d3tree } from 'd3';
 import { Diagram, TreeNodeSpec } from '../content/types';
 import { Md } from './Md';
 
 const COLORS = ['#58c4dd', '#fc6255', '#83c167', '#f0ac5f', '#9a72ac', '#5cd0b3'];
 const W = 640, H = 300, P = { l: 48, r: 16, t: 16, b: 40 };
+/** Accessible name for the diagram's SVG (the caption, in plain text). */
+const NameCtx = createContext('Diagram');
+const plain = (md: string) => md.replace(/\*\*|__|`|\$/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').trim();
+function useSvgA11y() { return { role: 'img' as const, 'aria-label': useContext(NameCtx) }; }
 
 function Axes({ x, y, xLabel, yLabel }: { x: any; y: any; xLabel?: string; yLabel?: string }) {
   return <>
-    {x.ticks(6).map((t: number) => <g key={'x' + t}><line x1={x(t)} x2={x(t)} y1={P.t} y2={H - P.b} stroke="#1b2230" /><text x={x(t)} y={H - P.b + 14} fill="#6b7486" fontSize={10} textAnchor="middle">{+t.toFixed(3)}</text></g>)}
-    {y.ticks(5).map((t: number) => <g key={'y' + t}><line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke="#1b2230" /><text x={P.l - 6} y={y(t) + 3} fill="#6b7486" fontSize={10} textAnchor="end">{+t.toFixed(3)}</text></g>)}
+    {x.ticks(6).map((t: number) => <g key={'x' + t}><line x1={x(t)} x2={x(t)} y1={P.t} y2={H - P.b} stroke="#1b2230" /><text x={x(t)} y={H - P.b + 14} fill="#8b95a7" fontSize={10} textAnchor="middle">{+t.toFixed(3)}</text></g>)}
+    {y.ticks(5).map((t: number) => <g key={'y' + t}><line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke="#1b2230" /><text x={P.l - 6} y={y(t) + 3} fill="#8b95a7" fontSize={10} textAnchor="end">{+t.toFixed(3)}</text></g>)}
     {xLabel && <text x={(W + P.l) / 2} y={H - 6} fill="#8b95a7" fontSize={11} textAnchor="middle">{xLabel}</text>}
     {yLabel && <text x={12} y={H / 2} fill="#8b95a7" fontSize={11} textAnchor="middle" transform={`rotate(-90 12 ${H / 2})`}>{yLabel}</text>}
   </>;
@@ -20,6 +24,7 @@ function safeFn(src: string): (x: number) => number {
 }
 
 function Curve({ d }: { d: Extract<Diagram, { kind: 'curve' }> }) {
+  const a11y = useSvgA11y();
   const f1 = useMemo(() => safeFn(d.fn), [d.fn]);
   const f2 = useMemo(() => (d.fn2 ? safeFn(d.fn2) : null), [d.fn2]);
   const xs = Array.from({ length: 241 }, (_, i) => d.xMin + ((d.xMax - d.xMin) * i) / 240);
@@ -31,7 +36,7 @@ function Curve({ d }: { d: Extract<Diagram, { kind: 'curve' }> }) {
   const path = (f: (x: number) => number) => xs.map((v, i) => { const yy = f(v); return isFinite(yy) ? `${i ? 'L' : 'M'}${x(v)},${y(yy)}` : ''; }).join('');
   const shade = d.shade ? `M${x(d.shade[0])},${y(y.domain()[0])}` + xs.filter((v) => v >= d.shade![0] && v <= d.shade![1]).map((v) => `L${x(v)},${y(f1(v))}`).join('') + `L${x(d.shade[1])},${y(y.domain()[0])}Z` : '';
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="canvas diagram-svg">
+    <svg viewBox={`0 0 ${W} ${H}`} className="canvas diagram-svg" {...a11y}>
       <Axes x={x} y={y} xLabel={d.xLabel} yLabel={d.yLabel} />
       {shade && <path d={shade} fill="#58c4dd" fillOpacity={0.22} />}
       <path d={path(f1)} fill="none" stroke="#58c4dd" strokeWidth={2.5} />
@@ -44,6 +49,8 @@ function Curve({ d }: { d: Extract<Diagram, { kind: 'curve' }> }) {
 }
 
 function Scatter({ d }: { d: Extract<Diagram, { kind: 'scatter' }> }) {
+  const clip = 'dclip' + useId().replace(/:/g, '');
+  const a11y = useSvgA11y();
   const xs = d.points.map((p) => p[0]).concat(d.centers?.map((c) => c[0]) ?? []);
   const ys = d.points.map((p) => p[1]).concat(d.centers?.map((c) => c[1]) ?? []);
   const [x0, x1] = extent(xs) as [number, number], [y0, y1] = extent(ys) as [number, number];
@@ -52,10 +59,10 @@ function Scatter({ d }: { d: Extract<Diagram, { kind: 'scatter' }> }) {
   const y = scaleLinear().domain([y0 - py, y1 + py]).range([H - P.b, P.t]).nice();
   const [dx0, dx1] = x.domain();
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="canvas diagram-svg">
+    <svg viewBox={`0 0 ${W} ${H}`} className="canvas diagram-svg" {...a11y}>
       <Axes x={x} y={y} xLabel={d.xLabel} yLabel={d.yLabel} />
-      <defs><clipPath id="dclip"><rect x={P.l} y={P.t} width={W - P.l - P.r} height={H - P.t - P.b} /></clipPath></defs>
-      <g clipPath="url(#dclip)">
+      <defs><clipPath id={clip}><rect x={P.l} y={P.t} width={W - P.l - P.r} height={H - P.t - P.b} /></clipPath></defs>
+      <g clipPath={`url(#${clip})`}>
         {d.line && <line x1={x(dx0)} y1={y(d.line.m * dx0 + d.line.b)} x2={x(dx1)} y2={y(d.line.m * dx1 + d.line.b)} stroke="#ffff00" strokeWidth={2.5} />}
         {d.points.map((p, i) => <circle key={i} cx={x(p[0])} cy={y(p[1])} r={5} fill={COLORS[(p[2] ?? 0) % COLORS.length]} stroke="#0b0e13" />)}
         {d.centers?.map((c, i) => <g key={i} transform={`translate(${x(c[0])},${y(c[1])})`}><circle r={10} fill="#0b0e13" stroke={COLORS[i % COLORS.length]} strokeWidth={3} /><path d="M-4,-4L4,4M4,-4L-4,4" stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} /></g>)}
@@ -65,12 +72,13 @@ function Scatter({ d }: { d: Extract<Diagram, { kind: 'scatter' }> }) {
 }
 
 function Bars({ d }: { d: Extract<Diagram, { kind: 'bars' }> }) {
+  const a11y = useSvgA11y();
   const max = Math.max(...d.values, 0), min = Math.min(...d.values, 0);
   const y = scaleLinear().domain([min, max * 1.1 || 1]).range([H - P.b, P.t]).nice();
   const bw = (W - P.l - P.r) / d.values.length;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="canvas diagram-svg">
-      {y.ticks(5).map((t) => <g key={t}><line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke="#1b2230" /><text x={P.l - 6} y={y(t) + 3} fill="#6b7486" fontSize={10} textAnchor="end">{+t.toFixed(3)}</text></g>)}
+    <svg viewBox={`0 0 ${W} ${H}`} className="canvas diagram-svg" {...a11y}>
+      {y.ticks(5).map((t) => <g key={t}><line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke="#1b2230" /><text x={P.l - 6} y={y(t) + 3} fill="#8b95a7" fontSize={10} textAnchor="end">{+t.toFixed(3)}</text></g>)}
       {d.values.map((v, i) => <g key={i}>
         <rect x={P.l + i * bw + bw * 0.15} width={bw * 0.7} y={y(Math.max(v, 0))} height={Math.abs(y(v) - y(0))} rx={3} fill={d.highlight === i ? '#f0ac5f' : '#58c4dd'} />
         <text x={P.l + i * bw + bw / 2} y={y(Math.max(v, 0)) - 5} fill="#c9d1dd" fontSize={11} textAnchor="middle">{+v.toFixed(3)}</text>
@@ -84,18 +92,19 @@ function Bars({ d }: { d: Extract<Diagram, { kind: 'bars' }> }) {
 function Flow({ d }: { d: Extract<Diagram, { kind: 'flow' }> }) {
   return (
     <div className="flow">
-      {d.nodes.map((n, i) => <div key={i} className="flow-item"><div className="flow-node"><span className="flow-n">{i + 1}</span><span><Md text={n} /></span></div>{i < d.nodes.length - 1 && <div className="flow-arrow">→</div>}</div>)}
+      {d.nodes.map((n, i) => <div key={i} className="flow-item"><div className="flow-node"><span className="flow-n">{i + 1}</span><span><Md text={n} /></span></div>{i < d.nodes.length - 1 && <div className="flow-arrow" aria-hidden="true">→</div>}</div>)}
     </div>
   );
 }
 
 function TreeD({ d }: { d: Extract<Diagram, { kind: 'tree' }> }) {
+  const a11y = useSvgA11y();
   const h = useMemo(() => { const r = hierarchy<TreeNodeSpec>(d.root, (n) => n.children); d3tree<TreeNodeSpec>().nodeSize([150, 90])(r); return r; }, [d.root]);
   const nodes = h.descendants();
   const minX = Math.min(...nodes.map((n) => n.x!)) - 80, maxX = Math.max(...nodes.map((n) => n.x!)) + 80;
   const maxY = Math.max(...nodes.map((n) => n.y!)) + 40;
   return (
-    <svg viewBox={`${minX} -30 ${maxX - minX} ${maxY + 40}`} className="canvas diagram-svg" style={{ maxHeight: 360 }}>
+    <svg viewBox={`${minX} -30 ${maxX - minX} ${maxY + 40}`} className="canvas diagram-svg" style={{ maxHeight: 360 }} {...a11y}>
       {h.links().map((l, i) => <g key={i}>
         <line x1={l.source.x} y1={l.source.y} x2={l.target.x} y2={l.target.y} stroke="#3a4558" strokeWidth={1.5} />
         {l.target.data.edge && <text x={(l.source.x! + l.target.x!) / 2 + (l.target.x! < l.source.x! ? -8 : 8)} y={(l.source.y! + l.target.y!) / 2} fill="#8b95a7" fontSize={11} textAnchor={l.target.x! < l.source.x! ? 'end' : 'start'}>{l.target.data.edge}</text>}
@@ -116,11 +125,11 @@ export function DiagramView({ d }: { d: Diagram }) {
   else if (d.kind === 'flow') body = <Flow d={d} />;
   else if (d.kind === 'tree') body = <TreeD d={d} />;
   else if (d.kind === 'table') body = (
-    <div style={{ overflowX: 'auto' }}><table className="dtable"><thead><tr>{d.head.map((h, i) => <th key={i}><Md text={h} /></th>)}</tr></thead>
+    <div className="tbl-scroll" tabIndex={0} role="region" aria-label="Table (scrolls sideways)"><table className="dtable"><thead><tr>{d.head.map((h, i) => <th key={i}><Md text={h} /></th>)}</tr></thead>
       <tbody>{d.rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}><Md text={c} /></td>)}</tr>)}</tbody></table></div>);
   else if (d.kind === 'compare') body = (
     <div className="grid g2">
       {[d.left, d.right].map((s, i) => <div key={i} className={`card ${i ? 'avoid' : 'use'}`}><b>{s.title}</b><ul>{s.items.map((it, j) => <li key={j}><Md text={it} /></li>)}</ul></div>)}
     </div>);
-  return <figure className="diagram">{body}<figcaption>📊 <Md text={d.caption} /></figcaption></figure>;
+  return <figure className="diagram"><NameCtx.Provider value={plain(d.caption) || 'Diagram'}>{body}</NameCtx.Provider><figcaption><span aria-hidden="true">📊 </span><Md text={d.caption} /></figcaption></figure>;
 }

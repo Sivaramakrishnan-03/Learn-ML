@@ -3,7 +3,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, Seg, Label, MatrixView, Caption, Readout, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { alpha, dot, lstsq, mean, r2 } from './_dataprep-helpers';
+import { dot, lstsq, mean, r2 } from '../viz/math';
+import { alpha } from './_dataprep-helpers';
 
 /* ---------- pure helpers ---------- */
 const REGIONS = ['Coastal', 'Inland', 'Metro'] as const;
@@ -32,7 +33,7 @@ function design(d: District, f: Feat) {
   return x;
 }
 function fit(train: District[], test: District[], f: Feat) {
-  const b = lstsq(train.map((d) => design(d, f)), train.map((d) => d.value));
+  const b = lstsq(train.map((d) => design(d, f)), train.map((d) => d.value), 1e-8, true);
   const pred = (d: District) => dot(b, design(d, f));
   return { b, pred, r2Train: r2(train.map((d) => d.value), train.map(pred)), r2Test: r2(test.map((d) => d.value), test.map(pred)) };
 }

@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Bolt diameters are normal with mean 10.00 mm. What is the probability that a bolt is **exactly** 10.000000 mm?",
+      "options": [
+        "About 0.4, the height of the curve at its peak",
+        "50%, because the mean is in the middle",
+        "Zero; for a continuous measurement only ranges have probabilities, given by areas",
+        "It cannot be found without knowing the SD"
+      ],
+      "answer": 2,
+      "why": "For a continuous variable the curve's height is a density, not a probability. Probabilities are areas over ranges, and the area above a single point is zero. 50% is the chance of being below the mean, not exactly at it.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Which of these is **most likely** to be close to normally distributed?",
+      "options": [
+        "Household incomes in a city",
+        "Machined part diameters from a stable process",
+        "Insurance claim sizes",
+        "Customer waiting times at a counter"
+      ],
+      "answer": 1,
+      "why": "Manufacturing dimensions come from many small, independent sources of variation, so they tend to be bell-shaped. Incomes, claim sizes and waiting times cannot go below zero and have long right tails, so they are skewed.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Adult male heights are normal with mean 170 cm and SD 7 cm. What share of men are between 163 cm and 177 cm?",
+      "options": [
+        "About 68%",
+        "About 95%",
+        "About 34%",
+        "About 50%"
+      ],
+      "answer": 0,
+      "why": "163 and 177 are one SD either side of the mean (z = −1 and z = +1), and the area between them is 0.6827. 95% would need ±2 SD (156 to 184 cm); 34% is only one side of the mean.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "EV battery life is normal with mean 6 years and SD 1 year. Finance accepts claims on at most 2% of packs. What is the longest warranty that meets this?",
+      "options": [
+        "4.36 years",
+        "4.0 years",
+        "2.0 years",
+        "3.95 years"
+      ],
+      "answer": 3,
+      "why": "The 2nd percentile is `norm.ppf(0.02)` = −2.054 SDs, so 6 − 2.054 × 1 = 3.95 years. A round 4 years gives z = −2, which is 2.3% of packs, slightly over budget. 4.36 years is the 5th percentile, using the wrong tail area.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Priya scored 82 on a test with mean 70 and SD 8. Arjun scored 75 on a different test with mean 60 and SD 12. Who did better **relative to their own test**?",
+      "options": [
+        "Arjun, because his score is 15 points above the mean versus Priya's 12",
+        "Priya, because 82 is a higher raw score",
+        "They did equally well",
+        "Priya, with z = 1.5 versus Arjun's z = 1.25"
+      ],
+      "answer": 3,
+      "why": "z-scores put both on the same scale: Priya (82 − 70) / 8 = 1.5, Arjun (75 − 60) / 12 = 1.25. Arjun's 15-point gap is smaller once you account for his test's larger spread. The raw scores are on different tests, so comparing them directly is meaningless.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A Q-Q plot of daily claim sizes against the normal follows the line in the middle but bends sharply **upwards** at the right end. What does this tell you?",
+      "options": [
+        "The data match the normal shape well",
+        "The data have a heavier right tail than the normal: large claims are more frequent than the bell predicts",
+        "The data have too few large values compared with a normal",
+        "The mean of the data is wrong"
+      ],
+      "answer": 1,
+      "why": "Points above the line on the right mean the largest observed values are bigger than a normal would produce at those ranks, which is a heavy right tail. A straight line would mean a good fit. A Q-Q plot judges shape, not whether the mean was computed correctly.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Bolts must be 9.96 to 10.04 mm and the process SD is 0.02 mm. If the process mean drifts from 10.00 to 10.02 mm, roughly what share of bolts is rejected?",
+      "options": [
+        "About 4.6%, the same as before because the SD has not changed",
+        "About 2.3%",
+        "About 16%",
+        "About 32%"
+      ],
+      "answer": 2,
+      "why": "The upper limit is now only 1 SD away: P(z > 1) = 0.1587. The lower limit is 3 SDs away: P(z < −3) = 0.0013. Total ≈ 16.0%. A centred process at ±2 SD rejects only 4.55%, so both centring and spread matter. 32% would be ±1 SD on both sides.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "In an interview: \"Do the inputs to a machine-learning model need to be normally distributed?\" Which answer is most accurate?",
+      "options": [
+        "Usually not; tree models ignore it, and linear regression's normality assumption concerns the residuals (for p-values and intervals), not the raw features",
+        "Yes, every model assumes normal features, so always transform them",
+        "Yes, but only for classification models",
+        "No, because the Central Limit Theorem makes all features normal once you have 30 rows"
+      ],
+      "answer": 0,
+      "why": "Normality is mostly an assumption about errors, not inputs. Standardising features to z-scores helps many algorithms but does not make them normal. The CLT is about averages, not individual feature values, so it does not make raw features normal.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

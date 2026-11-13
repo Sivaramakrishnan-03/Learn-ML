@@ -1,7 +1,8 @@
 // Shared pure helpers for the ensemble animations (bagging, random-forest, adaboost, gradient-boosting, xgboost, stacking).
-// A small, fast weighted CART (sorted sweep), bootstrap, decision fields and two tiny SVG renderers (createElement, no JSX).
+// A small, fast weighted CART (sorted sweep), decision fields and two tiny SVG renderers (createElement, no JSX).
 import { createElement as h, ReactNode } from 'react';
 import { rng, gauss, C, Scales } from '../viz/kit';
+import { mean } from '../viz/math';
 
 /* ---------------- data ---------------- */
 export interface CP { x: number; y: number; label: number } // label 1 = repaid, 0 = default
@@ -113,13 +114,6 @@ export function predict(n: TNode, x: number[]): number {
 }
 export function leaves(n: TNode): TNode[] { return n.l && n.r ? [...leaves(n.l), ...leaves(n.r)] : [n]; }
 
-/* ---------------- bootstrap ---------------- */
-export function bootstrap(n: number, r: () => number) {
-  const counts = Array(n).fill(0); const idx: number[] = [];
-  for (let k = 0; k < n; k++) { const i = Math.floor(r() * n); idx.push(i); counts[i]++; }
-  return { idx, counts };
-}
-
 /* ---------------- decision fields ---------------- */
 export const G = 40; // grid resolution for 0..10 × 0..10 decision fields
 export const cellCentres = (() => { const out: number[][] = []; for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) out.push([(i + 0.5) * 10 / G, (j + 0.5) * 10 / G]); return out; })();
@@ -169,7 +163,6 @@ export function ClassDots({ s, pts, r = () => 5, op = () => 1, ring: ringF, labe
 }
 
 /* ---------------- small stats ---------------- */
-export const mean = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
-export const mse = (a: number[], b: number[]) => mean(a.map((v, i) => (v - b[i]) ** 2));
+/** Share of 0/1 labels predicted correctly by scores thresholded at 0.5. */
 export const acc = (pred: number[], y: number[]) => mean(pred.map((v, i) => ((v > 0.5 ? 1 : 0) === y[i] ? 1 : 0)));
 export const AX = { xLabel: 'annual income (₹ lakh)', yLabel: 'credit score', fx: (v: number) => `${Math.round(v * 3)}`, fy: (v: number) => `${Math.round(300 + v * 60)}` };

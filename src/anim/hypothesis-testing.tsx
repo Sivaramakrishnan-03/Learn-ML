@@ -3,15 +3,15 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, Dots, FnLine, Seg, Label, Region, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
-import { normPdf, normCdf, normInv, pct, pFmt } from './_stats1-helpers';
+import { normPdf, normCdf, normInv, shuffleInPlace } from '../viz/math';
+import { pct, pFmt } from './_stats1-helpers';
 
 /* ---------- pure helpers ---------- */
 const N_OBS = 100, HEADS = 62;
 function tosses(n: number, p: number, seed: number): number[] { const r = rng(seed); return Array.from({ length: n }, () => (r() < p ? 1 : 0)); }
 function observed() { // a fixed sequence with exactly 62 heads, in a random-looking order
   const r = rng(62), a: number[] = Array.from({ length: N_OBS }, (_, i) => (i < HEADS ? 1 : 0));
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-  return a;
+  return shuffleInPlace(a, r);
 }
 const se = (n: number, p: number) => Math.sqrt((p * (1 - p)) / n);
 function power(n: number, p1: number, alpha: number, oneSided = false) {

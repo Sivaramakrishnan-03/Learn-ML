@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Bars, FnLine, Seg, Arrow, Label, Region, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, C } from '../viz/kit';
-import { chi2pdf, chi2sf, chi2crit, histCounts, fmtP } from './_stats2-helpers';
+import { chi2Sf, chi2Crit, histogram, chi2Pdf } from '../viz/math';
+import { fmtP } from './_stats2-helpers';
 
 /* ---------- pure helpers ---------- */
 const FACES = [1, 2, 3, 4, 5, 6];
@@ -29,9 +30,9 @@ interface Frame { stage: Stage; k: number }
 function Animate() {
   const E = Array(6).fill(10);
   const parts = contrib(DIE_OBS, E);
-  const chi = total(parts), df = 5, crit = chi2crit(0.05, df), pval = chi2sf(chi, df);
+  const chi = total(parts), df = 5, crit = chi2Crit(0.05, df), pval = chi2Sf(chi, df);
   const sims = useMemo(() => nullScores(60, 2000, 11), []);
-  const simH = useMemo(() => histCounts(sims, 0, 20, 40).map((d) => ({ x: d.x, y: d.y / (sims.length * 0.5) })), [sims]);
+  const simH = useMemo(() => histogram(sims, 0, 20, 40).map((d) => ({ x: d.x, y: d.y / (sims.length * 0.5) })), [sims]);
   const simOver = sims.filter((v) => v >= chi).length / sims.length;
   const frames: Frame[] = [
     { stage: 'E', k: 0 }, { stage: 'O', k: 0 }, { stage: 'gap', k: 0 },
@@ -82,9 +83,9 @@ function Animate() {
               {at('cut') && <Region s={s} x0={crit} x1={20} y0={0} y1={0.006} color={C.red} opacity={0.6} />}
               {at('land') && <Region s={s} x0={chi} x1={20} y0={0} y1={0.006} color={C.gold} opacity={0.9} />}
               {at('land') && <Label s={s} x={16.5} y={0.035} anchor="middle" color={C.gold} size={12}>gold tail = p = {pval.toFixed(3)}</Label>}
-              {at('curve') && <FnLine s={s} f={chi2pdf(df)} from={0.01} color={C.yellow} width={3} />}
-              {at('cut') && <FnLine s={s} f={chi2pdf(df)} from={crit} to={20} color={C.red} width={0.1} fill={C.red} />}
-              {at('land') && <FnLine s={s} f={chi2pdf(df)} from={chi} to={20} color={C.gold} width={0.1} fill={C.gold} />}
+              {at('curve') && <FnLine s={s} f={(x: number) => chi2Pdf(x, df)} from={0.01} color={C.yellow} width={3} />}
+              {at('cut') && <FnLine s={s} f={(x: number) => chi2Pdf(x, df)} from={crit} to={20} color={C.red} width={0.1} fill={C.red} />}
+              {at('land') && <FnLine s={s} f={(x: number) => chi2Pdf(x, df)} from={chi} to={20} color={C.gold} width={0.1} fill={C.gold} />}
               {at('cut') && <><Seg s={s} x1={crit} x2={crit} y1={0} y2={0.13} color={C.red} dash="4 3" /><Label s={s} x={crit - 0.2} y={0.14} anchor="end" color={C.red} size={12}>5% cut-off {crit.toFixed(2)}</Label></>}
               {segs.slice(0, k).map((g) => g.x1 > g.x0 && <Region key={g.i} s={s} x0={g.x0} x1={g.x1} y0={-0.035} y1={-0.01} color={g.i === cur ? C.gold : SEG[g.i % 2]} opacity={0.85} />)}
               {segs.slice(0, k).map((g) => g.x1 - g.x0 > 0.9 && <Label key={'l' + g.i} s={s} x={(g.x0 + g.x1) / 2} y={-0.028} anchor="middle" color={C.bg} size={11}>{g.i + 1}</Label>)}
@@ -120,10 +121,10 @@ function Playground() {
   const [showNull, setShowNull] = useState(false);
   const obs = useMemo(() => rollDie(n, p6, rng(seed * 7919 + n)), [n, p6, seed]);
   const E = Array(6).fill(n / 6);
-  const parts = contrib(obs, E), chi = total(parts), pval = chi2sf(chi, 5), crit = chi2crit(0.05, 5);
+  const parts = contrib(obs, E), chi = total(parts), pval = chi2Sf(chi, 5), crit = chi2Crit(0.05, 5);
   const sims = useMemo(() => (showNull ? nullScores(n, 1000, seed + 99) : []), [showNull, n, seed]);
   const xMax = 30, off = chi > xMax - 1, chiX = off ? xMax - 1.5 : chi;
-  const simH = sims.length ? histCounts(sims, 0, xMax, 40).map((d) => ({ x: d.x, y: d.y / (sims.length * (xMax / 40)) })) : [];
+  const simH = sims.length ? histogram(sims, 0, xMax, 40).map((d) => ({ x: d.x, y: d.y / (sims.length * (xMax / 40)) })) : [];
   const yTop = Math.max(...obs, n / 6) * 1.25;
   const worst = parts.indexOf(Math.max(...parts));
   return (
@@ -139,7 +140,7 @@ function Playground() {
         <Plot x={[0, xMax]} y={[0, 0.19]} height={230} xLabel="χ² value (df = 5)" fy={() => ''} yTicks={4}>
           {(s) => <>
             {simH.length > 0 && <Bars s={s} data={simH} width={(xMax / 40) * 0.9} color={C.blue} />}
-            <FnLine s={s} f={chi2pdf(5)} from={0.01} color={C.yellow} width={3} />
+            <FnLine s={s} f={(x: number) => chi2Pdf(x, 5)} from={0.01} color={C.yellow} width={3} />
             <Region s={s} x0={crit} x1={xMax} y0={0} y1={0.006} color={C.red} opacity={0.6} />
             <Label s={s} x={crit + 4} y={0.02} color={C.red} size={11}>top 5% of fair dice</Label>
             {!off && <Seg s={s} x1={chiX} x2={chiX} y1={0} y2={0.15} color={C.gold} width={3} />}

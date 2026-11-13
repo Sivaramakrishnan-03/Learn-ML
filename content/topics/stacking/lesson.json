@@ -14,14 +14,14 @@
     "**Blending** is a simpler variant using one hold-out set. Gains are typically small (0.5–2%), so weigh them against maintenance cost."
   ],
   "example": {
-    "title": "Credit default ensemble (AUC)",
+    "title": "Why a learned combination beats each model",
     "steps": [
-      "Logistic regression 0.80, random forest 0.84, LightGBM 0.86",
-      "Simple average of the three: 0.865",
-      "Stacked with a logistic meta-model: 0.871",
-      "Production decision: keep LightGBM alone (0.86) for simplicity"
+      "Six stores (monthly sales, ₹ lakh) with out-of-fold errors. Forest: +4, −2, +5, −6, +2, −3. Boosting: −3, +4, −3, +5, −4, +3. Linear: +8, −4, +7, −10, −6, +5",
+      "MAE: forest ≈ 3.67, boosting ≈ 3.67, linear ≈ 6.67. Simple average of all three: MAE ≈ 2.44",
+      "A meta-model with non-negative weights learns roughly 0.48 × forest + 0.52 × boosting + 0 × linear",
+      "Rounded to 0.5 / 0.5: errors +0.5, +1, +1, −0.5, −1, 0 → MAE ≈ 0.67"
     ],
-    "result": "Stacking won, but by too little to justify three models in production. A judgement call worth making explicitly."
+    "result": "Forest and boosting err in opposite directions, so the learned blend cancels most of their error and switches the weak linear model off. On six rows this is a demonstration; judge a real stack on a separate test set."
   },
   "mistakes": [
     "Training the meta-model on in-sample predictions (leakage).",
@@ -65,5 +65,9 @@
       "why": "Different models make different errors."
     }
   ],
-  "chapterMinutes": 15
+  "chapterMinutes": 15,
+  "formula": {
+    "tex": "\\hat{y} = w_0 + \\sum_{k=1}^{K} w_k \\, \\hat{f}_k(x)",
+    "plain": "The final prediction is a constant plus each base model's (out-of-fold) prediction times a weight learned by the meta-model. A simple average is the case where every weight is 1/K."
+  }
 }

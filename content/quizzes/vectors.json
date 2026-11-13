@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "One customer is stored as [visits = 4, basket = 3] and another as [basket = 3, visits = 4]. Are these the same vector?",
+      "options": [
+        "No, a vector is an ordered list, so position 1 means something different in each",
+        "Yes, they contain the same numbers",
+        "Yes, as long as both have length 2",
+        "Only if the features are scaled first"
+      ],
+      "answer": 0,
+      "why": "A vector's meaning lives in its agreed column order, so [4, 3] and [3, 4] are different points. Thinking \"same numbers, same vector\" is the trap: shuffle columns by accident and every model trained on the data becomes nonsense.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What is the length (Euclidean norm) of the vector [2, 3, 6]?",
+      "options": [
+        "11",
+        "7",
+        "49",
+        "√11 ≈ 3.32"
+      ],
+      "answer": 1,
+      "why": "Square every entry, add and take the square root: √(4 + 9 + 36) = √49 = **7**. 11 just adds the entries, 49 forgets the square root, and √11 takes the root of the plain sum instead of the sum of squares.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Store 1 sold [120, 80, 40] units of [chips, biscuits, juice]. A festival is expected to lift every product by 10%. Which vector is the forecast?",
+      "options": [
+        "[130, 90, 50]",
+        "[132, 88, 44]",
+        "[12, 8, 4]",
+        "[120.1, 80.1, 40.1]"
+      ],
+      "answer": 1,
+      "why": "A 10% lift is scalar multiplication by 1.1, applied to every entry: [132, 88, 44]. Adding 10 units to each is not a percentage change, and multiplying by 0.1 gives only the size of the increase, not the new total.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "Using raw values, Flat A = [900 sq ft, 2 bedrooms, 5 years] is ≈ 300.02 units from Flat B and ≈ 250.10 from Flat C. What is the right reading of this result?",
+      "options": [
+        "C is clearly the better match for A on all three features",
+        "Bedrooms and age matter most, because they decide the decimal places",
+        "The distances are dominated by area because it has the largest numbers; standardise the features before trusting them",
+        "The distances are wrong; Euclidean distance cannot handle three features"
+      ],
+      "answer": 2,
+      "why": "Area gaps of 300 and 250 swamp bedroom and age gaps of 1–7, so the ranking is really just \"which area is closer\". Reading it as \"C matches on everything\" is the trap: C is an older one-bedroom flat. Standardise each feature (subtract the mean, divide by the standard deviation) so every feature gets a fair say.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Three customers are [4, 3], [7, 7] and [4, 2] (visits per month, basket in ₹ thousand). What is their average vector, the \"typical customer\" a clustering algorithm would use as a centroid?",
+      "options": [
+        "[5, 4]",
+        "[15, 12]",
+        "[7.5, 6]",
+        "[4.5, 4.5]"
+      ],
+      "answer": 0,
+      "why": "Add the vectors position by position, [15, 12], then divide by the number of customers, 3: [5, 4]. [15, 12] forgets to divide, and [7.5, 6] divides by 2 instead of the count of vectors.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Your code fails with \"shapes (3,2) and (3,) not aligned\" when computing `X @ w`. What is the most likely cause?",
+      "options": [
+        "The values inside X contain decimals",
+        "NumPy cannot multiply a matrix by a vector",
+        "X needs more rows than w has entries",
+        "X has 3 rows and 2 features, but w has 3 entries; w must have one entry per feature (2)"
+      ],
+      "answer": 3,
+      "why": "For `X @ w` the number of columns of X (features) must equal the length of w. Here X has 2 columns and w has 3 entries. The tempting fix of adding rows to X does nothing, because the number of rows is not involved. Print `.shape` for every array first.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Customers A = [4, 3] and B = [7, 7] are 5 units apart when basket is in ₹ thousand. If basket is recorded in ₹ hundred instead (A = [4, 30], B = [7, 70]), what is the distance?",
+      "options": [
+        "Still 5, because distance does not depend on units",
+        "50",
+        "About 43.0",
+        "About 40.1"
+      ],
+      "answer": 3,
+      "why": "√((7 − 4)² + (70 − 30)²) = √(9 + 1,600) = √1,609 ≈ **40.1**. The belief that distance ignores units is exactly the misconception: changing one feature's units changes which feature dominates. 50 wrongly multiplies the whole distance by 10, as if both features had been rescaled.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"Why do we usually standardise features before running k-nearest neighbours?\" Which answer is best?",
+      "options": [
+        "Because k-NN only works on values between 0 and 1",
+        "Because scaling makes the model train faster but does not change predictions",
+        "Because k-NN uses distances, and without scaling the feature with the biggest numeric range dominates which neighbours are nearest",
+        "Because it removes outliers from the data"
+      ],
+      "answer": 2,
+      "why": "k-NN ranks items by Euclidean distance, which adds squared gaps across features, so a feature measured in thousands drowns one measured in single digits. Saying it only speeds up training is the tempting wrong answer: for distance-based models scaling changes which neighbours are found and therefore the predictions.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

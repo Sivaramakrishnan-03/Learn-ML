@@ -14,14 +14,14 @@
     "Evaluation is hard: use the few known incidents to measure **precision at top-k** (\"of our 100 highest scores, how many were real?\") and involve domain experts in reviewing alerts."
   ],
   "example": {
-    "title": "Card transactions",
+    "title": "z-scores and the IQR rule on card spend",
     "steps": [
-      "A customer usually spends ₹500–₹3,000, in Chennai, in the daytime",
-      "New transaction: ₹48,000 at 3 a.m. abroad",
-      "Isolation Forest isolates it in 3 splits vs a typical 11 → anomaly score 0.82",
-      "Rule: score > 0.7 → send an OTP challenge"
+      "A customer's last ten transactions (₹): 1,200; 800; 1,500; 2,000; 950; 1,100; 1,700; 1,300; 900; 1,400 → mean ₹1,285, SD ≈ ₹377",
+      "New ₹48,000: z ≈ 124. New ₹2,600: z ≈ 3.5, just over the |z| > 3 rule",
+      "IQR rule: Q1 = 987.5, Q3 = 1,475, IQR = 487.5 → upper fence = 1,475 + 1.5 × 487.5 ≈ ₹2,206",
+      "Both amounts are above the fence"
     ],
-    "result": "An unsupervised score triggers a lightweight check instead of a blanket block."
+    "result": "Both rules flag both amounts, yet ₹2,600 for a festival gift is hardly suspicious. Banks combine the amount with time, merchant and location (for example in an Isolation Forest) instead of blocking on amount alone."
   },
   "mistakes": [
     "Setting \"contamination\" without any idea of the real anomaly rate.",
@@ -41,7 +41,7 @@
     "When plenty of labelled fraud exists (train a supervised classifier)"
   ],
   "practice": {
-    "code": "import numpy as np\nfrom sklearn.ensemble import IsolationForest\nrng = np.random.default_rng(0)\nX = np.r_[rng.normal(2000, 600, (995, 1)), [[48000], [30000], [25000], [40], [52000]]]\niso = IsolationForest(contamination=0.005, random_state=0).fit(X)\nprint(X[iso.predict(X) == -1].ravel())"
+    "code": "import numpy as np\nfrom sklearn.ensemble import IsolationForest\nspend = np.array([1200, 800, 1500, 2000, 950, 1100, 1700, 1300, 900, 1400])\nz = (np.array([48000, 2600]) - spend.mean()) / spend.std(ddof=1)\nq1, q3 = np.percentile(spend, [25, 75])\nprint(z.round(1), q3 + 1.5 * (q3 - q1))                 # [123.9   3.5] 2206.25\nrng = np.random.default_rng(0)\nX = np.r_[rng.normal(2000, 600, (995, 1)), [[48000], [30000], [25000], [40], [52000]]]\niso = IsolationForest(contamination=0.005, random_state=0).fit(X)\nprint(X[iso.predict(X) == -1].ravel())"
   },
   "check": [
     {
@@ -67,5 +67,9 @@
       "why": "It reflects how useful the alert queue is."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "z = \\frac{x - \\bar{x}}{s}, \\qquad \\text{flag if } x > Q_3 + 1.5\\,\\text{IQR} \\;\\text{ or }\\; x < Q_1 - 1.5\\,\\text{IQR}",
+    "plain": "The z-score is the distance from the average in standard deviations (flag |z| > 3). The IQR rule flags values beyond the box-plot whiskers, 1.5 interquartile ranges outside the middle half."
+  }
 }

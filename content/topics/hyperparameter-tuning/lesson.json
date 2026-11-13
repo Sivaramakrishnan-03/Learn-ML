@@ -9,19 +9,19 @@
   "why": "Default settings are rarely optimal. Sensible tuning of, say, tree depth or learning rate is often a cheap accuracy gain, and a badly tuned model can look worse than it is.",
   "explain": [
     "**Parameters** are learned from data (regression coefficients, split thresholds). **Hyperparameters** are chosen by you before training (max_depth, k in k-NN, learning rate).",
-    "**Grid search** tries every combination from a list. It is thorough but explodes combinatorially: 5 values × 5 values × 5 values = 125 models × 5 folds.",
+    "**Grid search** tries every combination from a list. It is thorough but explodes multiplicatively: 3 × 4 × 3 values = 36 combinations, × 5 folds = 180 fits.",
     "**Random search** samples combinations at random. With the same budget it usually finds equally good settings, because only a few hyperparameters really matter.",
     "**Bayesian optimisation** (Optuna, Hyperopt) learns from previous trials which regions look promising. It is the standard for expensive models like XGBoost."
   ],
   "example": {
-    "title": "Tuning a random forest",
+    "title": "Counting the cost of a grid",
     "steps": [
-      "Grid: n_estimators {100, 300} × max_depth {5, 10, None} = 6 combinations",
-      "5-fold CV → 30 fits",
-      "Best: 300 trees, depth 10, CV F1 = 0.81",
-      "Retrain on the full training set, report test F1 once = 0.80"
+      "Random forest grid: n_estimators {100, 300, 500} × max_depth {5, 10, 20, None} × min_samples_leaf {1, 3, 5} = 36 combinations",
+      "5-fold CV → 36 × 5 = 180 fits; at about 20 s each that is 1 hour",
+      "Add max_features with 5 values → 180 combinations, 900 fits, about 5 hours",
+      "A random search with 60 trials: 60 × 5 = 300 fits (about 1 h 40 min) and it covers all four hyperparameters"
     ],
-    "result": "Test ≈ CV confirms the tuning did not overfit the validation folds."
+    "result": "Grids explode multiplicatively. Beyond two or three hyperparameters, a random search with a fixed budget is the practical choice; then refit the winner and score the test set once."
   },
   "mistakes": [
     "Tuning on the test set.",

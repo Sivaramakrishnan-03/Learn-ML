@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C } from '../viz/kit';
-import { stores, storeTrend, growTree, predict, TNode, RP, mean } from './_ensembles-helpers';
+import { mean } from '../viz/math';
+import { stores, storeTrend, growTree, predict, TNode, RP } from './_ensembles-helpers';
 
 /* ---------- pure helpers ---------- */
 interface Boost { f0: number; trees: TNode[]; eta: number; trainMse: number[] }

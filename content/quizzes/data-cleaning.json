@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "You are building a fraud model, and a handful of transactions are far larger than all the others. What should you do first?",
+      "options": [
+        "Delete them, because outliers always hurt models",
+        "Cap every value at the 95th percentile without checking",
+        "Replace them with the mean",
+        "Investigate them: they may be errors, codes, or exactly the rare cases the model is meant to detect"
+      ],
+      "answer": 3,
+      "why": "An outlier is a reason to investigate, not automatically to delete. In fraud work, unusual transactions can be the very signal you want; removing them blinds the model. Errors such as age 250 or a −999 code are fixed only once you know that is what they are.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A column has a blank (NaN) in some rows. Why can't you simply assume the blank means zero?",
+      "options": [
+        "Because pandas cannot store zeros in that column",
+        "A blank can mean unknown, not applicable or zero, and those call for very different treatment",
+        "Because zero is always an impossible value",
+        "Because blanks are always data-entry errors"
+      ],
+      "answer": 1,
+      "why": "A missing value has no recorded meaning; \"unknown income\" and \"no income\" are different facts. Filling with zero by default is a common silent error that invents a value for every unknown row.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Known incomes (₹ lakh) are 5, 7, 10, 11 and 67 (a verified high earner), and two applicants' incomes are missing. What value does median imputation fill in?",
+      "options": [
+        "₹10 lakh",
+        "₹20 lakh",
+        "₹16.7 lakh",
+        "₹0"
+      ],
+      "answer": 0,
+      "why": "Sorted, the five known values are 5, 7, 10, 11, 67, so the median is **₹10 lakh**. The mean, 100 / 5 = ₹20 lakh, is dragged up by the one large income and would claim the unknown applicants earn more than four of the five known ones.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Eight sensor readings: 20, 21, 22, 23, 24, 25, 26, 40. With NumPy's default quartiles, Q1 = 21.75 and Q3 = 25.25. Is 40 flagged by the IQR rule?",
+      "options": [
+        "No, the upper fence is 40.0",
+        "No, only values more than 3 IQRs away are flagged",
+        "Yes, the upper fence is 30.5",
+        "Yes, the upper fence is 25.25"
+      ],
+      "answer": 2,
+      "why": "IQR = 25.25 − 21.75 = 3.5; upper fence = 25.25 + 1.5 × 3.5 = **30.5**, and 40 is above it. Using Q3 itself as the fence (25.25) would flag 26 too; the 1.5 × IQR margin is what keeps ordinary values inside.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A churn model scores a test AUC of 0.99, and feature importance shows `account_closed_date` dominating every other feature. What is the most likely explanation?",
+      "options": [
+        "Leakage: the closure date is only known once a customer has churned, so it would not be available at prediction time",
+        "The model has found a genuinely powerful predictor",
+        "The model is underfitting",
+        "The test set is too large"
+      ],
+      "answer": 0,
+      "why": "Leakage rarely looks suspicious; it looks helpful. A single feature that predicts almost perfectly is the warning sign. Ask of every column: would I know this when making the prediction? A closure date is recorded as a result of the outcome.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Ten readings: 50, 51, 52, 52, 53, 54, 55, 56, 58, 120. The mean is 60.1 and the pandas standard deviation is about 21.2, so z for 120 ≈ 2.83. Why does the |z| > 3 rule miss this obvious outlier?",
+      "options": [
+        "Because 120 is not really an outlier",
+        "The outlier inflates the standard deviation it is measured against, and with only 10 values no point can reach |z| = 3 under this formula",
+        "Because z-scores only work on negative values",
+        "Because the mean should have been rounded to 60"
+      ],
+      "answer": 1,
+      "why": "Without 120 the spread is under 3, but including it pushes the SD to about 21, hiding the point. With n = 10 and the n − 1 formula, the largest possible |z| is 9 / √10 ≈ 2.85. The IQR rule (upper fence 61.375) flags it easily, because quartiles are not dragged by extremes.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "High earners in a survey often leave the income field blank. Which description and treatment fit best?",
+      "options": [
+        "Missing completely at random; drop the rows",
+        "Missing at random given other columns; fill with zero",
+        "Missing not at random: the gap depends on the missing value itself, so add an `income_missing` flag and treat any simple imputation with caution",
+        "Not a problem, because the median will correct it"
+      ],
+      "answer": 2,
+      "why": "When the chance of being missing depends on the value itself, a median fill systematically understates these incomes. A missing-flag lets the model learn that \"blank\" itself carries information. Assuming the gaps are random is the tempting but biased choice.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Interview: \"A column is 60% missing. How do you decide what to do with it?\" Which answer is best?",
+      "options": [
+        "Always drop every row that has a missing value",
+        "Keep it as it is; models handle missing values automatically",
+        "Fill it with the mean of the whole dataset before splitting",
+        "Ask why it is missing and whether the column is usable at all; if kept, add a missing-flag, impute with statistics fitted on the training rows only, and check on validation data whether it actually helps"
+      ],
+      "answer": 3,
+      "why": "Above roughly 40% missing, the first question is whether the column is worth keeping, and the reason for the gaps decides the treatment. Dropping rows would lose most of the data, and imputing before the split leaks test information into training.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

@@ -14,14 +14,14 @@
     "Key knobs: **learning_rate** (shrinkage, e.g. 0.05), **n_estimators**, **max_depth** (3–8) and subsampling. A small learning rate with many trees plus **early stopping** on a validation set is the standard recipe."
   ],
   "example": {
-    "title": "Predict a house price of ₹60L",
+    "title": "Two rounds by hand on four stores",
     "steps": [
-      "Start: predict the average, ₹45L → residual +15",
-      "Tree 1 predicts +12; learning rate 0.5 → add 6 → ₹51L, residual +9",
-      "Tree 2 predicts +8 → add 4 → ₹55L, residual +5",
-      "Tree 3 predicts +5 → add 2.5 → ₹57.5L …"
+      "Monthly sales (₹ lakh): 10, 14, 20, 28; η = 0.5; one-split trees. F₀ = mean = 18 → residuals −8, −4, +2, +10, MSE 46",
+      "Tree 1 splits {1, 2} vs {3, 4}; leaf values −6 and +6 → predictions 15, 15, 21, 21 → residuals −5, −1, −1, +7, MSE 19",
+      "Tree 2 splits {1, 2, 3} vs {4}; leaf values ≈ −2.333 and +7 → predictions 13.833, 13.833, 19.833, 24.5",
+      "Residuals ≈ −3.833, +0.167, +0.167, +3.5 → MSE 6.75"
     ],
-    "result": "Each small tree chips away at the remaining error. The learning rate prevents any single tree from over-correcting."
+    "result": "Error fell from 46 to 19 to 6.75 with two tiny trees, each fitted only to what was left over. The learning rate stops any single tree from over-correcting."
   },
   "mistakes": [
     "A large learning rate with many trees (overfitting).",
@@ -73,5 +73,9 @@
       "why": "Smaller steps need more of them."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "F_m(x) = F_{m-1}(x) + \\eta \\, h_m(x)",
+    "plain": "Today's prediction = yesterday's prediction + learning rate η × a small tree h fitted to the current residuals."
+  }
 }

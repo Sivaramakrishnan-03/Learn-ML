@@ -14,14 +14,14 @@
     "**Scale features first**, otherwise the feature with the biggest units dominates. Components are harder to interpret than the original features, so inspect the loadings to name them."
   ],
   "example": {
-    "title": "Compressing 20 survey questions",
+    "title": "Two standardised features with correlation 0.8",
     "steps": [
-      "20 correlated satisfaction questions, 2,000 respondents",
-      "Explained variance: PC1 48%, PC2 21%, PC3 9% → 78% in three",
-      "PC1 loads on all questions → \"overall satisfaction\"",
-      "PC2 contrasts price questions vs service questions → \"value vs service\""
+      "Two standardised survey scores, \"satisfaction with product\" and \"likelihood to recommend\", correlation 0.8 → covariance [[1, 0.8], [0.8, 1]]",
+      "Eigenvalues 1.8 and 0.2; eigenvectors (0.707, 0.707) = \"both together\" and (0.707, −0.707) = \"the difference\"",
+      "Explained variance: PC1 1.8 / 2 = 90%, PC2 10%",
+      "Respondent (1.2, 0.8): PC1 score ≈ 1.41, PC2 ≈ 0.28. Keeping PC1 only and mapping back gives ≈ (1.0, 1.0)"
     ],
-    "result": "Three interpretable scores replace 20 columns, ready for clustering or regression."
+    "result": "One \"overall advocacy\" score keeps 90% of the information in two questions; the small PC2 catches people who like the product but would not recommend it."
   },
   "mistakes": [
     "Not scaling.",
@@ -48,7 +48,7 @@
     "PCA vs LDA?"
   ],
   "practice": {
-    "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.decomposition import PCA\nfrom sklearn.preprocessing import StandardScaler\nimport numpy as np\nX, _ = load_breast_cancer(return_X_y=True)\np = PCA().fit(StandardScaler().fit_transform(X))\ncum = np.cumsum(p.explained_variance_ratio_)\nprint(cum[:6].round(3), \"components for 95%:\", int(np.argmax(cum >= 0.95)) + 1)"
+    "code": "import numpy as np\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.decomposition import PCA\nfrom sklearn.preprocessing import StandardScaler\nprint(np.linalg.eigh([[1, 0.8], [0.8, 1]])[0])        # eigenvalues [0.2 1.8]\nX, _ = load_breast_cancer(return_X_y=True)\np = PCA().fit(StandardScaler().fit_transform(X))\ncum = np.cumsum(p.explained_variance_ratio_)\nprint(cum[:6].round(3), \"components for 95%:\", int(np.argmax(cum >= 0.95)) + 1)"
   },
   "check": [
     {
@@ -74,5 +74,9 @@
       "why": "50 + 30 + 10 = 90."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "\\Sigma \\, v = \\lambda \\, v, \\qquad \\text{explained variance ratio}_k = \\frac{\\lambda_k}{\\lambda_1 + \\dots + \\lambda_p}",
+    "plain": "Each component is an eigenvector v of the covariance matrix; its eigenvalue λ is the variance along it. Its share of all variance is its eigenvalue over the sum of all eigenvalues."
+  }
 }

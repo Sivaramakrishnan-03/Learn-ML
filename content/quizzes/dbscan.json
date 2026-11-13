@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "In DBSCAN, what is a **border point**?",
+      "options": [
+        "A point that is not core itself but lies within eps of a core point",
+        "A point with at least `min_samples` points within eps",
+        "A point that sits between two clusters and is labelled −1",
+        "The point furthest from a cluster's centre"
+      ],
+      "answer": 0,
+      "why": "A border point is pulled into a cluster by a nearby core point, but is not dense enough to be core. Having at least `min_samples` points within eps defines a core point; a point near no core point at all is noise (−1). DBSCAN clusters have no centres.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Do you have to tell DBSCAN how many clusters to find?",
+      "options": [
+        "Yes, through the `n_clusters` parameter",
+        "Yes, it is always equal to `min_samples`",
+        "No, the number of clusters comes out of eps and `min_samples` and the data",
+        "No, it always returns exactly two clusters plus noise"
+      ],
+      "answer": 2,
+      "why": "DBSCAN grows clusters through dense regions, so their number is a result, not an input. This is a key difference from k-means, where you choose k up front. `min_samples` is a density threshold, not a cluster count.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Seven points lie on a line at 0, 0.5, 1.0, 1.5, 4.0, 4.4 and 9.0. With eps = 0.6 and `min_samples` = 3 (counting the point itself, as scikit-learn does), what does DBSCAN return?",
+      "options": [
+        "1 cluster and 3 noise points",
+        "1 cluster and 5 noise points",
+        "2 clusters and 1 noise point",
+        "3 clusters and no noise"
+      ],
+      "answer": 0,
+      "why": "Only 0.5 and 1.0 have three points within 0.6, so they are core; 0 and 1.5 are border points of that one cluster. 4.0 and 4.4 have only two points each, so neither is core and both are noise, as is 9.0. Thinking 4.0 and 4.4 form a cluster gives the tempting 2 clusters; treating the border points as noise gives 5.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A sorted k-distance list is 0.30, 0.30, 0.32, 0.35, 0.36, 0.40, 1.90, 2.10. Which eps is the most sensible starting choice?",
+      "options": [
+        "About 0.1",
+        "About 5.0",
+        "About 2.0",
+        "About 0.45"
+      ],
+      "answer": 3,
+      "why": "The values creep up slowly and then jump from 0.40 to 1.90; eps just above the knee keeps the dense points together while leaving the far ones as noise. An eps around 2 or more would swallow the outliers and start merging clusters; 0.1 would make almost everything noise.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "After running DBSCAN on standardised customer features, 40% of customers are labelled −1. What is the most likely reading?",
+      "options": [
+        "eps is probably too small (or `min_samples` too large) for the data's density; increase eps gradually and watch the noise share",
+        "40% of customers are fraudsters",
+        "The features should not have been standardised",
+        "DBSCAN has found 40 clusters"
+      ],
+      "answer": 0,
+      "why": "A very high noise share usually means the density bar is set too high, not that the data is mostly anomalies. Noise points can be interesting, but 40% of a customer base is a tuning problem. Standardising is recommended so eps means the same in every direction.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "You run DBSCAN directly on 300-dimensional text embeddings. Whatever eps you try, you get either almost all noise or one giant cluster. Why?",
+      "options": [
+        "`min_samples` must equal the number of dimensions",
+        "DBSCAN cannot handle more than 3 dimensions",
+        "In many dimensions all points look roughly equally far apart, so \"within eps\" loses meaning; reduce dimensions first (for example with PCA) or choose a more suitable distance",
+        "Text data cannot be clustered"
+      ],
+      "answer": 2,
+      "why": "When distances concentrate, a small eps catches nobody and a slightly larger one catches everybody, so there is no good middle. Reducing dimensions or changing the distance restores contrast. DBSCAN works in any number of dimensions in principle; it just becomes hard to tune.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Why can a border point join a cluster but not extend it to its own neighbours?\"",
+      "options": [
+        "To make DBSCAN faster",
+        "So that every cluster ends up round",
+        "Because border points are always noise",
+        "So that a single sparse point standing between two dense groups cannot glue them into one cluster"
+      ],
+      "answer": 3,
+      "why": "Clusters grow only through core points. If border points could pass membership on, thin bridges of sparse points would merge separate crowds. It has nothing to do with roundness: DBSCAN clusters can take any shape.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"Delivery drop-offs are very dense in the city centre and sparse in the suburbs. Would you use DBSCAN?\"",
+      "options": [
+        "Yes, DBSCAN handles varying densities well by design",
+        "One eps cannot fit both: small eps turns suburbs into noise, large eps merges city hotspots; HDBSCAN, which looks across many density levels, is the better choice",
+        "Use k-means instead, because it handles varying density best",
+        "Yes, just set `min_samples` to 1"
+      ],
+      "answer": 1,
+      "why": "Varying density is DBSCAN's main weakness, and HDBSCAN was designed to fix it by keeping clusters that are stable across density levels. Setting `min_samples` to 1 makes every point core, so nothing is noise and the method loses its point.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

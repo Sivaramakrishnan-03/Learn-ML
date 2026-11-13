@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A 95% confidence interval for mean delivery time is 50 to 54 minutes. Which statement is the correct interpretation?",
+      "options": [
+        "There is a 95% probability that the true mean lies between 50 and 54 minutes",
+        "95% of deliveries take between 50 and 54 minutes",
+        "The interval comes from a method that captures the true mean in 95% of repeated samples; this interval either contains it or does not",
+        "If we sampled again, there is a 95% chance the new sample mean would be between 50 and 54"
+      ],
+      "answer": 2,
+      "why": "In frequentist statistics the true mean is fixed, so the 95% describes the long-run success rate of the procedure (the fishing net). The direct probability statement belongs to a Bayesian credible interval. The interval is for the mean, not for individual deliveries, which vary far more.",
+      "level": 1,
+      "kind": "interpretation"
+    },
+    {
+      "q": "With the same data, you switch from a 95% to a 99% confidence interval. What happens?",
+      "options": [
+        "The interval gets narrower, because you are more confident",
+        "Only the point estimate changes",
+        "The interval stays the same width but shifts",
+        "The interval gets wider, because the critical value grows (about 1.96 to 2.58)"
+      ],
+      "answer": 3,
+      "why": "More confidence costs width: to catch the true value more often the net must be bigger. In the delivery example the 99% interval is about a third wider than the 95% one. The centre (the point estimate) does not move.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Twelve test cars give mean range 412 km and SD 18 km. What is the 95% confidence interval for the model's average range?",
+      "options": [
+        "401.8 to 422.2 km",
+        "406.8 to 417.2 km",
+        "372.4 to 451.6 km",
+        "400.6 to 423.4 km"
+      ],
+      "answer": 3,
+      "why": "SE = 18 / √12 = 5.196 km; with 11 degrees of freedom the t critical value is 2.201, so the margin is 11.44 km. 401.8 to 422.2 uses 1.96, which is too narrow for a small sample. 372.4 to 451.6 wrongly uses the SD instead of the SE.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "In a survey, 120 of 400 random customers say they would switch provider. What is the approximate 95% confidence interval for the true share?",
+      "options": [
+        "27.7% to 32.3%",
+        "25.5% to 34.5%",
+        "20.0% to 40.0%",
+        "29.0% to 31.0%"
+      ],
+      "answer": 1,
+      "why": "p̂ = 0.30, SE = √(0.30 × 0.70 / 400) = 0.0229, margin = 1.96 × 0.0229 = 0.045, giving 25.5% to 34.5%. 27.7% to 32.3% uses one SE without the 1.96 multiplier.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A survey gives a recommend rate of 42% (95% CI 38.9% to 45.1%). Last year's figure was 40%. What can you conclude?",
+      "options": [
+        "This survey alone cannot show a real change: 40% is still a plausible value, but so is any value up to about 45%",
+        "The rate has definitely not changed, because 40% is inside the interval",
+        "The rate has definitely improved, because 42% is above 40%",
+        "The survey is invalid because the interval is too wide"
+      ],
+      "answer": 0,
+      "why": "A value inside the interval is not ruled out, so the 2-point rise could be sampling noise. That does not prove nothing changed; the interval also includes values well above 40%. Absence of evidence is not evidence of absence.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Group A's 95% CI for average spend is ₹480 to ₹520 and group B's is ₹510 to ₹550. What can you say about the difference?",
+      "options": [
+        "The overlap proves there is no significant difference",
+        "Overlap alone does not settle it; build a confidence interval for the difference (or run a test), which can exclude zero even when the two intervals overlap a little",
+        "The difference must be significant because the centres differ",
+        "Confidence intervals can never be used to compare groups"
+      ],
+      "answer": 1,
+      "why": "Two 95% intervals can overlap slightly while the difference is still significant at 5%, because the SE of a difference is smaller than the sum of the two SEs. The right tool is an interval for the difference itself. Different centres alone say nothing about significance.",
+      "level": 3,
+      "kind": "concept"
+    },
+    {
+      "q": "Delivery times have SD about 10 minutes. How many deliveries are needed for a 95% CI no wider than **±1.5 minutes**?",
+      "options": [
+        "171",
+        "121",
+        "170",
+        "14"
+      ],
+      "answer": 0,
+      "why": "n = (1.96 × 10 / 1.5)² = 13.07² = 170.7, and you always round **up**, giving 171. 170 rounds the wrong way, 14 forgets to square, and 121 uses 1.645, the 90% critical value.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "In an interview: \"How is a 95% confidence interval related to a two-sided hypothesis test at the 5% level?\"",
+      "options": [
+        "They are unrelated tools",
+        "A 95% interval means the p-value is 0.95",
+        "The test rejects a hypothesised value exactly when that value lies outside the matching 95% interval; the interval is more informative because it shows every value that would not be rejected",
+        "The test rejects only when the hypothesised value is inside the interval"
+      ],
+      "answer": 2,
+      "why": "For a matching test and interval, values outside the 95% CI are those a 5% two-sided test would reject. That is why good reports give the effect and its CI first, then the p-value. The confidence level is not a p-value.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

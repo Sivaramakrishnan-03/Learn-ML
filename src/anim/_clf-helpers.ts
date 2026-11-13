@@ -2,17 +2,14 @@
 // Everything here is plain TypeScript: datasets, an SMO solver for (kernel) SVMs, a tiny MLP trainer, a perceptron,
 // plus one small React component (DecisionHeat) built with createElement so this file can stay a .ts module.
 import { createElement as h } from 'react';
-import { rng, gauss } from '../lib/datasets';
+import { rng, gauss, clamp, sigmoid } from '../viz/math';
 import type { Scales } from '../viz/kit';
+export { equalH } from './_math-helpers';
 
 export interface LP { x: number; y: number; c: 0 | 1 }
 
-/* ---------- small maths ---------- */
-export const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-export const sigmoid = (z: number) => 1 / (1 + Math.exp(-clamp(z, -40, 40)));
+/* ---------- formatting ---------- */
 export const f2 = (v: number, d = 2) => (Math.abs(v) < 5e-13 ? 0 : v).toFixed(d);
-/** Plot height that gives 1 x-unit = 1 y-unit on screen (Plot padding: l52 r16 t14 b42). Needed so perpendiculars look perpendicular. */
-export const equalH = (x: [number, number], y: [number, number], W = 760) => Math.round(((W - 68) * (y[1] - y[0])) / (x[1] - x[0]) + 56);
 
 /* ---------- datasets (seeded) ---------- */
 export function blobs(n: number, m0: [number, number], m1: [number, number], sd: number, seed: number): LP[] {

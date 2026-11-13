@@ -171,7 +171,7 @@
               "Epoch 2: (0,0): z = 1 → output 1, target 0, error −1 → w stays [1, 1] (inputs are 0), b = 0.",
               "(0,1): z = 1 → output 1, error −1 → w = [1, 0], b = −1. (1,0): z = 0 → output 0, correct.",
               "(1,1): z = 1 + 0 − 1 = 0 → output 0, error +1 → w = [2, 1], b = 0.",
-              "Epochs 3 to 5 make four more corrections. Epoch 6 makes no mistakes, ending with w = [2, 1], b = −2.",
+              "Epochs 3 to 5 make six more corrections (3, 2 and 1). Epoch 6 makes no mistakes, ending with w = [2, 1], b = −2.",
               "Check: (0,0) → −2, (0,1) → −1, (1,0) → 0, (1,1) → +1. Only (1,1) is above zero."
             ],
             "result": "After 10 updates over 5 epochs, the perceptron has found a line that implements AND. The point (1,0) sits exactly on the line (z = 0) and is classified 0 by the \"z > 0\" rule."

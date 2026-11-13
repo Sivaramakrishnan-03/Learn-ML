@@ -6,6 +6,7 @@ import { progress } from '../lib/progress';
 import { results, useResults } from '../lib/results';
 import { rng } from '../lib/datasets';
 import { Md } from '../components/Md';
+import { OptMark } from '../components/Quiz';
 
 const PASS = 0.7, PER_EXAM = 15;
 type Q = QuizQuestion & { topic: string };
@@ -37,7 +38,7 @@ export function ExamList() {
           const n = bankFor(k).length, r = res[k];
           return (
             <Link key={k} to={`/exam/${k}`} className="card mode-card">
-              <h3><span className="dot" style={{ background: TRACKS[k].color }} />{TRACKS[k].title}</h3>
+              <h2 className="h3"><span className="dot" aria-hidden="true" style={{ background: TRACKS[k].color }} />{TRACKS[k].title}</h2>
               <p className="small muted" style={{ margin: 0 }}>{n} questions in the bank</p>
               {r && <p className="small" style={{ margin: '6px 0 0' }}>{r.best / r.total >= PASS ? '✅ passed' : '❌ not yet passed'} · best {r.best}/{r.total}</p>}
             </Link>
@@ -67,21 +68,23 @@ export function Exam() {
   return (
     <div className="reading">
       <h1>🎓 {TRACKS[track].title} exam</h1>
-      {submitted && <div className={`card ${score / qs.length >= PASS ? 'use' : 'avoid'}`} style={{ marginBottom: 16 }}>
+      <div role="status" aria-live="polite">{submitted && <div className={`card ${score / qs.length >= PASS ? 'use' : 'avoid'}`} style={{ marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>{score} / {qs.length} ({Math.round((score / qs.length) * 100)}%) · {score / qs.length >= PASS ? '✅ Passed' : '❌ Not yet'}</h2>
         {wrongTopics.length > 0 && <p style={{ margin: '8px 0 0' }}>Revise: {wrongTopics.map((t) => <Link key={t} to={`/topic/${t}`} style={{ marginRight: 10 }}>{TOPIC_BY_ID[t].title}</Link>)}</p>}
         <button className="btn" style={{ marginTop: 10 }} onClick={restart}>↺ New attempt (different questions)</button>
-      </div>}
+      </div>}</div>
       {!submitted && <p className="muted">{qs.length} questions · answered {Object.keys(picked).length}</p>}
       {qs.map((q, i) => (
         <div key={i} className="card" style={{ marginBottom: 12 }}>
           <div className="small muted">Q{i + 1} · {TOPIC_BY_ID[q.topic].title} · level {q.level}</div>
-          <p style={{ margin: '4px 0 8px' }}><b><Md text={q.q} /></b></p>
+          <p style={{ margin: '4px 0 8px' }} id={`exq-${i}`}><b><Md text={q.q} /></b></p>
+          <div role="group" aria-labelledby={`exq-${i}`}>
           {q.options.map((o, oi) => {
             const cls = !submitted ? (picked[i] === oi ? 'chosen' : '') : oi === q.answer ? 'right' : picked[i] === oi ? 'wrong' : '';
-            return <button key={oi} className={`opt ${cls}`} disabled={submitted} onClick={() => setPicked({ ...picked, [i]: oi })} aria-pressed={picked[i] === oi}><Md text={o} /></button>;
+            return <button key={oi} type="button" className={`opt ${cls}`} aria-disabled={submitted} onClick={() => { if (!submitted) setPicked({ ...picked, [i]: oi }); }} aria-pressed={picked[i] === oi}><OptMark cls={cls} /><Md text={o} /></button>;
           })}
-          {submitted && <p className="small" style={{ marginTop: 6 }}>{picked[i] === q.answer ? '✅' : '❌'} <Md text={q.why} /></p>}
+          </div>
+          {submitted && <p className="small" style={{ marginTop: 6 }}><b>{picked[i] === q.answer ? '✅ Correct.' : '❌ Wrong.'}</b> <Md text={q.why} /></p>}
         </div>
       ))}
       {!submitted && <button className="btn primary" disabled={Object.keys(picked).length < qs.length} onClick={submit}>Submit exam</button>}

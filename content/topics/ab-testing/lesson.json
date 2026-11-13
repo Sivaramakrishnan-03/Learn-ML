@@ -14,14 +14,14 @@
     "Pitfalls: **peeking** and stopping as soon as p < 0.05 (inflates false positives), testing many metrics, novelty effects, and sample-ratio mismatch (the split is not really 50/50)."
   ],
   "example": {
-    "title": "New checkout button",
+    "title": "An under-powered test",
     "steps": [
-      "A: 1,000 visitors, 50 purchases (5.0%)",
-      "B: 1,000 visitors, 65 purchases (6.5%)",
-      "Pooled rate 5.75%; SE of difference = √(0.0575 × 0.9425 × 2/1000) ≈ 0.0104",
-      "z = 0.015 / 0.0104 ≈ 1.44 → p ≈ 0.15"
+      "A: 1,000 visitors, 50 purchases (5.0%). B: 1,000 visitors, 65 purchases (6.5%)",
+      "Pooled rate 5.75%; SE of difference = √(0.0575 × 0.9425 × 2/1,000) ≈ 0.0104",
+      "z = 0.015 / 0.0104 ≈ 1.44 → two-sided p ≈ 0.15",
+      "95% CI for the lift: −0.5 to +3.5 points, which includes zero"
     ],
-    "result": "A +1.5-point lift looks great but is not statistically convincing with 1,000 per arm. The test was under-powered: detecting this lift with 80% power needs roughly 3,800 visitors per arm."
+    "result": "Not significant, but not evidence that B fails either: 1,000 visitors per arm was too few. Detecting 5.0% → 6.5% with 80% power needs about 3,800 visitors per arm. (The animation follows the chapter's properly planned test: 4.0% → 4.8% with 10,500 visitors per arm.)"
   },
   "mistakes": [
     "No sample-size calculation up front.",
@@ -34,7 +34,7 @@
     "No peeking (or use sequential methods)"
   ],
   "practice": {
-    "code": "from statsmodels.stats.proportion import proportions_ztest, confint_proportions_2indep\nfrom statsmodels.stats.power import NormalIndPower\nfrom statsmodels.stats.proportion import proportion_effectsize\nprint(proportions_ztest([65, 50], [1000, 1000]))\nprint(confint_proportions_2indep(65, 1000, 50, 1000))\nes = proportion_effectsize(0.065, 0.05)\nprint(round(NormalIndPower().solve_power(es, alpha=0.05, power=0.8)))   # visitors per arm",
+    "code": "from statsmodels.stats.proportion import proportions_ztest, confint_proportions_2indep\nfrom statsmodels.stats.power import NormalIndPower\nfrom statsmodels.stats.proportion import proportion_effectsize\nprint(proportions_ztest([65, 50], [1000, 1000]))              # z ≈ 1.44, p ≈ 0.15\nprint(confint_proportions_2indep(65, 1000, 50, 1000))         # ≈ (−0.005, 0.035)\nes = proportion_effectsize(0.065, 0.05)\nprint(round(NormalIndPower().solve_power(es, alpha=0.05, power=0.8)))   # ≈ 3,800 visitors per arm",
     "note": "Uses statsmodels: run locally if the in-browser runner lacks it."
   },
   "check": [

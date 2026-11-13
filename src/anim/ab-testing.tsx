@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Seg, Label, Region, Caption, Readout, Slider, Toggle, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C, Scales } from '../viz/kit';
-import { twoSidedP, fmtP } from './_stats2-helpers';
+import { twoSidedP, shuffleInPlace } from '../viz/math';
+import { fmtP } from './_stats2-helpers';
 
 /* ---------- pure helpers ---------- */
 const DAYS = 14, PER_DAY = 750; // g-stats2: 10,500 visitors per arm over two weeks
@@ -10,8 +11,7 @@ const A_TOTAL = 420, B_TOTAL = 504; // 4.0% and 4.8%
 /** A shuffled stream of 0/1 outcomes with an exact number of conversions. */
 function stream(n: number, k: number, r: () => number) {
   const a: number[] = Array.from({ length: n }, (_, i) => (i < k ? 1 : 0));
-  for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-  return a;
+  return shuffleInPlace(a, r);
 }
 function cumByDay(s: number[], perDay: number, days: number) { const out: number[] = []; let c = 0; for (let d = 0; d < days; d++) { for (let i = d * perDay; i < (d + 1) * perDay; i++) c += s[i]; out.push(c); } return out; }
 interface Look { day: number; nA: number; nB: number; cA: number; cB: number; pA: number; pB: number; lift: number; lo: number; hi: number; z: number; p: number }
@@ -195,7 +195,7 @@ const anim: TopicAnim = {
   Animate,
   Playground,
   howto: {
-    Animate: { what: 'The lesson\'s checkout test: **A converts 4.0%, B 4.8%**, 750 visitors per arm per day for 14 days. Watch the estimated lift and its **95% confidence interval** after each day, then see why **peeking** at an A/A test produces false winners.', steps: [
+    Animate: { what: 'The chapter\'s planned checkout test: **A converts 4.0%, B 4.8%**, 750 visitors per arm per day for 14 days. Watch the estimated lift and its **95% confidence interval** after each day, then see why **peeking** at an A/A test produces false winners.', steps: [
       { do: 'Step through days 1 to 5.', notice: 'The interval (vertical bars) is wide at first and the estimated lift jumps around.' },
       { do: 'Play to day 14.', notice: 'The interval narrows and ends at about **+0.25 to +1.35 points**, entirely above zero (p ≈ 0.005).' },
       { do: 'Continue to the A/A frames.', notice: 'With no real difference, daily peeking crosses p < 0.05 at some point in about **1 test in 5**, not 1 in 20.' },

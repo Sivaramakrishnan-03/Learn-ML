@@ -14,14 +14,14 @@
     "Variants: **Multinomial** (word counts), **Bernoulli** (word present/absent), **Gaussian** (continuous features). Use **Laplace smoothing** so that an unseen word does not zero out the whole product."
   ],
   "example": {
-    "title": "Is this email spam?",
+    "title": "A two-word spam check",
     "steps": [
-      "Prior: P(spam) = 0.4, P(ham) = 0.6",
-      "P(\"free\" | spam) = 0.30, P(\"free\" | ham) = 0.02",
-      "Spam score: 0.4 × 0.30 = 0.120; ham score: 0.6 × 0.02 = 0.012",
-      "Normalise: P(spam | \"free\") = 0.120 / 0.132 ≈ 0.91"
+      "Priors: P(spam) = 0.4, P(normal) = 0.6. Likelihoods: P(free | spam) = 0.30, P(free | normal) = 0.02; P(meeting | spam) = 0.05, P(meeting | normal) = 0.20",
+      "\"free\" alone: spam 0.4 × 0.30 = 0.120 vs normal 0.6 × 0.02 = 0.012 → P(spam) ≈ 0.91",
+      "Email with \"free\" and \"meeting\": spam 0.4 × 0.30 × 0.05 = 0.0060; normal 0.6 × 0.02 × 0.20 = 0.0024",
+      "Normalise: P(spam | email) = 0.0060 / 0.0084 ≈ 0.714"
     ],
-    "result": "One word shifts the belief from 40% to 91% spam. More words multiply in more evidence."
+    "result": "Predict spam with about 71% probability. \"free\" pushed strongly towards spam; \"meeting\" pulled it back towards normal. Each word multiplies in more evidence."
   },
   "mistakes": [
     "Forgetting smoothing (zero probabilities).",
@@ -42,7 +42,7 @@
     "Strongly interacting features"
   ],
   "practice": {
-    "code": "from sklearn.feature_extraction.text import CountVectorizer\nfrom sklearn.naive_bayes import MultinomialNB\nfrom sklearn.pipeline import make_pipeline\ntexts = [\"free prize winner\", \"meeting at 10\", \"claim your free reward\", \"project update attached\"]\nlabels = [\"spam\", \"ham\", \"spam\", \"ham\"]\nm = make_pipeline(CountVectorizer(), MultinomialNB()).fit(texts, labels)\nprint(m.predict([\"free meeting reward\"]), m.predict_proba([\"free meeting reward\"]).round(2))"
+    "code": "from sklearn.feature_extraction.text import CountVectorizer\nfrom sklearn.naive_bayes import MultinomialNB\nfrom sklearn.pipeline import make_pipeline\ntexts = [\"free prize winner\", \"meeting at 10\", \"claim your free reward\", \"project update attached\"]\nlabels = [\"spam\", \"normal\", \"spam\", \"normal\"]\nm = make_pipeline(CountVectorizer(), MultinomialNB()).fit(texts, labels)\nprint(m.predict([\"free meeting reward\"]), m.predict_proba([\"free meeting reward\"]).round(2))"
   },
   "check": [
     {
@@ -68,5 +68,9 @@
       "why": "One zero would wipe out the whole product."
     }
   ],
-  "chapterMinutes": 16
+  "chapterMinutes": 16,
+  "formula": {
+    "tex": "P(c \\mid x_1, \\dots, x_p) \\propto P(c) \\prod_{j=1}^{p} P(x_j \\mid c)",
+    "plain": "The posterior for a class is proportional to its prior times one likelihood per feature, multiplied together."
+  }
 }

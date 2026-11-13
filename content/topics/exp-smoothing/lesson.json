@@ -18,13 +18,14 @@
     "plain": "Next forecast = α × the latest actual + (1 − α) × the previous forecast."
   },
   "example": {
-    "title": "Weekly demand, α = 0.3",
+    "title": "Five weeks of simple smoothing (α = 0.3)",
     "steps": [
-      "Previous forecast 100 units; actual this week 120",
-      "New forecast = 0.3 × 120 + 0.7 × 100 = 106",
-      "Next week actual 110 → forecast = 0.3 × 110 + 0.7 × 106 = 107.2"
+      "Weekly demand for a shampoo SKU. Forecast for week 1: 100. Actuals for weeks 1–5: 120, 110, 95, 130, 105",
+      "Week 1: error +20 → new forecast = 100 + 0.3 × 20 = 106. Week 2: error +4 → 107.2",
+      "Week 3: error −12.2 → 103.54. Week 4: error +26.46 → ≈ 111.48",
+      "Week 5: error −6.48 → ≈ 109.53"
     ],
-    "result": "The forecast moves part of the way towards each new actual, filtering noise while adapting."
+    "result": "Actuals swung between 95 and 130 while the forecast moved calmly between 100 and about 111: it moves part of the way towards each new actual. The forecast for week 6 and beyond is about 109.5 units."
   },
   "mistakes": [
     "Simple smoothing on trending or seasonal data (it lags behind).",
@@ -43,7 +44,7 @@
     "When external drivers (price, promotions, weather) matter (use regression or ML)"
   ],
   "practice": {
-    "code": "import numpy as np, pandas as pd\nfrom statsmodels.tsa.holtwinters import ExponentialSmoothing\nt = np.arange(48); y = pd.Series(200 + 2 * t + 30 * np.sin(2 * np.pi * t / 12) + np.random.default_rng(0).normal(0, 5, 48))\nm = ExponentialSmoothing(y, trend=\"add\", seasonal=\"add\", seasonal_periods=12).fit()\nprint(m.forecast(6).round(1).values)",
+    "code": "import numpy as np, pandas as pd\nfrom statsmodels.tsa.holtwinters import SimpleExpSmoothing, ExponentialSmoothing\nshampoo = pd.Series([120, 110, 95, 130, 105], dtype=float)\nses = SimpleExpSmoothing(shampoo, initialization_method=\"known\", initial_level=100).fit(smoothing_level=0.3, optimized=False)\nprint(ses.forecast(1).round(2).values)      # [109.53]\nt = np.arange(48); y = pd.Series(200 + 2 * t + 30 * np.sin(2 * np.pi * t / 12) + np.random.default_rng(0).normal(0, 5, 48))\nm = ExponentialSmoothing(y, trend=\"add\", seasonal=\"add\", seasonal_periods=12).fit()\nprint(m.forecast(6).round(1).values)",
     "note": "Uses statsmodels: run locally if needed."
   },
   "check": [

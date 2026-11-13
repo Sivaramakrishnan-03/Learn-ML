@@ -2,7 +2,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C, Scales, Bars } from '../viz/kit';
-import { Pt, Cov, eig2, gauss2, clamp } from './_unsup-helpers';
+import { Cov, eigSym2, normPdf2 } from '../viz/math';
+import { Pt, clamp } from './_unsup-helpers';
 
 /* ---------- pure helpers ---------- */
 const CL = [C.teal, C.pink, C.purple, C.green, C.blue];
@@ -26,7 +27,7 @@ function customers(seed = 5): Pt[] {
 function eStep(pts: Pt[], comps: Comp[]) {
   let ll = 0;
   const resp = pts.map((p) => {
-    const w = comps.map((c) => c.w * gauss2(p, c.mu, c.cov));
+    const w = comps.map((c) => c.w * normPdf2(p, c.mu, c.cov));
     const tot = w.reduce((s, v) => s + v, 0) || 1e-300;
     ll += Math.log(tot);
     return w.map((v) => v / tot);
@@ -73,7 +74,7 @@ function blend(resp: number[]) {
 }
 
 function Ellipse({ s, c, color, k = 2, width = 2, dash }: { s: Scales; c: Comp; color: string; k?: number; width?: number; dash?: string }) {
-  const { l1, l2, ang } = eig2(c.cov);
+  const { l1, l2, ang } = eigSym2(c.cov);
   const A = k * Math.sqrt(l1), B = k * Math.sqrt(l2);
   const d = Array.from({ length: 65 }, (_, i) => {
     const t = (i / 64) * 2 * Math.PI, ex = A * Math.cos(t), ey = B * Math.sin(t);

@@ -2,7 +2,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Region, Caption, Readout, Slider, Layout, Legend, useStepPlayer, PlayerControls, rng, gauss, C } from '../viz/kit';
-import { fpdf, fsf, fcrit, mean, sum, fmtP } from './_stats2-helpers';
+import { fSf, fCrit, mean, sum, fPdf } from '../viz/math';
+import { fmtP } from './_stats2-helpers';
 
 /* ---------- pure helpers ---------- */
 const NAMES = ['A', 'B', 'C'];
@@ -13,7 +14,7 @@ function anova(groups: number[][]) {
   const ssb = sum(ssbParts), ssw = sum(groups.map((g, i) => sum(g.map((v) => (v - means[i]) ** 2))));
   const dfb = groups.length - 1, dfw = all.length - groups.length;
   const msb = ssb / dfb, msw = ssw / dfw, F = msw > 0 ? msb / msw : 0;
-  return { grand, means, ssbParts, ssb, ssw, dfb, dfw, msb, msw, F, p: fsf(F, dfb, dfw), eta: ssb + ssw > 0 ? ssb / (ssb + ssw) : 0 };
+  return { grand, means, ssbParts, ssb, ssw, dfb, dfw, msb, msw, F, p: fSf(F, dfb, dfw), eta: ssb + ssw > 0 ? ssb / (ssb + ssw) : 0 };
 }
 /** Spread each group around its own mean by a factor (means unchanged). */
 const stretch = (groups: number[][], k: number) => groups.map((g) => { const m = mean(g); return g.map((v) => m + (v - m) * k); });
@@ -67,7 +68,7 @@ function Animate() {
   const noisy = at('noisy') && st !== 'eta';
   const groups = noisy ? stretch(BOOK, 4) : BOOK;
   const a = anova(groups), base = anova(BOOK), wide = anova(stretch(BOOK, 4));
-  const crit = fcrit(0.05, 2, 6);
+  const crit = fCrit(0.05, 2, 6);
   const between = st === 'b1' ? 1 : st === 'b2' ? 2 : at('b3') ? 3 : 0;
   const show = { grand: at('grand'), means: at('means'), between, within: at('within'), labels: true };
   const ssbSoFar = sum(a.ssbParts.slice(0, between));
@@ -98,7 +99,7 @@ function Animate() {
           <div className="small muted" style={{ marginTop: 6 }}>F = between ÷ within, compared with the F-distribution (2 and 6 df)</div>
           <Plot x={[0, 18]} y={[0, 1.05]} height={180} xLabel="F value" fy={() => ''} yTicks={3}>
             {(s) => <>
-              {at('curve') && <FnLine s={s} f={fpdf(2, 6)} from={0.001} color={C.yellow} width={3} />}
+              {at('curve') && <FnLine s={s} f={(x: number) => fPdf(x, 2, 6)} from={0.001} color={C.yellow} width={3} />}
               {at('curve') && <><Region s={s} x0={crit} x1={18} y0={0} y1={0.03} color={C.red} opacity={0.6} /><Label s={s} x={crit + 0.2} y={0.1} color={C.red} size={12}>top 5%: F &gt; {crit.toFixed(2)}</Label></>}
               {at('F') && <><Seg s={s} x1={Fshown} x2={Fshown} y1={0} y2={0.7} color={C.gold} width={3} /><Label s={s} x={Math.min(Fshown, 15.5)} y={0.78} anchor="middle" color={C.gold}>F = {Fshown.toFixed(2)}</Label></>}
             </>}
@@ -133,10 +134,10 @@ function Playground() {
     const r = rng(seed * 31 + n), shift = [-4, -1, 5];
     return shift.map((d) => Array.from({ length: n }, () => 24 + gap * d + noise * gauss(r)));
   }, [gap, noise, n, seed]);
-  const a = anova(groups), crit = fcrit(0.05, a.dfb, a.dfw);
+  const a = anova(groups), crit = fCrit(0.05, a.dfb, a.dfw);
   const all = groups.flat(), lo = Math.min(...all, 14), hi = Math.max(...all, 34), padY = (hi - lo) * 0.08;
   const fMax = 12, off = a.F > fMax - 0.5;
-  const pdf = fpdf(a.dfb, a.dfw), yTop = Math.min(1.05, Math.max(0.8, pdf(0.3) * 1.1));
+  const pdf = (x: number) => fPdf(x, a.dfb, a.dfw), yTop = Math.min(1.05, Math.max(0.8, pdf(0.3) * 1.1));
   return (
     <Layout
       main={<>

@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "What does t-SNE's **perplexity** setting roughly control?",
+      "options": [
+        "How many neighbours each point pays attention to",
+        "The number of output dimensions",
+        "The number of clusters on the map",
+        "The learning rate of the optimiser"
+      ],
+      "answer": 0,
+      "why": "Perplexity tunes each point's neighbourhood width so it has about that many meaningful neighbours (typically 5 to 50; scikit-learn's default is 30). t-SNE never takes a number of clusters; any islands on the map emerge from the layout.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A colleague wants to use 2-D t-SNE coordinates as input features for a churn model. What is the best advice?",
+      "options": [
+        "Good idea: t-SNE keeps all the important information in two numbers",
+        "Fine, but only for regression models",
+        "Fine, as long as perplexity is 30",
+        "Avoid it: t-SNE distorts distances and densities and cannot place new customers without re-running; use PCA for model inputs"
+      ],
+      "answer": 3,
+      "why": "t-SNE is built for pictures, not features: its axes have no meaning and scikit-learn's version has no `transform` for new rows. PCA gives stable, reusable inputs.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Point i has two other points at distances 1 and 3. With neighbourhood width σ = 1 and scores e^(−d²/2), normalised to add to 1, what share of i's attention goes to the nearer point?",
+      "options": [
+        "0.500",
+        "0.607",
+        "0.750",
+        "0.982"
+      ],
+      "answer": 3,
+      "why": "Scores: e^(−0.5) ≈ 0.607 and e^(−4.5) ≈ 0.011; normalised, 0.607 / 0.618 ≈ 0.982. 0.607 forgets to normalise, and 0.750 comes from inverse distances, which fall off far more slowly than a bell curve.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "On the 2-D map, t-SNE scores similarity with the t-curve 1 / (1 + d²). What is that score at d = 4?",
+      "options": [
+        "0.0003",
+        "0.0588",
+        "0.0625",
+        "0.2500"
+      ],
+      "answer": 1,
+      "why": "1 / (1 + 16) = 1 / 17 ≈ 0.0588, about 175 times the bell-curve value e^(−8) ≈ 0.0003. 0.0625 forgets the 1 + in the denominator. That heavy tail is what lets t-SNE push dissimilar points far apart and open gaps between groups.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "On a t-SNE map of customers, segment A's island looks three times as large as segment B's. What can you conclude?",
+      "options": [
+        "Segment A is three times as varied as segment B",
+        "Segment A has three times as many customers",
+        "Very little: t-SNE tends to expand dense clusters and shrink sparse ones, so check spread in the original space",
+        "Segment B is three times as tight, so it is the better segment"
+      ],
+      "answer": 2,
+      "why": "Cluster sizes on t-SNE maps are not reliable, because each point's neighbourhood width adapts to local density. Measure spread and counts in the original space before saying anything about them.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "On purely random data, t-SNE with perplexity 5 shows many small, tidy clusters, which disappear at perplexity 30 and 50. What does this tell you?",
+      "options": [
+        "Very low perplexity can make noise look clustered; trust only structure that holds across several perplexities and seeds",
+        "Perplexity 5 is the most sensitive setting and reveals hidden structure",
+        "The data must contain exactly as many groups as appear at perplexity 5",
+        "Perplexity 30 is hiding the true clusters"
+      ],
+      "answer": 0,
+      "why": "Too small a perplexity focuses on tiny neighbourhoods and produces many fake clusters. Real structure survives changes of perplexity and random seed. Colouring points by known labels is a further sanity check.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Interview: \"Why does t-SNE use a heavy-tailed t-curve on the map instead of the same bell curve it uses in the original space?\"",
+      "options": [
+        "To run faster on large datasets",
+        "So that new points can be added with `transform`",
+        "So that distances between clusters on the map become exact",
+        "To solve the crowding problem: 2-D has too little room for all moderate neighbours, and the heavy tail lets them sit further apart without much penalty, opening gaps between groups"
+      ],
+      "answer": 3,
+      "why": "A point can have dozens of moderately close neighbours in hundreds of dimensions but cannot fit them all at moderate distance on a page. The heavy tail relieves that pressure. It does not make between-cluster distances meaningful; if anything it exaggerates gaps.",
+      "level": 3,
+      "kind": "interview"
+    },
+    {
+      "q": "Interview: \"You need a 2-D picture of one million 384-dimensional product embeddings for category managers. What pipeline would you use?\"",
+      "options": [
+        "PCA to about 50 dimensions, then UMAP; check several seeds and settings and colour points by known category",
+        "Exact t-SNE straight on the 384 dimensions with one setting",
+        "PCA to 2 dimensions only, since it preserves local neighbourhoods best",
+        "UMAP, then quote the distances between islands as how different categories are"
+      ],
+      "answer": 0,
+      "why": "Pre-reducing with PCA removes noise and speeds things up, UMAP scales to large data, and stability checks plus known labels guard against over-reading. Exact t-SNE does not scale, PCA to 2-D tends to pile curved structure on top of itself, and gaps between islands are not reliable measures of difference.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

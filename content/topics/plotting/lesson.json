@@ -14,14 +14,15 @@
     "**Bar chart** for counts per category; **line chart** for values over time. Always label axes with units."
   ],
   "example": {
-    "title": "A suspicious flat price",
+    "title": "A box plot by hand: delivery times",
     "steps": [
-      "Histogram of prices: most between ₹20–90L",
-      "One bar at ₹960L",
-      "Scatter of price vs area: that point has only 400 sq ft",
-      "Investigate: an extra zero was typed (₹96L)"
+      "Ten delivery times (min), sorted: 22, 25, 27, 28, 30, 31, 33, 35, 38, 75",
+      "Median = (30 + 31) / 2 = 30.5; Q1 = 27.25, Q3 = 34.5 (NumPy's default), so IQR = 7.25",
+      "Fences: 27.25 − 1.5 × 7.25 = 16.375 and 34.5 + 1.5 × 7.25 = 45.375",
+      "75 lies above 45.375 → drawn as an outlier dot; every other value is inside the fences",
+      "Mean = 344 / 10 = 34.4, almost 4 minutes above the median because of that one order"
     ],
-    "result": "One plot saved the regression model from being dragged by a typo."
+    "result": "Typical delivery ≈ 30 minutes, plus one 75-minute case to investigate. The box plot shows both at a glance; the mean alone blends them into a misleading 34.4. A scatter of time vs distance would then tell you whether 75 was simply a long trip or a real problem."
   },
   "mistakes": [
     "Computing statistics without ever looking at the data.",
@@ -33,7 +34,7 @@
     "Label axes and units"
   ],
   "practice": {
-    "code": "import pandas as pd, matplotlib.pyplot as plt\ndf = pd.DataFrame({\"area\": [900, 1200, 400, 1000], \"price\": [60, 80, 960, 70]})\ndf.plot.scatter(x=\"area\", y=\"price\"); plt.show()\ndf[\"price\"].plot.hist(bins=20); plt.show()\ndf.boxplot(column=\"price\"); plt.show()",
+    "code": "import numpy as np, pandas as pd, matplotlib.pyplot as plt\nt = pd.Series([22, 25, 27, 28, 30, 31, 33, 35, 38, 75], name=\"minutes\")\nq1, q3 = np.percentile(t, [25, 75]); iqr = q3 - q1\nprint(t.median(), q1, q3, q3 + 1.5 * iqr, t.mean())  # 30.5 27.25 34.5 45.375 34.4\nt.plot.box(); plt.show()          # 75 appears as an outlier dot\nt.plot.hist(bins=6); plt.show()   # shape of the distribution",
     "note": "Charts need a plotting backend, so run this in Jupyter or VS Code rather than in the in-browser runner."
   },
   "check": [

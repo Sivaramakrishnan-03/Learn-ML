@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "Why does NumPy insist that every item in an array has the same type (dtype)?",
+      "options": [
+        "To save typing when creating arrays",
+        "So it can store the numbers in one compact block and run fast compiled loops without checking each item's type",
+        "Because Python lists cannot hold numbers",
+        "So arrays can mix text and numbers safely"
+      ],
+      "answer": 1,
+      "why": "The single-type promise lets NumPy skip per-item checks and use fast C code on a contiguous block of memory. Mixing types is exactly what breaks this: one word such as \"missing\" turns the array into slow general-purpose objects or strings.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "What does `np.array([50, 200, 90]) * 1.18` return?",
+      "options": [
+        "[59.0, 236.0, 106.2]",
+        "[50, 200, 90, 1.18]",
+        "[51.18, 201.18, 91.18]",
+        "An error, because you need a loop"
+      ],
+      "answer": 0,
+      "why": "Arithmetic on an array applies to every item (vectorisation): 50 × 1.18 = 59, 200 × 1.18 = 236, 90 × 1.18 = 106.2. Adding 1.18 to each is a misreading of the operator, and appending it is what you might expect from a Python list.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "`S = np.array([[2, 5], [7, 1], [4, 4]])`. What does `S.sum(axis=0)` return?",
+      "options": [
+        "[7, 8, 8]",
+        "23",
+        "[13, 10]",
+        "[2, 5]"
+      ],
+      "answer": 2,
+      "why": "`axis=0` collapses the rows, adding down each column: 2 + 7 + 4 = 13 and 5 + 1 + 4 = 10. The axis you name is the one that disappears. [7, 8, 8] is `axis=1` (one total per row), and 23 is the grand total with no axis.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Which pair of shapes cannot be combined with broadcasting?",
+      "options": [
+        "(1000, 5) and (1000,)",
+        "(3, 1) and (1, 4)",
+        "(3, 3) and (3,)",
+        "(1000, 5) and (1000, 1)"
+      ],
+      "answer": 0,
+      "why": "Compare shapes from the right: 5 and 1000 are neither equal nor 1, so (1000, 5) with (1000,) fails. It is tempting because both have 1,000, but the 1,000 is lined up against the 5. Reshaping to (1000, 1) gives one value per row and works.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "Roughly how much memory does a NumPy array of 2 million float64 numbers use?",
+      "options": [
+        "2 MB",
+        "16 MB",
+        "64 MB",
+        "8 MB"
+      ],
+      "answer": 1,
+      "why": "Each float64 takes 8 bytes: 2,000,000 × 8 = 16,000,000 bytes ≈ **16 MB**. 8 MB is the figure for one million numbers; 64 MB is closer to what a Python list of the same numbers would need, since every list item is a separate object.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "You run `a = np.array([1, 2, 3])`, then `b = a[:2]`, then `b[0] = 99`. What does `print(a)` show?",
+      "options": [
+        "[1 2 3]",
+        "An error, because b is read-only",
+        "[99 2]",
+        "[99 2 3]"
+      ],
+      "answer": 3,
+      "why": "A slice is a **view**: it looks at the same memory as `a`, so editing `b` changes `a`. Expecting `a` to be untouched is the common surprise for people used to Python lists, where slicing copies. Use `a[:2].copy()` when you need independence.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A 5 × 6 array of int64 numbers is stored row by row. What are its strides (bytes to jump for the next row, and for the next column)?",
+      "options": [
+        "(8, 48)",
+        "(40, 8)",
+        "(48, 8)",
+        "(6, 5)"
+      ],
+      "answer": 2,
+      "why": "Each int64 is 8 bytes, so moving one column jumps 8 bytes, and a full row is 6 × 8 = **48** bytes. (40, 8) uses the number of rows (5) instead of columns; (6, 5) confuses strides with the shape.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"Why is `prices * 1.18` on a NumPy array so much faster than a Python for-loop over a list?\" Which answer is best?",
+      "options": [
+        "NumPy automatically runs on the GPU",
+        "Python for-loops are fast; the difference is only in printing",
+        "NumPy skips some of the items to save time",
+        "The array stores one dtype in contiguous memory, so the loop runs inside compiled C code without per-item type checks or object overhead"
+      ],
+      "answer": 3,
+      "why": "Vectorisation still loops, but in compiled code over a uniform, compact block of memory. Plain NumPy does not use the GPU, which is a frequent misconception; GPU arrays come from other libraries.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

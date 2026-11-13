@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A residual is defined as actual − predicted. A flat sold for ₹80 lakh and the model predicted ₹72 lakh. What does the residual of +8 tell you?",
+      "options": [
+        "The model predicted too high",
+        "The model predicted too low",
+        "The model's error was 8%",
+        "The model was 8 times too low"
+      ],
+      "answer": 1,
+      "why": "A positive residual means the actual value exceeded the prediction, so the model under-predicted by ₹8 lakh. Reading the sign the other way round is a common slip; the error is in lakh, not percent.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "Actual values are 50, 60 and 70; predictions are 55, 58 and 80. What is the MAE?",
+      "options": [
+        "About 5.67",
+        "About −4.33",
+        "About 6.56",
+        "17"
+      ],
+      "answer": 0,
+      "why": "Errors are −5, +2, −10; absolute errors 5, 2, 10; MAE = 17 / 3 ≈ **5.67**. −4.33 is the mean signed error, where misses in opposite directions cancel; 6.56 is the RMSE; 17 forgets to divide by 3.",
+      "level": 1,
+      "kind": "calculation"
+    },
+    {
+      "q": "For the same data (actual 50, 60, 70; predicted 55, 58, 80), what is R²?",
+      "options": [
+        "0.645",
+        "−0.355",
+        "0.355",
+        "0.78"
+      ],
+      "answer": 2,
+      "why": "Model squared errors: 25 + 4 + 100 = 129. A lazy model predicting the mean (60) has 100 + 0 + 100 = 200. R² = 1 − 129 / 200 = **0.355**. 0.645 is 129 / 200 itself, the share of lazy error that remains, not the share removed.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "A demand model has MAE = 12 units and RMSE = 30 units. What does the large gap suggest?",
+      "options": [
+        "The model is biased upwards",
+        "The model is excellent, since MAE is small",
+        "The two metrics were computed on different data",
+        "Most misses are modest, but a few are very large, because RMSE punishes big misses heavily"
+      ],
+      "answer": 3,
+      "why": "RMSE squares the misses before averaging, so a handful of large errors inflate it far above MAE. If all misses were similar in size, the two would be close. The gap says nothing about direction (bias); look at the mean signed error for that.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Some products have weeks with zero sales. Why is MAPE a poor choice here?",
+      "options": [
+        "MAPE cannot handle negative errors",
+        "MAPE only works for classification",
+        "MAPE is always larger than RMSE",
+        "MAPE divides each miss by the actual value, so it is undefined or explodes when actuals are zero or tiny; WAPE (total absolute error ÷ total actual) avoids this"
+      ],
+      "answer": 3,
+      "why": "Percentage errors need a non-zero denominator. A miss of 3 units on an actual of 0 gives an infinite percentage. WAPE divides once by the total, so small individual actuals cannot dominate.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "A price model scores R² = −0.2 on the test set. What does that mean?",
+      "options": [
+        "A calculation error, because R² cannot be negative",
+        "The model does worse than simply predicting the average price for every flat",
+        "The model explains 20% of the variation",
+        "The model is slightly better than the average"
+      ],
+      "answer": 1,
+      "why": "R² compares the model's squared errors with those of a lazy mean predictor. A negative value means the model's errors are larger. Believing R² is bounded between 0 and 1 is a common misconception; on new data it can go below zero.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "Three products: actual sales 40, 10, 50; forecasts 30, 20, 45. What are the WAPE and the MAPE?",
+      "options": [
+        "WAPE 25%, MAPE 45%",
+        "WAPE 45%, MAPE 25%",
+        "WAPE 25%, MAPE 25%",
+        "WAPE 8.3%, MAPE 45%"
+      ],
+      "answer": 0,
+      "why": "Absolute misses 10, 10, 5 total 25; actuals total 100, so WAPE = **25%**. Percentage misses are 25%, 100% and 10%, so MAPE = 135 / 3 = **45%**. The small product (actual 10) inflates MAPE; WAPE weights each product by its size. 8.3% divides the average miss by the total instead of the total miss.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "Interview: \"How do you choose between MAE and RMSE for a forecasting model?\" Which answer is best?",
+      "options": [
+        "Always use RMSE, because it is what models minimise",
+        "Use whichever gives the smaller number",
+        "Ask how errors cost money: if a miss of 20 is about twice as bad as a miss of 10, use MAE; if one large miss (a stock-out, an under-reserved claim) is much worse than several small ones, use RMSE. Report it alongside a naive baseline",
+        "Always use R², because it is unit-free"
+      ],
+      "answer": 2,
+      "why": "The best metric mirrors the business cost of errors. Choosing the metric that looks smaller is a reporting trick, not an evaluation. R² is handy for comparing models on the same data but says nothing about error size in business units.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}

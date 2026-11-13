@@ -2,13 +2,13 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Arrow, Dots, Seg, Label, Caption, Readout, Slider, Choice, Toggle, Layout, Legend, useStepPlayer, PlayerControls, C, Scales } from '../viz/kit';
-import { V2, norm, equalH, f2 } from './_math-helpers';
+import { V2, norm, dot } from '../viz/math';
+import { equalH, f2 } from './_math-helpers';
 
 /* ---------- pure helpers ---------- */
 const add = (a: V2, b: V2): V2 => [a[0] + b[0], a[1] + b[1]];
 const sub = (a: V2, b: V2): V2 => [a[0] - b[0], a[1] - b[1]];
 const scl = (c: number, a: V2): V2 => [c * a[0], c * a[1]];
-const dot = (a: V2, b: V2) => a[0] * b[0] + a[1] * b[1];
 const cosSim = (a: V2, b: V2) => (norm(a) && norm(b) ? dot(a, b) / (norm(a) * norm(b)) : 0);
 const vs = (v: V2) => `[${f2(v[0], Number.isInteger(v[0]) ? 0 : 1)}, ${f2(v[1], Number.isInteger(v[1]) ? 0 : 1)}]`;
 

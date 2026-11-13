@@ -14,14 +14,15 @@
     "You save one object (`joblib.dump(pipe)`) and production gets exactly the same preprocessing. No more \"it worked in the notebook\"."
   ],
   "example": {
-    "title": "Loan model pipeline",
+    "title": "Tracing a tiny loan pipeline by hand",
     "steps": [
-      "Numeric [income, age] → SimpleImputer(median) → StandardScaler",
-      "Categorical [city] → OneHotEncoder(handle_unknown=\"ignore\")",
-      "Model → LogisticRegression",
-      "cross_val_score(pipe, X, y, cv=5) runs all of it correctly per fold"
+      "Training incomes (₹ thousand/month): 10, 20, missing, 15; cities Pune, Chennai, Pune, Delhi",
+      "Imputer learns the median 15 → column 10, 20, 15, 15",
+      "Scaler learns μ = 15, σ = √12.5 ≈ 3.536 → scaled −1.414, +1.414, 0, 0",
+      "One-hot encoder learns Chennai, Delhi, Pune (alphabetical)",
+      "New applicant: income 18, city Mumbai → (18 − 15) / 3.536 ≈ 0.849; unseen Mumbai → (0, 0, 0) thanks to handle_unknown=\"ignore\""
     ],
-    "result": "One object, no leakage, deployable as a single file."
+    "result": "The new row reaches the model as (0.849, 0, 0, 0), using only settings learned from training rows. Fit the same steps on training + validation rows instead and the median becomes 20 and μ ≈ 34.2: leakage."
   },
   "mistakes": [
     "Scaling the whole dataset before CV.",
@@ -33,7 +34,7 @@
     "Fit once, deploy the same object"
   ],
   "practice": {
-    "code": "import pandas as pd, numpy as np\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.compose import make_column_transformer\nfrom sklearn.preprocessing import StandardScaler, OneHotEncoder\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.linear_model import LogisticRegression\nX = pd.DataFrame({\"income\": [10, 20, np.nan, 15], \"city\": [\"Pune\", \"Chennai\", \"Pune\", \"Delhi\"]}); y = [0, 1, 0, 1]\npre = make_column_transformer((make_pipeline(SimpleImputer(strategy=\"median\"), StandardScaler()), [\"income\"]),\n                              (OneHotEncoder(handle_unknown=\"ignore\"), [\"city\"]))\npipe = make_pipeline(pre, LogisticRegression()).fit(X, y)\nprint(pipe.predict(pd.DataFrame({\"income\": [18], \"city\": [\"Mumbai\"]})))"
+    "code": "import pandas as pd, numpy as np\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.compose import make_column_transformer\nfrom sklearn.preprocessing import StandardScaler, OneHotEncoder\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.linear_model import LogisticRegression\nX = pd.DataFrame({\"income\": [10, 20, np.nan, 15], \"city\": [\"Pune\", \"Chennai\", \"Pune\", \"Delhi\"]}); y = [0, 1, 0, 1]\npre = make_column_transformer((make_pipeline(SimpleImputer(strategy=\"median\"), StandardScaler()), [\"income\"]),\n                              (OneHotEncoder(handle_unknown=\"ignore\"), [\"city\"]))\nnew = pd.DataFrame({\"income\": [18], \"city\": [\"Mumbai\"]})\nprint(pre.fit(X).transform(new).round(3))     # [[0.849 0. 0. 0.]]\npipe = make_pipeline(pre, LogisticRegression()).fit(X, y)\nprint(pipe.predict(new))"
   },
   "check": [
     {

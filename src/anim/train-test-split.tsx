@@ -2,7 +2,8 @@
 import { useMemo, useState } from 'react';
 import { TopicAnim } from './types';
 import { Plot, Dots, FnLine, Seg, Label, Caption, Readout, Slider, Choice, Layout, Legend, useStepPlayer, PlayerControls, C } from '../viz/kit';
-import { Pt, polyFit, rmse, sampleCurve, permutation, clipped, sd } from './_workflow-helpers';
+import { sampleCurve, permutation, sd } from '../viz/math';
+import { Pt, polyFit, rmse, clipped } from './_workflow-helpers';
 
 /* ---------- pure helpers ---------- */
 const TRAIN = C.blue, TEST = C.purple;

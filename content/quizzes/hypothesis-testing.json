@@ -1,0 +1,109 @@
+{
+  "$schema": "../schema/quiz.schema.json",
+  "questions": [
+    {
+      "q": "A test gives **p = 0.03**. Which statement is correct?",
+      "options": [
+        "If the null hypothesis were true, data at least this extreme would turn up about 3% of the time",
+        "There is a 97% probability that the effect is real",
+        "There is a 3% probability that the null hypothesis is true",
+        "There is a 3% probability that the result is due to chance"
+      ],
+      "answer": 0,
+      "why": "A p-value is computed assuming H₀ is true; it measures how surprising the data are under H₀. It is not the probability that H₀ is true, nor that the effect is real; those depend on prior plausibility and power. \"Due to chance\" is a disguised version of the same mistake.",
+      "level": 1,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A test returns \"fail to reject H₀\". What does that mean?",
+      "options": [
+        "The null hypothesis has been proved true",
+        "The data were not surprising enough to rule out \"no effect\"; the effect may be zero or the test may have been too small to detect it",
+        "The alternative hypothesis has been proved false",
+        "The test was carried out incorrectly"
+      ],
+      "answer": 1,
+      "why": "Not rejecting H₀ is a statement about weak evidence, not proof of no effect. A small or noisy test can easily miss a real effect. Check the confidence interval to see which effect sizes are still plausible.",
+      "level": 1,
+      "kind": "concept"
+    },
+    {
+      "q": "A coin lands heads 59 times in 100 tosses. Using the normal approximation, test H₀: p = 0.5 two-sided at α = 0.05.",
+      "options": [
+        "z = 1.8, p ≈ 0.036, reject H₀",
+        "z = 9, p < 0.001, reject H₀",
+        "z = 1.8, p ≈ 0.072, do not reject H₀",
+        "z = 0.09, p ≈ 0.93, do not reject H₀"
+      ],
+      "answer": 2,
+      "why": "Under H₀ the mean is 50 and the SD √(100 × 0.5 × 0.5) = 5, so z = 9 / 5 = 1.8. The two-sided p-value is 2 × 0.036 = 0.072, above 0.05 (the exact binomial test gives 0.089). Quoting 0.036 is the one-sided tail, a common way to overstate evidence; z = 9 forgets to divide by the SD.",
+      "level": 2,
+      "kind": "calculation"
+    },
+    {
+      "q": "Which change **increases** the power of a test to detect a real effect of a given size?",
+      "options": [
+        "Lowering α from 0.05 to 0.01",
+        "Increasing the sample size",
+        "Using a noisier metric",
+        "Switching from a one-sided to a two-sided test"
+      ],
+      "answer": 1,
+      "why": "Power rises with larger samples, larger true effects, less noise and a less strict α. A stricter α (0.01) makes rejection harder and lowers power; a two-sided test splits α across both tails, which also lowers power in the direction of interest.",
+      "level": 2,
+      "kind": "concept"
+    },
+    {
+      "q": "An A/B test reports a lift of 1.0 point, 95% CI 0.19 to 1.81 points, p = 0.016. Which statement is correct?",
+      "options": [
+        "The data are hard to explain with zero lift, and the plausible true lift ranges from about 0.2 to 1.8 points; finance should value both ends",
+        "The effect is large because the p-value is small",
+        "There is a 98.4% chance the new button is better",
+        "The true lift is exactly 1.0 point"
+      ],
+      "answer": 0,
+      "why": "The small p-value says the data would be surprising if the buttons were equivalent, and the interval gives the range of lifts consistent with the data. A p-value is not the probability the effect is real, and it does not measure size: a tiny effect can have a tiny p-value with enough data.",
+      "level": 2,
+      "kind": "interpretation"
+    },
+    {
+      "q": "A company tests 1,000 ideas, of which 200 truly work. Each test uses α = 0.05 and has 80% power. What share of the ideas declared significant are actually duds?",
+      "options": [
+        "5%",
+        "80%",
+        "36%",
+        "20%"
+      ],
+      "answer": 3,
+      "why": "True positives = 80% of 200 = 160. False positives = 5% of 800 = 40. Share of winners that are false = 40 / 200 = 20%. 5% is α, the false-positive rate among useless ideas, not among significant results. 36% is the answer when only 100 of the ideas work, which shows the base rate drives it.",
+      "level": 3,
+      "kind": "calculation"
+    },
+    {
+      "q": "A marketing campaign test is \"not significant\", with 95% CI for the lift of −1% to +6%. The CMO wants to cancel the campaign as useless. What is the flaw?",
+      "options": [
+        "None; not significant means the effect is zero",
+        "The p-value must have been below 0.05",
+        "The test was inconclusive: the interval still includes a large benefit (up to +6%), so it could not tell; a bigger test is needed before concluding \"no effect\"",
+        "The interval shows the campaign is harmful"
+      ],
+      "answer": 2,
+      "why": "Absence of evidence is not evidence of absence. An interval from −1% to +6% is consistent with no effect, a small harm or a large gain. It does not show harm either, since most of it is above zero. The right move is to judge whether a larger test is worth it.",
+      "level": 3,
+      "kind": "interpretation"
+    },
+    {
+      "q": "In an interview: \"Your two-sided A/B test gave p = 0.08. A colleague suggests switching to a one-sided test to get p = 0.04. Is that acceptable?\"",
+      "options": [
+        "Yes, one-sided tests are always valid",
+        "Yes, as long as the effect is in the hoped-for direction",
+        "No, because one-sided tests cannot be used for proportions",
+        "No; choosing the direction after seeing the data halves the p-value dishonestly and doubles the false-positive rate in that direction; the sidedness must be fixed in advance"
+      ],
+      "answer": 3,
+      "why": "A one-sided test is legitimate only if you decided before seeing the data that the other direction does not matter. Switching after the fact is p-hacking. Checking that the effect went the hoped-for way is exactly what makes the switch dishonest.",
+      "level": 3,
+      "kind": "interview"
+    }
+  ]
+}
